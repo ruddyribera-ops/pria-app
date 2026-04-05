@@ -1,25 +1,23 @@
-"""Seeds the database with the default admin user if it doesn't exist."""
+"""Seeds the database with default users if they don't exist."""
 import sys, os, hashlib, sqlite3
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pria_estado.db")
 
-email    = "misterruddy@laspalmas.edu.bo"
-password = "2b0n2b!123"
-nombre   = "Ruddy Ribera"
-hoja     = "ADMIN"
-rol      = "admin"
-
 def _hash(p):
     return hashlib.sha256(p.encode()).hexdigest()
 
+SEED_USERS = [
+    # (email/username, password, nombre, nombre_hoja, rol)
+    ("admin",                        "2b0n2b!123", "Administrador",  "ADMIN",  "admin"),
+    ("misterruddy@laspalmas.edu.bo", "2b0n2b!123", "Ruddy Ribera",   "RUDDY",  "docente"),
+]
+
 print(f"DB path: {DB_PATH}")
-print(f"DB exists: {os.path.exists(DB_PATH)}")
 
 con = sqlite3.connect(DB_PATH)
 con.row_factory = sqlite3.Row
 
-# Ensure table exists
 con.execute("""
     CREATE TABLE IF NOT EXISTS usuarios (
         id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,19 +32,21 @@ con.execute("""
 """)
 con.commit()
 
-row = con.execute("SELECT * FROM usuarios WHERE email=?", (email,)).fetchone()
-if row:
-    print(f"User exists: activo={row['activo']} rol={row['rol']}")
-    # Make sure it's active and admin
-    con.execute("UPDATE usuarios SET activo=1, rol='admin', password_hash=? WHERE email=?", (_hash(password), email))
-    con.commit()
-    print("Updated password/role/activo.")
-else:
-    con.execute(
-        "INSERT INTO usuarios (email, password_hash, nombre, nombre_hoja, rol, activo) VALUES (?,?,?,?,?,1)",
-        (email, _hash(password), nombre, hoja, rol)
-    )
-    con.commit()
-    print(f"Created admin user {email} OK")
+for email, password, nombre, hoja, rol in SEED_USERS:
+    row = con.execute("SELECT id FROM usuarios WHERE email=?", (email,)).fetchone()
+    if row:
+        con.execute(
+            "UPDATE usuarios SET activo=1, rol=?, password_hash=? WHERE email=?",
+            (rol, _hash(password), email)
+        )
+        print(f"Updated: {email}")
+    else:
+        con.execute(
+            "INSERT INTO usuarios (email, password_hash, nombre, nombre_hoja, rol, activo) VALUES (?,?,?,?,?,1)",
+            (email, _hash(password), nombre, hoja, rol)
+        )
+        print(f"Created: {email} [{rol}]")
 
+con.commit()
 con.close()
+print("Seed complete.")

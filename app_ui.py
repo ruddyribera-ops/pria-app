@@ -1099,8 +1099,8 @@ if "usuario_email" not in st.session_state:
 if not st.session_state.get("autenticado"):
     with st.container(border=True):
         st.markdown("### 🔐 Acceso al Sistema PRIA")
-        st.caption("Ingresa con tu correo institucional y contraseña.")
-        _email = st.text_input("Correo electrónico:", placeholder="nombre@laspalmas.edu",
+        st.caption("Ingresa con tu usuario o correo institucional y contraseña.")
+        _email = st.text_input("Usuario o correo:", placeholder="admin  /  nombre@laspalmas.edu",
                                key="login_email")
         _pwd   = st.text_input("Contraseña:", type="password", key="login_pwd")
         if st.button("Ingresar", type="primary", use_container_width=True, key="btn_login"):
