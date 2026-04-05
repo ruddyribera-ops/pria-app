@@ -12,8 +12,9 @@ IMAGE_API_KEY = "{image_key}"
 APP_PASSWORD = "{app_password}"
 """
 
-os.makedirs(".streamlit", exist_ok=True)
-with open(".streamlit/secrets.toml", "w") as f:
-    f.write(toml)
-
-print("secrets.toml generated OK")
+# Write to all paths Streamlit checks
+for path in ["/app/.streamlit/secrets.toml", "/root/.streamlit/secrets.toml"]:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write(toml)
+    print(f"Written: {path}")
