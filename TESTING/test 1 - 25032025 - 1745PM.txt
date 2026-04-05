@@ -1,0 +1,18 @@
+test 1 - 25/03/2025
+
+-I run the system and its working wonderfully. 
+
+-Some of the text en en el output was unreadable because it the color of the text is white. 
+
+
+-The rest of the materials are prolifos. Its fantastic.
+
+-When The content of the books is extracted it must also be saved as a JSON or TXT. It everytime the unit is loaded it must not have to load up everything again. 
+
+-The field for - Paginas SB and TB is open. The data for these fields must also be extracted from the textbook and student book and musn't be editable.
+
+-the field for Recursos disponibles comes already with the field full of data. Lets keep it empty until the user decides to input anything. 
+
+-the field for sugerencias del docente comes already with the field full of data. Lets keep it empty until the user decides to input anything. 
+
+-Lastly. lets show a button that gives the option for the user to see the previous adaptations made and decide if they need a new one. 

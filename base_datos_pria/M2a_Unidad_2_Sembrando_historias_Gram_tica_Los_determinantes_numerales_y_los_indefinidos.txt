@@ -1,0 +1,48 @@
+Aquí tienes el diseño del Pop Quiz DUA, estructurado para realizarse en los últimos 5 minutos de la clase. Integra los objetivos gramaticales, las adaptaciones neuro-inclusivas y la temática del Proyecto ABP "El Diario de un Personaje de Leyenda".
+
+***
+
+# 📝 Pop Quiz DUA: ¡El Inventario de la Leyenda! (5 minutos)
+
+**Instrucciones para el estudiante:**
+*¡Tu personaje de leyenda necesita organizar su diario!* 
+Recuerda nuestro código de color de hoy:
+🟦 **Azul:** Determinantes Numerales (Cantidades exactas / precisas).
+🟨 **Amarillo/Naranja:** Determinantes Indefinidos (Cantidades imprecisas / estimaciones).
+
+Elige **UNA (1)** de las siguientes misiones para demostrar lo que aprendiste hoy. Puedes responder escribiendo, dibujando o explicándomelo en voz alta al entregar tu hoja.
+
+### 🎯 Misión A: El Detective de Leyendas (Visual y Lingüística)
+Lee la siguiente nota del diario del Rey. 
+1. Subraya con color 🟦 el determinante numeral.
+2. Subraya con color 🟨 el determinante indefinido.
+3. Dibuja una flecha que conecte cada determinante con su sustantivo para comprobar que concuerdan en género y número.
+
+> *"Hoy vi al pájaro de fuego. Dejó caer **tres** plumas doradas y **algunas** chispas mágicas."*
+
+### 🎨 Misión B: El Ilustrador del Diario (Artística y Motriz)
+Dibuja el tesoro que encontró tu personaje. 
+1. Dibuja una cantidad **EXACTA** (numeral) de espadas.
+2. Dibuja una cantidad **IMPRECISA** (indefinido) de monedas.
+3. Escribe al lado de tu dibujo (o dile al profesor en voz alta) la frase que describe tu dibujo usando los colores 🟦 y 🟨. *(Ejemplo: "Tengo 🟦dos espadas y 🟨muchas monedas").*
+
+### 🧠 Misión C: El Acertijo del Personaje (Reto Lógico-Matemático)
+Escribe un acertijo muy corto que tu personaje anotaría en su diario usando **1 determinante numeral 🟦** y **1 determinante indefinido 🟨**. Asegúrate de que concuerden en género y número con los objetos que describen.
+*(Ejemplo: "Tengo 🟦dos alas de fuego, pero 🟨pocos amigos en el bosque. ¿Quién soy?")*
+
+---
+
+## 🗝️ Clave de Respuestas (Para el Docente)
+
+**Misión A (Ideal para Dislexia y TEA - Literal, estructurado y con apoyo visual):**
+*   **Numeral 🟦:** tres (Conectado con flecha al sustantivo *plumas*. Concordancia: Femenino, Plural).
+*   **Indefinido 🟨:** algunas (Conectado con flecha al sustantivo *chispas*. Concordancia: Femenino, Plural).
+*   *Nota Evaluación:* Verificar el uso correcto de los colores y la comprensión de la concordancia (la flecha).
+
+**Misión B (Ideal para TDAH y Dislexia - Baja carga de escritura, respuesta creativa/oral):**
+*   El dibujo debe mostrar claramente una cantidad que se pueda contar (ej. 3 espadas) y un montón incontable/vago (ej. un cofre lleno de monedas).
+*   *Nota Evaluación:* Si el alumno elige la opción oral, el docente anota un "Check" ✔️ en la hoja si verbaliza correctamente la frase haciendo concordar el género y número (ej. "muchas monedas" y no "muchos monedas").
+
+**Misión C (Ideal para Alta Capacidad - Exige integración, creatividad y lógica):**
+*   El acertijo debe contener obligatoriamente una cantidad exacta (numeral) y una imprecisa (indefinido).
+*   *Nota Evaluación:* Evaluar que la concordancia de género y número se aplique correctamente al sustantivo que acompaña al determinante dentro del contexto del acertijo.

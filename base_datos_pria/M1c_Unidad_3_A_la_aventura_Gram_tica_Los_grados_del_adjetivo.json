@@ -1,0 +1,76 @@
+{
+    "ficha_trabajo": {
+        "titulo_gancho": "El Entrenamiento de los Caballeros: La Magia de los Adjetivos",
+        "historia_gancho": "En nuestra academia, las niñas guerreras ya son muy fuertes, pero hoy es el turno de los niños. El caballero Leo y el explorador Mateo quieren entrar al equipo de élite. Para lograrlo, deben dominar la magia de describir sus habilidades. Empiezan siendo rápidos, luego aprenden la fórmula para ser MÁS rápidos, ¡y su meta es ser LOS MÁS rápidos de todo el reino! Ayuda a Leo y Mateo completando las misiones con los adjetivos correctos.",
+        "misiones": {
+            "oraculo": [
+                {
+                    "pregunta": "Si aplicamos la fórmula lógica (más + adjetivo + que) al describir a Mateo frente a un dragón, ¿qué grado estamos usando?",
+                    "opciones": [
+                        "A) Grado comparativo",
+                        "B) Grado positivo"
+                    ]
+                },
+                {
+                    "pregunta": "El escudo de Leo es 'el más grande' de la academia. ¿Qué grado del adjetivo representa 'el más grande'?",
+                    "opciones": [
+                        "A) Grado positivo",
+                        "B) Grado superlativo"
+                    ]
+                }
+            ],
+            "puente": [
+                {
+                    "palabra": "Grado positivo",
+                    "significado": "Muestra la característica de forma natural y literal, sin comparar con nadie. (Ejemplo: Leo es rápido)."
+                },
+                {
+                    "palabra": "Grado comparativo",
+                    "significado": "Aplica una fórmula gramatical (más...que) para clasificar y comparar a dos personas u objetos."
+                },
+                {
+                    "palabra": "Grado superlativo",
+                    "significado": "Muestra que la característica ha llegado a su nivel máximo o extremo de todos."
+                }
+            ],
+            "sopa": [
+                "POSITIVO",
+                "COMPARATIVO",
+                "SUPERLATIVO",
+                "PESADO",
+                "RAPIDO"
+            ],
+            "pergamino": {
+                "frase_con_espacios": "El caballo de Mateo es rápido, y aquí la palabra está en _____. El caballo de Leo es más rápido que el de Mateo, usando la fórmula matemática del _____. Pero el halcón es el más rápido de todos los animales, alcanzando el _____.",
+                "palabras_secretas": [
+                    "Grado positivo",
+                    "Grado comparativo",
+                    "Grado superlativo"
+                ]
+            },
+            "lienzo": "Dibuja un mini-cómic de tres partes con tus protagonistas masculinos favoritos (pueden ser Leo y Mateo). 1: Un niño levantando una caja grande. 2: El mismo niño levantando una caja MÁS grande que la anterior. 3: ¡El niño levantando LA MÁS grande de todas las cajas!"
+        },
+        "adaptaciones_por_mision": [
+            {
+                "Mision": "General (Instrucciones)",
+                "Diagnostico": "TEA",
+                "Ajuste": "Mostrar una agenda visual en la pizarra con los pasos: 1. Leer historia, 2. Hacer misiones, 3. Entregar Ticket de Salida. Usar siempre ejemplos de adjetivos literales como 'grande', 'pesado' o 'rápido'."
+            },
+            {
+                "Mision": "Sopa y Pergamino",
+                "Diagnostico": "TDAH",
+                "Ajuste": "Fragmentar las misiones: realizar la 'Sopa', hacer una pausa activa para recoger/repartir materiales de la clase (rol de asistente), y al regresar al asiento, completar el 'Pergamino'."
+            },
+            {
+                "Mision": "Pergamino",
+                "Diagnostico": "Dislexia",
+                "Ajuste": "Entregar un organizador gráfico visual impreso con los tres conceptos clave. No forzar la lectura en voz alta; permitir que el estudiante resuelva los espacios vacíos respondiendo oralmente al docente."
+            },
+            {
+                "Mision": "Lienzo",
+                "Diagnostico": "Alta Capacidad",
+                "Ajuste": "Reto de extensión: En lugar de dibujar cajas grandes, debes crear y escribir oraciones debajo de cada dibujo aplicando adjetivos irregulares en sus tres grados (ejemplo: bueno, mejor, el mejor)."
+            }
+        ]
+    }
+}

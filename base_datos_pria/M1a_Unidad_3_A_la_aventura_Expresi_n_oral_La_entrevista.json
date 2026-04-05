@@ -1,0 +1,67 @@
+{
+    "mapa_cognitivo": {
+        "verbos": [
+            "Comprender",
+            "Redactar",
+            "Formular",
+            "Escuchar",
+            "Interactuar"
+        ]
+    },
+    "inteligencias_multiples": [
+        {
+            "Inteligencia": "Interpersonal",
+            "Actividad": "Práctica de entrevistas en parejas asumiendo roles, focalizándose en el contacto visual, lenguaje no verbal y escucha activa."
+        },
+        {
+            "Inteligencia": "Lingüística",
+            "Actividad": "Revisión de textos modelo (TextBook págs. 10-15) y redacción de un cuestionario propio estructurado en el StudentBook (págs. 1-5)."
+        }
+    ],
+    "secuencia_didactica": {
+        "bloques": [
+            {
+                "nombre": "Inicio",
+                "duracion": 10,
+                "objetivo": "Diferenciar entre preguntas abiertas y cerradas y reconocer el impacto del lenguaje no verbal.",
+                "nota": "Utilizar pictogramas o tarjetas de colores para mostrar ejemplos claros de tipos de preguntas."
+            },
+            {
+                "nombre": "Desarrollo",
+                "duracion": 25,
+                "objetivo": "Redactar un cuestionario de 5 a 8 preguntas y ensayar la entrevista con un compañero.",
+                "nota": "Asignar 15 minutos para la redacción guiada y 10 minutos para la interacción oral emparejada."
+            },
+            {
+                "nombre": "Cierre",
+                "duracion": 10,
+                "objetivo": "Reflexionar sobre la dificultad de mantener la escucha activa y evaluar la calidad del cuestionario.",
+                "nota": "Hacer una puesta en común rápida donde cada pareja comparta su mejor pregunta abierta."
+            }
+        ]
+    },
+    "dua_neuroinclusion": [
+        "Ofrecer esquemas visuales o mapas conceptuales en la pizarra que diferencien las preguntas abiertas de las cerradas.",
+        "Proporcionar opciones para la redacción del cuestionario: tradicional, digital, o mediante dictado a un compañero.",
+        "Implementar un temporizador visual en la pantalla para estructurar el tiempo de las actividades de redacción y entrevista."
+    ],
+    "tabla_adaptaciones_clase": [
+        {
+            "Diagnostico": "TEA (1)",
+            "Adaptacion": "Brindar un guion estructurado predecible de cómo iniciar y terminar la entrevista. Reducir la incertidumbre social asignando turnos de habla claros."
+        },
+        {
+            "Diagnostico": "TDAH (2)",
+            "Adaptacion": "Dividir la tarea de redacción en tres micropasos. Permitir que realicen la dinámica de la entrevista de pie o con libertad de movimiento."
+        },
+        {
+            "Diagnostico": "Dislexia (1)",
+            "Adaptacion": "Proporcionar el StudentBook con apoyo de lectura guiada o audiotexto si está disponible. Evaluar la formulación oral de las preguntas sin penalizar la ortografía."
+        },
+        {
+            "Diagnostico": "Alta Capacidad (1)",
+            "Adaptacion": "Desafiar al estudiante a formular preguntas que requieran pensamiento inferencial o divergente, asumiendo que entrevista a un personaje histórico o experto."
+        }
+    ],
+    "perfil_aula_resumido": "Aula neurodiversa que incluye 5 estudiantes con diagnósticos específicos (TEA, TDAH, Dislexia, Altas Capacidades). Requiere un enfoque que combine instrucciones visualmente estructuradas, pausas activas, flexibilidad en el formato de producción escrita y retos cognitivos multinivel para mantener el compromiso de todos."
+}

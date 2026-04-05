@@ -1,0 +1,170 @@
+{"ts": "2026-03-27T22:05:31.109976", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:06:40.980381", "session": "", "action": "upload_tb:Matemática 5º básico - Texto del estudiante.pdf", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:06:41.939874", "session": "c0810f6c", "action": "analizar_tb", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:07:14.003576", "session": "c0810f6c", "action": "generar:Motor_M0a.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:08:42.488513", "session": "c0810f6c", "action": "upload_tb:Unidad 1 - Lenguaje_5to_TB.pdf", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:09:50.583122", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:09:57.150365", "session": "", "action": "upload_tb:Unidad 1 - Lenguaje_5to_TB.pdf", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:10:44.069974", "session": "ca847481", "action": "analizar_tb", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:11:57.046841", "session": "ca847481", "action": "upload_tb:Unidad 8 - Lenguaje_5to_TB.pdf", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:12:50.739255", "session": "ca847481", "action": "analizar_tb", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:14:00.090774", "session": "ca847481", "action": "generar:Motor_M0a.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:15:06.501716", "session": "ca847481", "action": "generar:Motor_M0b.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:15:49.260843", "session": "ca847481", "action": "generar:Motor_M0c.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:18:06.136842", "session": "ca847481", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:19:43.389001", "session": "ca847481", "action": "generar:Motor_M1b.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:20:25.544922", "session": "ca847481", "action": "generar:Motor_M1c.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:29:48.447474", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:30:30.053888", "session": "", "action": "upload_tb:Texto de lenguaje.pdf", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:32:15.351834", "session": "65df0cc1", "action": "analizar_tb", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:32:57.397917", "session": "65df0cc1", "action": "upload_tb:Unidad 1 - Lenguaje_5to_TB.pdf", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:34:15.019552", "session": "65df0cc1", "action": "generar:Motor_M0a.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:35:01.004056", "session": "65df0cc1", "action": "generar:Motor_M0b.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:35:31.846861", "session": "65df0cc1", "action": "generar:Motor_M0c.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:37:06.586645", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:37:11.880266", "session": "", "action": "upload_tb:Unidad 1 - Lenguaje_5to_TB.pdf", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:39:09.113728", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:39:14.828331", "session": "", "action": "upload_tb:Unidad 1 - Lenguaje_5to_TB.pdf", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:39:18.248940", "session": "", "action": "generar:Motor_M0a.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:39:53.883473", "session": "", "action": "generar:Motor_M0b.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:40:26.442058", "session": "", "action": "generar:Motor_M0c.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:41:45.174957", "session": "", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:42:16.336368", "session": "", "action": "generar:Motor_M1b.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:43:15.859276", "session": "", "action": "generar:Motor_M1c.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:52:33.276050", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:52:39.090911", "session": "", "action": "upload_tb:Unidad 1 - Lenguaje_5to_TB.pdf", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:52:47.903894", "session": "", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:54:17.648379", "session": "", "action": "generar:Motor_M1b.txt", "ok": true, "err": ""}
+{"ts": "2026-03-27T22:55:04.384061", "session": "", "action": "generar:Motor_M1c.txt", "ok": true, "err": ""}
+{"ts": "2026-03-28T02:49:44.437264", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-03-28T02:49:57.442762", "session": "", "action": "upload_tb:Unidad 1 - Lenguaje_5to_TB.pdf", "ok": true, "err": ""}
+{"ts": "2026-03-28T02:51:04.444811", "session": "", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-03-28T02:51:42.869698", "session": "", "action": "generar:Motor_M1b.txt", "ok": true, "err": ""}
+{"ts": "2026-03-28T02:52:30.884815", "session": "", "action": "generar:Motor_M1c.txt", "ok": true, "err": ""}
+{"ts": "2026-03-28T11:18:49.927959", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-03-28T11:19:23.168236", "session": "", "action": "upload_tb:Unidad 2 - Lenguaje_5to_TB.pdf", "ok": true, "err": ""}
+{"ts": "2026-03-28T11:20:23.329630", "session": "736c85c0", "action": "analizar_tb", "ok": true, "err": ""}
+{"ts": "2026-03-28T11:22:24.547278", "session": "736c85c0", "action": "generar:Motor_M0a.txt", "ok": true, "err": ""}
+{"ts": "2026-03-28T11:24:29.091532", "session": "736c85c0", "action": "generar:Motor_M0b.txt", "ok": true, "err": ""}
+{"ts": "2026-03-28T11:25:05.404221", "session": "736c85c0", "action": "generar:Motor_M0c.txt", "ok": true, "err": ""}
+{"ts": "2026-03-28T11:28:39.222072", "session": "736c85c0", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-03-28T11:30:33.199569", "session": "736c85c0", "action": "generar:Motor_M1b.txt", "ok": true, "err": ""}
+{"ts": "2026-03-28T11:31:29.366874", "session": "736c85c0", "action": "generar:Motor_M1c.txt", "ok": true, "err": ""}
+{"ts": "2026-04-01T17:11:34.247856", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-01T17:11:42.541057", "session": "", "action": "upload_tb:Unidad 2 - Lenguaje_5to_TB.pdf", "ok": true, "err": ""}
+{"ts": "2026-04-01T17:13:11.867335", "session": "", "action": "generar:Motor_M0a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-01T17:15:03.836391", "session": "", "action": "generar:Motor_M0b.txt", "ok": true, "err": ""}
+{"ts": "2026-04-01T17:15:43.635171", "session": "", "action": "generar:Motor_M0c.txt", "ok": true, "err": ""}
+{"ts": "2026-04-01T17:17:53.629937", "session": "", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-01T17:18:51.661369", "session": "", "action": "generar:Motor_M1b.txt", "ok": true, "err": ""}
+{"ts": "2026-04-01T17:19:48.502424", "session": "", "action": "generar:Motor_M1c.txt", "ok": true, "err": ""}
+{"ts": "2026-04-01T17:29:51.138864", "session": "", "action": "generar:Motor_M2a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-01T17:30:47.815041", "session": "", "action": "generar:Motor_M2b.txt", "ok": true, "err": ""}
+{"ts": "2026-04-01T17:32:01.050783", "session": "", "action": "generar:Motor_M2b.txt", "ok": true, "err": ""}
+{"ts": "2026-04-01T21:22:54.269591", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-01T21:23:18.787005", "session": "", "action": "upload_tb:Unidad 2 - Lenguaje_5to_SB.pdf", "ok": true, "err": ""}
+{"ts": "2026-04-01T21:24:01.846250", "session": "64a9ec57", "action": "analizar_tb", "ok": true, "err": ""}
+{"ts": "2026-04-01T21:24:42.949617", "session": "64a9ec57", "action": "upload_tb:Unidad 2 - Lenguaje_5to_TB.pdf", "ok": true, "err": ""}
+{"ts": "2026-04-01T21:25:06.601332", "session": "64a9ec57", "action": "generar:Motor_M0a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-01T21:28:30.592529", "session": "64a9ec57", "action": "generar:Motor_M0b.txt", "ok": true, "err": ""}
+{"ts": "2026-04-01T21:29:07.004396", "session": "64a9ec57", "action": "generar:Motor_M0c.txt", "ok": true, "err": ""}
+{"ts": "2026-04-01T21:30:39.475674", "session": "64a9ec57", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-01T21:32:08.255587", "session": "64a9ec57", "action": "generar:Motor_M1b.txt", "ok": true, "err": ""}
+{"ts": "2026-04-01T21:32:58.096715", "session": "64a9ec57", "action": "generar:Motor_M1c.txt", "ok": true, "err": ""}
+{"ts": "2026-04-01T21:36:31.802108", "session": "64a9ec57", "action": "generar:Motor_M2a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-02T20:39:15.369339", "session": "", "action": "login_failed", "ok": false, "err": "wrong password"}
+{"ts": "2026-04-02T20:41:28.979293", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-02T20:42:27.898395", "session": "", "action": "upload_tb:Unidad 1 - Lenguaje_5to_SB.pdf", "ok": true, "err": ""}
+{"ts": "2026-04-02T20:43:15.029482", "session": "b0019d88", "action": "analizar_tb", "ok": true, "err": ""}
+{"ts": "2026-04-02T20:44:39.045217", "session": "b0019d88", "action": "upload_tb:Unidad 1 - Lenguaje_5to_TB.pdf", "ok": true, "err": ""}
+{"ts": "2026-04-02T20:52:22.946460", "session": "b0019d88", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-02T20:53:41.145408", "session": "b0019d88", "action": "generar:Motor_M1b.txt", "ok": true, "err": ""}
+{"ts": "2026-04-02T21:02:54.576793", "session": "b0019d88", "action": "generar:Motor_M1c.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T18:19:47.215485", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-04T18:27:49.273320", "session": "", "action": "upload_tb:Unidad 2.pdf", "ok": true, "err": ""}
+{"ts": "2026-04-04T18:28:41.253594", "session": "c84994dc", "action": "analizar_tb", "ok": true, "err": ""}
+{"ts": "2026-04-04T18:29:11.762748", "session": "c84994dc", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T18:32:31.269226", "session": "c84994dc", "action": "generar:Motor_M1b.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T18:39:32.260949", "session": "c84994dc", "action": "generar:Motor_M1c.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T18:41:28.692647", "session": "c84994dc", "action": "generar:Motor_M2a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T18:42:06.359243", "session": "c84994dc", "action": "generar:Motor_M2b.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T19:06:39.662517", "session": "c84994dc", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T19:06:57.729225", "session": "c84994dc", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T19:08:55.414745", "session": "c84994dc", "action": "generar:Motor_M1b.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T20:12:14.708901", "session": "c84994dc", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T20:12:58.481169", "session": "c84994dc", "action": "generar:Motor_M1b.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T20:14:12.138091", "session": "c84994dc", "action": "generar:Motor_M1c.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T20:15:04.081454", "session": "c84994dc", "action": "generar:Motor_M1c.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T20:15:44.373588", "session": "c84994dc", "action": "generar:Motor_M2a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T20:16:19.181405", "session": "c84994dc", "action": "generar:Motor_M2b.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T21:25:05.630315", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-04T21:25:28.780855", "session": "", "action": "upload_tb:Unidad 2.pdf", "ok": true, "err": ""}
+{"ts": "2026-04-04T21:25:56.737881", "session": "", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T21:26:44.385316", "session": "", "action": "generar:Motor_M1b.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T21:27:56.370877", "session": "", "action": "generar:Motor_M1c.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T21:29:12.391947", "session": "", "action": "generar:Motor_M2a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T21:30:04.177542", "session": "", "action": "generar:Motor_M2b.txt", "ok": true, "err": ""}
+{"ts": "2026-04-04T22:58:29.589696", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-04T22:58:31.416295", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-04T22:58:34.151202", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-04T22:58:36.682329", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-04T22:59:40.475110", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-04T23:03:06.273743", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-04T23:03:09.201317", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-04T23:03:14.230935", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-04T23:03:21.391292", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-04T23:06:11.670613", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-04T23:06:26.057692", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-04T23:06:52.111499", "session": "", "action": "upload_tb:Unidad 2.pdf", "ok": true, "err": ""}
+{"ts": "2026-04-05T02:15:39.825098", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T02:15:57.635338", "session": "", "action": "upload_tb:Unidad 2.pdf", "ok": true, "err": ""}
+{"ts": "2026-04-05T02:17:49.587358", "session": "bf850a35", "action": "analizar_tb", "ok": true, "err": ""}
+{"ts": "2026-04-05T02:18:38.819087", "session": "bf850a35", "action": "analizar_tb", "ok": true, "err": ""}
+{"ts": "2026-04-05T02:23:53.359155", "session": "bf850a35", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-05T02:39:02.060723", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-05T02:39:09.857178", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T02:39:54.734724", "session": "", "action": "upload_tb:Unidad 2.pdf", "ok": true, "err": ""}
+{"ts": "2026-04-05T02:40:20.013078", "session": "", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-05T02:41:19.205400", "session": "", "action": "generar:Motor_M1b.txt", "ok": true, "err": ""}
+{"ts": "2026-04-05T02:43:08.267488", "session": "", "action": "generar:Motor_M1c.txt", "ok": true, "err": ""}
+{"ts": "2026-04-05T02:44:03.846561", "session": "", "action": "generar:Motor_M2a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-05T03:06:05.897849", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-05T03:06:28.827279", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T03:06:45.516896", "session": "", "action": "upload_tb:Unidad 2.pdf", "ok": true, "err": ""}
+{"ts": "2026-04-05T03:07:04.282639", "session": "", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-05T03:10:24.385968", "session": "", "action": "generar:Motor_M1c.txt", "ok": true, "err": ""}
+{"ts": "2026-04-05T03:13:34.449377", "session": "", "action": "generar:Motor_M2a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-05T03:14:17.218850", "session": "", "action": "generar:Motor_M0a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-05T03:16:05.990008", "session": "", "action": "generar:Motor_M0b.txt", "ok": true, "err": ""}
+{"ts": "2026-04-05T03:16:38.884757", "session": "", "action": "generar:Motor_M0c.txt", "ok": true, "err": ""}
+{"ts": "2026-04-05T03:30:10.451824", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T03:30:30.383427", "session": "", "action": "upload_tb:Unidad 2.pdf", "ok": true, "err": ""}
+{"ts": "2026-04-05T03:55:32.983676", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T03:55:48.268032", "session": "", "action": "upload_tb:Unidad 2.pdf", "ok": true, "err": ""}
+{"ts": "2026-04-05T03:56:22.478563", "session": "", "action": "generar:Motor_M1a.txt", "ok": true, "err": ""}
+{"ts": "2026-04-05T03:57:38.908417", "session": "", "action": "generar:Motor_M1c.txt", "ok": true, "err": ""}
+{"ts": "2026-04-05T11:44:37.759748", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-05T11:44:41.723072", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-05T11:44:43.616653", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-05T11:44:44.637764", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-05T11:45:13.062570", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T11:52:17.794265", "session": "", "action": "upload_tb:Unidad 2.pdf", "ok": true, "err": ""}
+{"ts": "2026-04-05T12:03:03.702656", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T12:06:18.431306", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-05T12:06:39.491436", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T12:07:37.222353", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T12:07:54.798703", "session": "", "action": "upload_tb:Unidad 2.pdf", "ok": true, "err": ""}
+{"ts": "2026-04-05T12:13:37.492625", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T12:36:07.214022", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T12:51:58.364871", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T12:52:10.273524", "session": "", "action": "upload_tb:Unidad 2.pdf", "ok": true, "err": ""}
+{"ts": "2026-04-05T13:16:56.416961", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T13:17:16.708983", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-05T13:17:32.715722", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-05T13:17:36.255646", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-05T13:17:43.741719", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T15:12:45.739110", "session": "", "action": "login_failed", "ok": false, "err": "wrong credentials"}
+{"ts": "2026-04-05T15:12:50.634103", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T15:20:11.464695", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T15:33:12.071136", "session": "", "action": "login", "ok": true, "err": ""}
+{"ts": "2026-04-05T15:39:30.580893", "session": "", "action": "login", "ok": true, "err": ""}

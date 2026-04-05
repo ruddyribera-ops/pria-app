@@ -1,0 +1,34 @@
+{
+    "diapositivas": [
+        {
+            "titulo": "¡Nuestra misión de hoy: La intención!",
+            "guion_docente": "¡Hola clase! Hoy vamos a ser detectives de las palabras. Miren la agenda visual en la pizarra: primero jugaremos con emojis, luego descubriremos el mapa de oraciones, jugaremos a clasificar en equipo y al final tendremos un ticket de salida. Fijaos en los emojis de la pantalla... ¿qué nos dicen sin usar ni una sola letra? ¡Exacto! Nos muestran su intención o lo que sienten.",
+            "texto_pantalla": "Agenda visual:\n1. Emojis mágicos\n2. Mapa de oraciones\n3. Juego de clasificación\n4. Ticket de salida\n\n¿Qué nos dicen estos emojis? ❓ 😡 🤩 🙏",
+            "prompt_imagen": "Ilustración estilo dibujo animado para niños de 5to de primaria. Un profesor masculino joven y amigable señalando una pizarra. En la pizarra hay una lista numerada visual y dibujos grandes de emojis expresando duda, enfado, alegría y ruego. Colores vivos, ambiente de aula inclusivo y alegre."
+        },
+        {
+            "titulo": "¡Las palabras tienen superpoderes!",
+            "guion_docente": "Cuando hablamos, le damos una 'ropa' o un 'superpoder' a nuestras oraciones según lo que queremos conseguir: preguntar, dar una orden, expresar mucha emoción... A esto le llamamos 'Modalidades Oracionales'. Para identificarlas de forma súper fácil, vamos a usar códigos visuales: colores vivos y signos de puntuación gigantes que nos servirán como pistas.",
+            "texto_pantalla": "Las Modalidades Oracionales:\n\nSon la 'intención' o el 'súper-poder' que le damos a lo que decimos.\n\n¡Fíjate siempre en los signos y colores!",
+            "prompt_imagen": "Ilustración estilo dibujo animado para niños de 5to de primaria. Un profesor masculino sosteniendo en sus manos recortes gigantes y coloridos de signos de puntuación (un signo de interrogación azul y uno de exclamación rojo brillante). El profesor tiene una expresión entusiasta. Fondo de aula luminosa."
+        },
+        {
+            "titulo": "El Mapa Visual de las Oraciones",
+            "guion_docente": "Aquí tenemos nuestro mapa principal. En lugar de usar palabras difíciles de recordar, vamos a asociarlas con sinónimos diarios. Enunciativa es simplemente 'informar' 💬. Interrogativa es 'preguntar' ❓. Exclamativa es 'emoción' ❗. Imperativa es dar una 'orden' 🛑. Dubitativa significa 'duda' 🤷. Y Desiderativa es pedir un 'deseo' 🌟. Recuerden que tienen este mismo esquema con sus iconos fijo en sus mesas para consultarlo cuando quieran.",
+            "texto_pantalla": "1. Informar (Enunciativa) 💬\n2. Preguntar (Interrogativa) ❓\n3. Emoción (Exclamativa) ❗\n4. Orden (Imperativa) 🛑\n5. Duda (Dubitativa) 🤷\n6. Deseo (Desiderativa) 🌟",
+            "prompt_imagen": "Ilustración estilo dibujo animado para niños de 5to de primaria. Un mapa conceptual estructurado en una gran pizarra interactiva donde cada categoría tiene un icono grande y claro: un bocadillo de diálogo, un signo de interrogación, un signo de exclamación, una señal de stop, una persona encogiéndose de hombros y una estrella brillante. Un profesor masculino sonriente al lado del mapa."
+        },
+        {
+            "titulo": "Dinámica: ¡Clasificadores en Acción!",
+            "guion_docente": "¡Hora de moverse! Nuestro compañero encargado nos ayudará a repartir estas tarjetas impresas en colores pastel amigables para leer mejor. Trabajaremos en pequeñas metas de 5 minutos. Tenéis que leer vuestra oración, o pedir que os la lea, y luego ir a la pizarra a pegarla bajo el icono correcto. Si os gustan los desafíos, en lugar de pegar una tarjeta, podéis inventar en vuestro cuaderno un mini-diálogo lógico que integre al menos cuatro modalidades diferentes.",
+            "texto_pantalla": "¡Tu turno de clasificar!\n\n1. Lee tu tarjeta colorida.\n2. Encuentra su icono en la pizarra.\n3. ¡Pégala en su lugar!\n\n🌟 Reto Especial: Crea un diálogo corto que use 4 tipos de oraciones diferentes.",
+            "prompt_imagen": "Ilustración estilo dibujo animado para niños de 5to de primaria. Un profesor masculino animando activamente a los estudiantes. En primer plano, se ven tarjetas de papel en colores pastel suaves con letras grandes, listas para ser pegadas magnéticamente en una pizarra dividida por columnas con iconos. Estilo dinámico y participativo."
+        },
+        {
+            "titulo": "Ticket de Salida: Tu turno de crear",
+            "guion_docente": "Para terminar nuestra misión de hoy, vamos a usar nuestro interactivo 'Ticket de salida'. Cada uno sacará al azar una tarjeta sorpresa con un icono. Su misión es inventar una oración que tenga exactamente esa intención. Podéis expresarla como os sintáis más cómodos: decírnosla en voz alta con mucha entonación teatral, escribirla en la libreta, o señalar los pictogramas de la mesa para armarla. ¡Lo que importa es el proceso y vuestra creatividad!",
+            "texto_pantalla": "🎟️ Ticket de Salida:\n\n1. Saca una tarjeta sorpresa con un icono.\n2. Inventa una oración con esa intención.\n3. Exprésala a tu manera: ¡hablada, escrita o señalando pictogramas!",
+            "prompt_imagen": "Ilustración estilo dibujo animado para niños de 5to de primaria. Un profesor masculino sosteniendo una colorida 'caja mágica' de la cual salen pequeños iconos volando de forma divertida (estrellas, signos de interrogación, nubes de pensamiento, exclamaciones). Ambiente relajado, celebratorio e inclusivo."
+        }
+    ]
+}

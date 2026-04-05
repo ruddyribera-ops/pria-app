@@ -1,0 +1,90 @@
+{
+    "ficha_trabajo": {
+        "titulo_gancho": "El Escuadrón de las Palabras: ¡Misión Intención!",
+        "historia_gancho": "¡Alerta, agente lingüístico! En la ciudad de Vocablia, un misterioso virus ha borrado la 'intención comunicativa' de todos los mensajes. La gente da órdenes cuando quiere preguntar y expresa dudas cuando quiere celebrar. Tu misión es usar tus habilidades visuales y tu poder de entonación para clasificar y restaurar las Modalidades Oracionales. ¡Devuelve el orden y la voz a la ciudad!",
+        "misiones": {
+            "oraculo": [
+                {
+                    "pregunta": "Si un habitante desesperado te dice: '¿Dónde está el antídoto?', ¿qué tipo de oración está usando?",
+                    "opciones": [
+                        "A) Exclamativa (Emoción)",
+                        "B) Interrogativa (Pregunta)",
+                        "C) Imperativa (Orden)"
+                    ]
+                },
+                {
+                    "pregunta": "Encuentras una nota que dice: 'Quizás encontremos la cura pronto'. ¿Qué expresa esta oración?",
+                    "opciones": [
+                        "A) Una duda (Dubitativa)",
+                        "B) Un deseo (Desiderativa)",
+                        "C) Una orden (Imperativa)"
+                    ]
+                },
+                {
+                    "pregunta": "¿Qué código visual (signo) te ayuda a identificar rápidamente una oración que expresa mucha emoción?",
+                    "opciones": [
+                        "A) Puntos suspensivos (...)",
+                        "B) Signos de interrogación (¿?)",
+                        "C) Signos de exclamación (¡!)"
+                    ]
+                }
+            ],
+            "puente": [
+                {
+                    "palabra": "Imperativa",
+                    "significado": "Dar una orden, mandato o instrucción directa."
+                },
+                {
+                    "palabra": "Desiderativa",
+                    "significado": "Expresar un deseo ardiente (sinónimo de anhelo)."
+                },
+                {
+                    "palabra": "Enunciativa",
+                    "significado": "Informar sobre un hecho real, afirmando o negando."
+                },
+                {
+                    "palabra": "Dubitativa",
+                    "significado": "Mostrar una duda, probabilidad o incertidumbre."
+                }
+            ],
+            "sopa": [
+                "INTENCION",
+                "DUDA",
+                "DESEO",
+                "ORDEN",
+                "PREGUNTA"
+            ],
+            "pergamino": {
+                "frase_con_espacios": "Cada vez que hablamos tenemos una _____ comunicativa. Si queremos saber algo, hacemos una _____, pero si queremos pedir que alguien haga algo, damos una _____.",
+                "palabras_secretas": [
+                    "intención",
+                    "pregunta",
+                    "orden"
+                ]
+            },
+            "lienzo": "Dibuja tu propio 'Código Visual'. Crea dos iconos gigantes y a todo color (pueden ser emojis, nubes de pensamiento o símbolos) que representen las modalidades 'Desiderativa' (Deseo) y 'Dubitativa' (Duda)."
+        },
+        "adaptaciones_por_mision": [
+            {
+                "Mision": "Lienzo y Oráculo",
+                "Diagnostico": "TEA",
+                "Ajuste": "Proporcionar instrucciones explícitas. Fijar un esquema visual en su pupitre con las 6 modalidades y los emojis predefinidos como referencia para resolver y dibujar. Anticipar los cambios de actividad."
+            },
+            {
+                "Mision": "Sopa y Puente",
+                "Diagnostico": "TDAH",
+                "Ajuste": "Dividir las misiones en metas cortas de 5 minutos utilizando un temporizador visual. Asignarle el rol activo de 'Agente Mensajero' (repartir y recoger las fichas de los compañeros al terminar cada bloque)."
+            },
+            {
+                "Mision": "Toda la ficha",
+                "Diagnostico": "Dislexia",
+                "Ajuste": "Impresión de la ficha completa en papel de color pastel y con tipografía OpenDyslexic o Arial tamaño 14. Brindar apoyo leyendo en voz alta el contenido del 'Oráculo' y el 'Puente'."
+            },
+            {
+                "Mision": "Pergamino",
+                "Diagnostico": "Alta Capacidad",
+                "Ajuste": "Sustituir el texto de rellenar huecos por un reto creativo: Redactar un micro-diálogo coherente entre dos personajes que integre de forma lógica al menos cuatro modalidades oracionales distintas."
+            }
+        ]
+    }
+}

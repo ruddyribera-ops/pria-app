@@ -1,0 +1,67 @@
+{
+    "mapa_cognitivo": {
+        "verbos": [
+            "Identificar",
+            "Clasificar",
+            "Concordar",
+            "Aplicar",
+            "Analizar"
+        ]
+    },
+    "inteligencias_multiples": [
+        {
+            "Inteligencia": "Lógico-Matemática",
+            "Actividad": "Clasificar situaciones y objetos del entorno en categorías de cantidades exactas (numerales) y estimaciones (indefinidos), identificando patrones lógicos de concordancia."
+        },
+        {
+            "Inteligencia": "Lingüística",
+            "Actividad": "Escribir oraciones contrastando escenarios precisos e imprecisos, asegurando la correcta concordancia de género y número entre el determinante y el sustantivo."
+        }
+    ],
+    "secuencia_didactica": {
+        "bloques": [
+            {
+                "nombre": "Inicio",
+                "duracion": 10,
+                "objetivo": "Activar conocimientos previos contrastando la precisión e imprecisión mediante elementos visuales y manipulativos.",
+                "nota": "Mostrar una caja con exactamente 3 marcadores y otra con 'algunos' marcadores para evidenciar físicamente la diferencia entre numerales e indefinidos."
+            },
+            {
+                "nombre": "Desarrollo",
+                "duracion": 25,
+                "objetivo": "Comprender la teoría y aplicar reglas de concordancia usando el TextBook (p. 10-15) y StudentBook (p. 1-5).",
+                "nota": "Trabajar en parejas. Leer la teoría con apoyo de un mapa conceptual en la pizarra y resolver los ejercicios del StudentBook segmentando la tarea."
+            },
+            {
+                "nombre": "Cierre",
+                "duracion": 10,
+                "objetivo": "Consolidar conceptos mediante una evaluación formativa dinámica y visual.",
+                "nota": "Juego de respuesta rápida: los estudiantes levantan una tarjeta azul si la frase proyectada contiene un numeral y una amarilla si es un indefinido."
+            }
+        ]
+    },
+    "dua_neuroinclusion": [
+        "Utilizar códigos de color consistentes durante toda la clase (ej. azul para determinantes numerales, naranja para indefinidos) en pizarra y libros.",
+        "Proporcionar instrucciones divididas en pasos simples, cortos y presentados de manera secuencial y visual.",
+        "Permitir múltiples formas de demostrar el aprendizaje (escrito, oral, manipulación de tarjetas de colores)."
+    ],
+    "tabla_adaptaciones_clase": [
+        {
+            "Diagnostico": "TEA",
+            "Adaptacion": "Anticipar la estructura de la clase con una agenda visual. Usar lenguaje literal y apoyos gráficos concretos para explicar el concepto abstracto de 'imprecisión'."
+        },
+        {
+            "Diagnostico": "TDAH",
+            "Adaptacion": "Asignar roles activos (ej. repartir los libros o tarjetas). Alternar el trabajo de asiento con dinámicas de respuesta motriz durante el cierre."
+        },
+        {
+            "Diagnostico": "Dislexia",
+            "Adaptacion": "Resaltar con marcadores los determinantes en el StudentBook (p. 1-5). Proporcionar un glosario visual y eximir de la lectura en voz alta improvisada."
+        },
+        {
+            "Diagnostico": "Alta Capacidad",
+            "Adaptacion": "Proponer como desafío extra la creación de un acertijo o problema lógico-matemático utilizando intencionalmente determinantes numerales e indefinidos para que lo resuelva el docente u otros compañeros."
+        }
+    ],
+    "perfil_aula_resumido": "Grupo heterogéneo que requiere un enfoque estructurado y multisensorial. La presencia de TEA y TDAH demanda rutinas claras, anticipación visual y dinamismo físico, mientras que la dislexia requiere apoyos de decodificación y reducción de carga visual. El perfil de Alta Capacidad se beneficia de integrar los conceptos lingüísticos con retos lógico-matemáticos profundos."
+}

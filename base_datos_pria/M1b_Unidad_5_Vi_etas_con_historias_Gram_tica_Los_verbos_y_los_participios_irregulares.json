@@ -1,0 +1,34 @@
+{
+    "diapositivas": [
+        {
+            "titulo": "¡Nuestra Agenda y Aventura Gramatical!",
+            "guion_docente": "¡Buenos días a todos! Hoy tenemos una clase muy especial. En la pizarra he dejado nuestra agenda visual: 1. Inicio, 2. Desarrollo, 3. Cierre. Vamos a empezar usando la página 10 del TextBook. Miren a los chicos en la pantalla: Mateo está construyendo y Leo investigando. ¿Qué verbos en acción reconocen? ¡Necesito un ayudante voluntario para que reparta los organizadores gráficos!",
+            "texto_pantalla": "Agenda de hoy:\n1. Inicio: Descubrir (10 min)\n2. Desarrollo: Construir (25 min)\n3. Cierre: Desafío (10 min)\n\n¿Qué acción están realizando Mateo y Leo en la página 10 del TextBook?",
+            "prompt_imagen": "Estilo ilustración alegre, moderna y colorida, adecuada para niños de 5to de primaria. Un niño (Mateo) construyendo activamente un robot y otro niño (Leo) investigando con una lupa gigante. Escena dinámica y educativa donde los niños varones son protagonistas activos positivos."
+        },
+        {
+            "titulo": "La Fórmula de los Tiempos Compuestos",
+            "guion_docente": "Abran su TextBook en las páginas 11 a 15. Vamos a analizar cómo se forman los tiempos compuestos usando una fórmula lógica y matemática que les va a encantar. Siempre usaremos el [Verbo Auxiliar Haber], luego nuestra [Raíz verbal] que marcaremos en color azul, y finalmente las [Terminaciones] en color rojo. Por ejemplo: Carlos ha descubierto el tesoro.",
+            "texto_pantalla": "Fórmula Lógica:\n[Verbo Auxiliar HABER] + [Raíz verbal] + [Terminaciones]\n\nEjemplo:\nCarlos ha descubi (AZUL) erto (ROJO) el tesoro.",
+            "prompt_imagen": "Estilo ilustración de aventura atractiva para 5to de primaria. Un niño aventurero (Carlos) descubriendo un cofre del tesoro brillante. Flotando mágicamente sobre el cofre aparecen bloques de construcción con texto en colores: uno neutral, otro AZUL (Raíz) y otro ROJO (Terminación)."
+        },
+        {
+            "titulo": "¡A Separar Raíces y Terminaciones!",
+            "guion_docente": "Es hora de aplicar lo aprendido en el StudentBook, páginas 1 a 4. Tomen sus resaltadores: azul para la raíz verbal y rojo para las terminaciones. El compañero que desee puede pasar a la pizarra a escribir la estructura mientras los demás lo hacemos en el libro. Fíjense en este gran ejemplo: 'Mateo ha roto la marca'.",
+            "texto_pantalla": "Práctica: StudentBook (págs. 1-4)\nCódigo de Color:\n🟦 Raíz verbal = AZUL\n🟥 Terminaciones = ROJO\n\nEjemplo:\nMateo ha r(AZUL) oto(ROJO) la marca.",
+            "prompt_imagen": "Estilo ilustración deportiva y vibrante para niños de 5to de primaria. Un niño atleta (Mateo) cruzando y rompiendo la cinta de meta en una carrera de velocidad, celebrando con energía y triunfo. Colores vivos que transmitan acción."
+        },
+        {
+            "titulo": "¡Alerta de Excepciones Gramaticales!",
+            "guion_docente": "Existen verbos rebeldes que no siguen la regla normal, ¡son las excepciones gramaticales o participios irregulares! Aquí tienen una lista clara y directa para que no haya confusiones. Además, tengo un reto para nuestro 'Investigador Gramatical' de hoy: ¿Por qué algunos verbos como imprimir tienen dos formas (impreso o imprimido)? ¡A ver quién logra construir la oración más compleja con estos verbos!",
+            "texto_pantalla": "Excepciones gramaticales literales (Terminación en ROJO):\n- Escribir ➡️ Escrito\n- Romper ➡️ Roto\n- Hacer ➡️ Hecho\n- Descubrir ➡️ Descubierto\n\n🔎 Reto del Investigador: ¿Se dice 'impreso' o 'imprimido'?",
+            "prompt_imagen": "Estilo ilustración de misterio/detectives para 5to de primaria. Un niño y una niña vestidos como detectives modernos con lupas, analizando un pergamino gigante que tiene palabras flotantes y brillantes. Ambiente de investigación colaborativa."
+        },
+        {
+            "titulo": "Desafío Lógico Final",
+            "guion_docente": "Para nuestro cierre, vamos a la página 5 del StudentBook. Haremos un desafío rápido de asociación lógica: hay que unir el verbo en infinitivo con su participio irregular. Si prefieren, pueden darme sus respuestas de forma oral en lugar de escribirlas. ¡Han hecho un esfuerzo grupal increíble hoy, felicidades a todos!",
+            "texto_pantalla": "Desafío Final: StudentBook (pág. 5)\nAsocia el verbo en infinitivo con su participio irregular.\n(Respuestas escritas u orales permitidas)\n\n¡Gran trabajo en equipo! ¡Misión Cumplida!",
+            "prompt_imagen": "Estilo ilustración motivadora y escolar para 5to de primaria. Un grupo diverso de niños y niñas (con los niños varones en el centro liderando la celebración) chocando los cinco en un aula de clases moderna. Rostros felices de éxito y compañerismo."
+        }
+    ]
+}

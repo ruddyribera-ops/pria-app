@@ -1,0 +1,34 @@
+{
+    "diapositivas": [
+        {
+            "titulo": "¿Qué vamos a preguntar hoy?",
+            "guion_docente": "¡Hola, investigadores! Hoy aprenderemos a sacar la mejor información. Vamos a comprender la diferencia entre dos tipos de preguntas: las cerradas, que se responden con un simple 'sí' o 'no' (mostraré una tarjeta roja), y las abiertas, que nos dan muchísimos detalles (mostraré una tarjeta verde). ¡Vamos a diferenciarlas usando la pantalla!",
+            "texto_pantalla": "🔍 Tipos de Preguntas:\n\n🔴 Cerradas: Se responden con 'Sí' o 'No'.\n🟢 Abiertas: Nos explican detalles y motivos.\n\n¡Usemos nuestras tarjetas de colores!",
+            "prompt_imagen": "Una niña exploradora sosteniendo una lupa gigante, estilo de ilustración alegre y colorida para niños de 5to de primaria, con símbolos de signos de interrogación en color verde y rojo flotando a su alrededor."
+        },
+        {
+            "titulo": "El poder del lenguaje no verbal",
+            "guion_docente": "No solo hablamos con palabras, ¡nuestro cuerpo dice muchísimo! Para ser grandes entrevistadores, debemos practicar la 'escucha activa'. Esto significa mirar a los ojos, asentir con la cabeza y prestar atención sin interrumpir. ¡El lenguaje no verbal es nuestra herramienta secreta!",
+            "texto_pantalla": "👂✨ La Escucha Activa ✨👂\n\n1. Contacto visual 👀\n2. Postura atenta 🧍‍♀️\n3. Gestos que dicen 'te escucho' (¡asentir con la cabeza!)",
+            "prompt_imagen": "Una niña sonriente sentada escuchando atentamente, con orejas de zorro exageradas pero tiernas para representar la 'escucha activa', estilo ilustración amigable y educativa para niños de 5to de primaria."
+        },
+        {
+            "titulo": "¡Misión: Redactar tu cuestionario!",
+            "guion_docente": "¡Manos a la obra! Abran su TextBook en las páginas 10 a 15 para revisar ejemplos. Luego, en su StudentBook (páginas 1 a 5), vamos a formular y redactar un cuestionario de 5 a 8 preguntas. Iremos paso a paso: primero 2 preguntas, luego otras 2. Pueden escribir a mano, usar su tablet o dictarle a un compañero. Y para los que buscan un reto: ¡intenten hacer preguntas pensando que entrevistarán a un experto o personaje histórico! Pondré el temporizador visual de 15 minutos en pantalla.",
+            "texto_pantalla": "📝 Misión: Crea de 5 a 8 preguntas\n\n📖 Revisa: TextBook (págs. 10-15)\n✏️ Escribe: StudentBook (págs. 1-5)\n⏳ Tiempo: 15 minutos (¡mira el temporizador!)\n\n*Opciones: Escribir a mano, formato digital o dictado por turnos.*",
+            "prompt_imagen": "Una niña escribiendo en un cuaderno brillante con un lápiz gigante, junto a un colorido reloj de arena y una tablet. Estilo de ilustración de libro de texto infantil, dinámico y amigable para 5to de primaria."
+        },
+        {
+            "titulo": "¡Luces, cámara, entrevista!",
+            "guion_docente": "¡Llegó la hora de interactuar! En parejas, uno será el entrevistador y el otro el entrevistado, luego cambiaremos de rol. Para que sea más fácil, sigan este guion: saluda, haz tus preguntas por turnos y despídete agradeciendo. Si se sienten con mucha energía, ¡pueden hacer la entrevista de pie o moviéndose por su espacio! Tenemos 10 minutos.",
+            "texto_pantalla": "🎤 Práctica en Parejas (10 min) 🎤\n\nGuion de Entrevista:\n1. Saludo inicial 👋\n2. Pregunta y Escucha Activa (Turnos claros) 🗣️👂\n3. Despedida y Gracias 🤝\n\n*¡Si prefieres, puedes hacer la dinámica de pie!*",
+            "prompt_imagen": "Dos niñas estilo caricatura de 5to de primaria, una sosteniendo un micrófono imaginario y la otra respondiendo alegremente, ambas de pie, con un ambiente de estudio de televisión divertido y colores brillantes."
+        },
+        {
+            "titulo": "Nuestras mejores preguntas",
+            "guion_docente": "¡Qué gran trabajo, chicos! Vamos a hacer una pausa. ¿Fue muy difícil mantener la escucha activa y el contacto visual todo el tiempo? Ahora, para cerrar, quiero que cada pareja comparta rápidamente con la clase la mejor pregunta abierta que redactaron. ¡Estoy muy orgulloso de cómo han formulado e interactuado hoy!",
+            "texto_pantalla": "🌟 Reflexión Final 🌟\n\n🤔 ¿Qué tan difícil fue mantener la escucha activa?\n🏆 ¡Compartamos la mejor Pregunta Abierta de cada pareja!\n\n¡Misión cumplida, entrevistadores!",
+            "prompt_imagen": "Una niña levantando la mano con entusiasmo en un salón de clases colorido, con una estrella brillante y un globo de diálogo con un gran signo de interrogación, estilo ilustración infantil para 5to de primaria."
+        }
+    ]
+}
