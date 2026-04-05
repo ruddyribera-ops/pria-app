@@ -1,113 +1,196 @@
 """
 db_pria.py — Gestor de Estado y Persistencia del Bucle Activo de PRIA
 ======================================================================
-Tablas originales:
-  sesiones        — Cada bloque de clase registrado
-  micro_objetivos — Objetivos extraídos por Motor_MicroObjetivos, con estado
-  planes_buffer   — Planes de amortiguación generados por Motor_Recalibracion
-
-Tablas nuevas (Sistema Diario):
-  usuarios            — Cuentas por docente (email + password hash + rol)
-  horario_docente     — Horario semanal parseado del Excel oficial
-  calendario_escolar  — Eventos del calendario interno LPS
-  actividades_cronograma — Actividades del cronograma semanal docente
-  comisiones_docente  — Asignaciones de comisiones por docente
-  bloques_diario_log  — Estado (completado/pendiente) de cada bloque del día
+Auto-detects backend:
+  - DATABASE_URL env var present → PostgreSQL (Supabase / Railway)
+  - No DATABASE_URL              → SQLite     (local dev, unchanged)
 """
 
-import sqlite3
-import os
-import json
-import hashlib
-import secrets
+import os, re, json, hashlib, sqlite3
 from datetime import datetime, date
+from contextlib import contextmanager
 
-# ── Ruta de la base de datos (junto al app_ui.py) ─────────────────────────────
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pria_estado.db")
-
-
-def _conn() -> sqlite3.Connection:
-    """Abre conexión con foreign keys activas."""
-    con = sqlite3.connect(DB_PATH, check_same_thread=False)
-    con.execute("PRAGMA foreign_keys = ON")
-    con.row_factory = sqlite3.Row
-    return con
+# ── Backend detection ─────────────────────────────────────────────────────────
+_PG_URL  = os.environ.get("DATABASE_URL", "")
+_USE_PG  = bool(_PG_URL)
+_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pria_estado.db")
 
 
+# ── SQL syntax translation ────────────────────────────────────────────────────
+def _q(sql: str) -> str:
+    """Translate SQLite-style placeholders/syntax to PostgreSQL when needed."""
+    if not _USE_PG:
+        return sql
+    # Named params :key → %(key)s  (must run before ? replacement)
+    sql = re.sub(r':([A-Za-z_][A-Za-z0-9_]*)', r'%(\1)s', sql)
+    # Positional ? → %s
+    sql = sql.replace("?", "%s")
+    return sql
+
+
+def _ph() -> str:
+    """Return positional placeholder for the current backend."""
+    return "%s" if _USE_PG else "?"
+
+
+# ── PostgreSQL adapters ───────────────────────────────────────────────────────
+class _PGCursor:
+    """Wraps psycopg2 cursor to expose a sqlite3-compatible interface."""
+
+    def __init__(self, cur):
+        self._c = cur
+
+    def fetchone(self):
+        row = self._c.fetchone()
+        return dict(row) if row else None
+
+    def fetchall(self):
+        return [dict(r) for r in (self._c.fetchall() or [])]
+
+    @property
+    def lastrowid(self):
+        # INSERT statements have RETURNING id appended by _PGAdapter.execute
+        row = self._c.fetchone()
+        return row["id"] if row else None
+
+
+class _PGAdapter:
+    """Makes a psycopg2 connection behave like a sqlite3 connection."""
+
+    def __init__(self, con):
+        self._con = con
+
+    def execute(self, sql: str, params=()):
+        cur = self._con.cursor()
+        translated = _q(sql)
+        # Auto-add RETURNING id to INSERTs so that lastrowid works
+        if translated.lstrip().upper().startswith("INSERT"):
+            translated = translated.rstrip().rstrip(";") + " RETURNING id"
+        cur.execute(translated, params if params else None)
+        return _PGCursor(cur)
+
+    def executemany(self, sql: str, params_list):
+        cur = self._con.cursor()
+        cur.executemany(_q(sql), params_list)
+
+    def executescript(self, script: str):
+        cur = self._con.cursor()
+        for stmt in script.split(";"):
+            stmt = stmt.strip()
+            if stmt and not stmt.startswith("--"):
+                cur.execute(stmt)
+
+
+# ── Connection context manager ────────────────────────────────────────────────
+@contextmanager
+def _conn():
+    """
+    Yields a database connection. Commits on clean exit, rolls back on exception.
+    Automatically uses PostgreSQL if DATABASE_URL is set, otherwise SQLite.
+    """
+    if _USE_PG:
+        import psycopg2, psycopg2.extras
+        con = psycopg2.connect(_PG_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+        try:
+            yield _PGAdapter(con)
+            con.commit()
+        except Exception:
+            con.rollback()
+            raise
+        finally:
+            con.close()
+    else:
+        con = sqlite3.connect(_DB_PATH, check_same_thread=False)
+        con.execute("PRAGMA foreign_keys = ON")
+        con.row_factory = sqlite3.Row
+        try:
+            yield con
+            con.commit()
+        except Exception:
+            con.rollback()
+            raise
+        finally:
+            con.close()
+
+
+# ── DDL helpers ───────────────────────────────────────────────────────────────
+def _pk() -> str:
+    return "BIGSERIAL PRIMARY KEY" if _USE_PG else "INTEGER PRIMARY KEY AUTOINCREMENT"
+
+
+def _ts() -> str:
+    return "TIMESTAMPTZ DEFAULT NOW()" if _USE_PG else "TEXT DEFAULT (datetime('now','localtime'))"
+
+
+# ── Schema initialization ─────────────────────────────────────────────────────
 def init_db():
-    """Crea las tablas si no existen. Idempotente."""
-    with _conn() as con:
-        con.executescript("""
-        -- ── USUARIOS ─────────────────────────────────────────────────────────
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    """Creates all tables if they don't exist. Idempotent."""
+    pk, ts = _pk(), _ts()
+
+    tables = [
+        f"""CREATE TABLE IF NOT EXISTS usuarios (
+            id            {pk},
             email         TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             nombre        TEXT NOT NULL,
-            nombre_hoja   TEXT NOT NULL,   -- coincide con la hoja del Excel (ej. "RUDDY")
-            rol           TEXT DEFAULT 'docente',  -- 'admin' | 'docente'
-            activo        INTEGER DEFAULT 1,
-            creado_en     TEXT DEFAULT (datetime('now','localtime'))
-        );
-
-        -- ── HORARIO DOCENTE ───────────────────────────────────────────────────
-        CREATE TABLE IF NOT EXISTS horario_docente (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
             nombre_hoja   TEXT NOT NULL,
-            dia_semana    TEXT NOT NULL,   -- 'lunes' … 'viernes'
-            hora_inicio   TEXT NOT NULL,   -- 'HH:MM'
-            hora_fin      TEXT,
-            tipo_bloque   TEXT NOT NULL,   -- 'clase'|'vigilancia_recreo'|'atencion_ppff'|'planificacion'|'ingreso'
-            materia       TEXT,
-            nivel_grado   TEXT,            -- '5P', '2S', etc.
-            ubicacion     TEXT,            -- para vigilancia: 'Área Primaria' | 'Área Secundaria'
-            valor_original TEXT
-        );
+            rol           TEXT DEFAULT 'docente',
+            activo        INTEGER DEFAULT 1,
+            creado_en     {ts}
+        )""",
 
-        -- ── CALENDARIO ESCOLAR ────────────────────────────────────────────────
-        CREATE TABLE IF NOT EXISTS calendario_escolar (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            fecha         TEXT NOT NULL,   -- 'YYYY-MM-DD'
+        f"""CREATE TABLE IF NOT EXISTS horario_docente (
+            id            {pk},
+            nombre_hoja   TEXT NOT NULL,
+            dia_semana    TEXT NOT NULL,
+            hora_inicio   TEXT NOT NULL,
+            hora_fin      TEXT,
+            tipo_bloque   TEXT NOT NULL,
+            materia       TEXT,
+            nivel_grado   TEXT,
+            ubicacion     TEXT,
+            valor_original TEXT
+        )""",
+
+        f"""CREATE TABLE IF NOT EXISTS calendario_escolar (
+            id            {pk},
+            fecha         TEXT NOT NULL,
             nombre_evento TEXT NOT NULL,
             descripcion   TEXT,
             responsable   TEXT,
-            tipo          TEXT             -- 'feriado'|'acto_civico'|'institucional'|'curricular'
-        );
+            tipo          TEXT
+        )""",
 
-        -- ── ACTIVIDADES CRONOGRAMA ────────────────────────────────────────────
-        CREATE TABLE IF NOT EXISTS actividades_cronograma (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        f"""CREATE TABLE IF NOT EXISTS actividades_cronograma (
+            id            {pk},
             fecha         TEXT NOT NULL,
             hora_inicio   TEXT,
             hora_fin      TEXT,
             actividad     TEXT NOT NULL,
             a_cargo_de    TEXT
-        );
+        )""",
 
-        -- ── COMISIONES DOCENTE ────────────────────────────────────────────────
-        CREATE TABLE IF NOT EXISTS comisiones_docente (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        f"""CREATE TABLE IF NOT EXISTS comisiones_docente (
+            id            {pk},
             nombre_docente TEXT NOT NULL,
             nombre_hoja   TEXT NOT NULL,
             comision      TEXT NOT NULL,
             funciones     TEXT
-        );
+        )""",
 
-        -- ── LOG DE BLOQUES DIARIOS ────────────────────────────────────────────
-        CREATE TABLE IF NOT EXISTS bloques_diario_log (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            fecha         TEXT NOT NULL,        -- 'YYYY-MM-DD'
+        f"""CREATE TABLE IF NOT EXISTS bloques_diario_log (
+            id            {pk},
+            fecha         TEXT NOT NULL,
             nombre_hoja   TEXT NOT NULL,
-            bloque_key    TEXT NOT NULL,        -- 'dia_semana|hora_inicio|tipo' para identificar unívocamente
+            bloque_key    TEXT NOT NULL,
             completado    INTEGER DEFAULT 0,
-            cerrado       INTEGER DEFAULT 0,    -- 1 = bloque cerrado/bloqueado por docente
+            cerrado       INTEGER DEFAULT 0,
             notas         TEXT,
             UNIQUE(fecha, nombre_hoja, bloque_key)
-        );
+        )""",
 
-        -- ── TABLAS ORIGINALES ─────────────────────────────────────────────────
-        CREATE TABLE IF NOT EXISTS sesiones (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        f"""CREATE TABLE IF NOT EXISTS sesiones (
+            id          {pk},
             fecha       TEXT NOT NULL,
             semana      INTEGER NOT NULL,
             hora_inicio TEXT,
@@ -115,40 +198,52 @@ def init_db():
             materia     TEXT NOT NULL,
             grado       TEXT NOT NULL,
             tema        TEXT NOT NULL,
-            creado_en   TEXT DEFAULT (datetime('now','localtime'))
-        );
+            creado_en   {ts}
+        )""",
 
-        CREATE TABLE IF NOT EXISTS micro_objetivos (
-            id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            sesion_id    INTEGER NOT NULL REFERENCES sesiones(id) ON DELETE CASCADE,
+        f"""CREATE TABLE IF NOT EXISTS micro_objetivos (
+            id           {pk},
+            sesion_id    INTEGER NOT NULL,
             texto        TEXT NOT NULL,
-            completado   INTEGER NOT NULL DEFAULT 0,   -- 0 = pendiente, 1 = completado
-            depende_de   INTEGER,                      -- ID interno del objetivo padre
+            completado   INTEGER NOT NULL DEFAULT 0,
+            depende_de   INTEGER,
             prioridad    TEXT DEFAULT 'normal',
             origen_semana INTEGER,
-            creado_en    TEXT DEFAULT (datetime('now','localtime'))
-        );
+            creado_en    {ts}
+        )""",
 
-        CREATE TABLE IF NOT EXISTS planes_buffer (
-            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        f"""CREATE TABLE IF NOT EXISTS planes_buffer (
+            id               {pk},
             semana_buffer    INTEGER NOT NULL,
             materia          TEXT NOT NULL,
             grado            TEXT NOT NULL,
-            contenido_json   TEXT NOT NULL,            -- JSON completo de Motor_Recalibracion
+            contenido_json   TEXT NOT NULL,
             resumen          TEXT,
             alerta_condensacion INTEGER DEFAULT 0,
-            creado_en        TEXT DEFAULT (datetime('now','localtime'))
-        );
-        """)
-    # ── Migrations for existing databases ─────────────────────────────────────
+            creado_en        {ts}
+        )""",
+    ]
+
     with _conn() as con:
-        for _sql in [
-            "ALTER TABLE bloques_diario_log ADD COLUMN cerrado INTEGER DEFAULT 0",
-        ]:
-            try:
-                con.execute(_sql)
-            except Exception:
-                pass  # column already exists
+        for stmt in tables:
+            con.execute(stmt)
+
+    # Migrations — add columns that may not exist in older DBs
+    _migration_col("bloques_diario_log", "cerrado", "INTEGER DEFAULT 0")
+
+
+def _migration_col(table: str, col: str, col_def: str):
+    """Safely adds a column to an existing table if it doesn't exist."""
+    if _USE_PG:
+        sql = f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {col_def}"
+        with _conn() as con:
+            con.execute(sql)
+    else:
+        try:
+            with _conn() as con:
+                con.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}")
+        except Exception:
+            pass  # column already exists
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -158,7 +253,6 @@ def init_db():
 def crear_sesion(semana: int, materia: str, grado: str, tema: str,
                  hora_inicio: str = "", hora_fin: str = "",
                  fecha: str = None) -> int:
-    """Registra una sesión de clase. Devuelve el ID creado."""
     fecha = fecha or date.today().isoformat()
     with _conn() as con:
         cur = con.execute(
@@ -170,7 +264,6 @@ def crear_sesion(semana: int, materia: str, grado: str, tema: str,
 
 
 def get_sesiones(materia: str = None, semana: int = None) -> list[dict]:
-    """Devuelve sesiones filtradas por materia y/o semana."""
     query = "SELECT * FROM sesiones WHERE 1=1"
     params = []
     if materia:
@@ -195,12 +288,7 @@ def get_sesion(sesion_id: int) -> dict | None:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def guardar_micro_objetivos(sesion_id: int, objetivos: list[dict], origen_semana: int = None):
-    """
-    Inserta los micro-objetivos de una sesión.
-    'objetivos' es la lista extraída por Motor_MicroObjetivos (campo micro_objetivos del JSON).
-    """
     with _conn() as con:
-        # Limpiar objetivos previos de esta sesión (idempotente)
         con.execute("DELETE FROM micro_objetivos WHERE sesion_id = ?", (sesion_id,))
         for obj in objetivos:
             con.execute(
@@ -212,7 +300,6 @@ def guardar_micro_objetivos(sesion_id: int, objetivos: list[dict], origen_semana
 
 
 def get_micro_objetivos(sesion_id: int) -> list[dict]:
-    """Devuelve todos los micro-objetivos de una sesión."""
     with _conn() as con:
         return [dict(r) for r in con.execute(
             "SELECT * FROM micro_objetivos WHERE sesion_id = ? ORDER BY id",
@@ -221,7 +308,6 @@ def get_micro_objetivos(sesion_id: int) -> list[dict]:
 
 
 def marcar_objetivo(objetivo_id: int, completado: bool):
-    """Marca o desmarca un micro-objetivo."""
     with _conn() as con:
         con.execute(
             "UPDATE micro_objetivos SET completado = ? WHERE id = ?",
@@ -230,7 +316,6 @@ def marcar_objetivo(objetivo_id: int, completado: bool):
 
 
 def marcar_multiples(objetivo_ids: list[int], completado: bool):
-    """Actualización masiva de objetivos."""
     with _conn() as con:
         con.executemany(
             "UPDATE micro_objetivos SET completado = ? WHERE id = ?",
@@ -239,15 +324,10 @@ def marcar_multiples(objetivo_ids: list[int], completado: bool):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# DEUDA ACADÉMICA — El Delta
+# DEUDA ACADÉMICA
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def get_deuda_academica(materia: str = None, semana_hasta: int = None) -> list[dict]:
-    """
-    Devuelve SOLO los objetivos NO completados (la deuda).
-    Este es el "delta" que se envía a Motor_Recalibracion — NO el plan completo.
-    Optimiza el costo de tokens de la API.
-    """
     query = """
         SELECT mo.id, mo.texto, mo.depende_de, mo.origen_semana,
                s.materia, s.grado, s.tema, s.semana, s.fecha
@@ -268,36 +348,30 @@ def get_deuda_academica(materia: str = None, semana_hasta: int = None) -> list[d
 
 
 def get_dependencias_bloqueadas(materia: str = None) -> list[dict]:
-    """
-    Devuelve objetivos cuyo padre (depende_de) está en la deuda.
-    Estos son los más críticos — bloquean el avance curricular.
-    """
     deuda_ids = {d["id"] for d in get_deuda_academica(materia)}
     if not deuda_ids:
         return []
+    ph = _ph()
+    placeholders = ",".join([ph] * len(deuda_ids))
+    query = f"""
+        SELECT mo.*, s.materia, s.tema, s.semana
+        FROM micro_objetivos mo
+        JOIN sesiones s ON mo.sesion_id = s.id
+        WHERE mo.depende_de IN ({placeholders})
+        AND mo.completado = 0
+    """
     with _conn() as con:
-        placeholders = ",".join("?" * len(deuda_ids))
-        query = f"""
-            SELECT mo.*, s.materia, s.tema, s.semana
-            FROM micro_objetivos mo
-            JOIN sesiones s ON mo.sesion_id = s.id
-            WHERE mo.depende_de IN ({placeholders})
-            AND mo.completado = 0
-        """
         return [dict(r) for r in con.execute(query, list(deuda_ids)).fetchall()]
 
 
 def get_resumen_deuda(materia: str = None) -> dict:
-    """Estadísticas rápidas de la deuda para el dashboard."""
     deuda = get_deuda_academica(materia)
     bloqueados = get_dependencias_bloqueadas(materia)
-    materias_afectadas = list({d["materia"] for d in deuda})
-    semanas_afectadas = sorted({d["semana"] for d in deuda})
     return {
         "total_pendientes": len(deuda),
         "bloqueados_criticos": len(bloqueados),
-        "materias_afectadas": materias_afectadas,
-        "semanas_afectadas": semanas_afectadas,
+        "materias_afectadas": list({d["materia"] for d in deuda}),
+        "semanas_afectadas": sorted({d["semana"] for d in deuda}),
         "deuda_detalle": deuda,
         "bloqueados_detalle": bloqueados,
     }
@@ -309,9 +383,8 @@ def get_resumen_deuda(materia: str = None) -> dict:
 
 def guardar_plan_buffer(semana_buffer: int, materia: str, grado: str,
                         contenido_json: dict) -> int:
-    """Persiste el plan de amortiguación generado por Motor_Recalibracion."""
     resumen = contenido_json.get("resumen_ejecutivo", "")
-    alerta = 1 if contenido_json.get("alerta_condensacion") else 0
+    alerta  = 1 if contenido_json.get("alerta_condensacion") else 0
     with _conn() as con:
         cur = con.execute(
             """INSERT INTO planes_buffer
@@ -324,8 +397,7 @@ def guardar_plan_buffer(semana_buffer: int, materia: str, grado: str,
 
 
 def get_planes_buffer(materia: str = None) -> list[dict]:
-    """Devuelve todos los planes buffer, con el JSON ya parseado."""
-    query = "SELECT * FROM planes_buffer WHERE 1=1"
+    query  = "SELECT * FROM planes_buffer WHERE 1=1"
     params = []
     if materia:
         query += " AND materia = ?"
@@ -342,24 +414,17 @@ def get_planes_buffer(materia: str = None) -> list[dict]:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ALERTAS DE TIEMPO — base para notificaciones en-app
+# ALERTAS DE TIEMPO
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def minutos_para_fin_clase(hora_fin_str: str) -> int | None:
-    """
-    Calcula cuántos minutos faltan para que termine una clase.
-    hora_fin_str: "HH:MM" o "HH:MM - HH:MM"
-    Devuelve None si no se puede parsear.
-    """
     try:
-        # Soporta formatos "14:30" y "13:45 - 14:30"
         parte = hora_fin_str.strip().split("-")[-1].strip()
         ahora = datetime.now()
         fin = datetime.strptime(parte, "%H:%M").replace(
             year=ahora.year, month=ahora.month, day=ahora.day
         )
-        delta = (fin - ahora).total_seconds() / 60
-        return int(delta)
+        return int((fin - ahora).total_seconds() / 60)
     except Exception:
         return None
 
@@ -374,7 +439,6 @@ def _hash_password(password: str) -> str:
 
 def crear_usuario(email: str, password: str, nombre: str,
                   nombre_hoja: str, rol: str = "docente") -> bool:
-    """Crea un usuario. Devuelve True si OK, False si el email ya existe."""
     try:
         with _conn() as con:
             con.execute(
@@ -382,12 +446,13 @@ def crear_usuario(email: str, password: str, nombre: str,
                 (email.lower().strip(), _hash_password(password), nombre, nombre_hoja.upper().strip(), rol)
             )
         return True
-    except sqlite3.IntegrityError:
-        return False
+    except Exception as e:
+        if "unique" in str(e).lower() or "duplicate" in str(e).lower() or "UNIQUE" in str(e):
+            return False
+        raise
 
 
 def verificar_login(email: str, password: str) -> dict | None:
-    """Verifica credenciales. Devuelve el dict del usuario o None."""
     with _conn() as con:
         row = con.execute(
             "SELECT * FROM usuarios WHERE email=? AND activo=1",
@@ -434,7 +499,6 @@ def eliminar_usuario(usuario_id: int):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def guardar_horario_docente(registros: list[dict]):
-    """Reemplaza todo el horario con los registros parseados del Excel."""
     with _conn() as con:
         con.execute("DELETE FROM horario_docente")
         con.executemany(
@@ -448,7 +512,6 @@ def guardar_horario_docente(registros: list[dict]):
 
 
 def get_horario_dia(nombre_hoja: str, dia_semana: str) -> list[dict]:
-    """Devuelve los bloques de un docente para un día, ordenados por hora."""
     with _conn() as con:
         return [dict(r) for r in con.execute(
             """SELECT * FROM horario_docente
@@ -459,7 +522,6 @@ def get_horario_dia(nombre_hoja: str, dia_semana: str) -> list[dict]:
 
 
 def get_all_hojas() -> list[str]:
-    """Devuelve los nombres de hoja únicos en el horario (lista de docentes)."""
     with _conn() as con:
         rows = con.execute(
             "SELECT DISTINCT nombre_hoja FROM horario_docente ORDER BY nombre_hoja"
@@ -483,7 +545,6 @@ def guardar_eventos_calendario(registros: list[dict]):
 
 
 def get_eventos_fecha(fecha: str) -> list[dict]:
-    """Devuelve eventos del calendario para una fecha ISO dada."""
     with _conn() as con:
         return [dict(r) for r in con.execute(
             "SELECT * FROM calendario_escolar WHERE fecha=? ORDER BY id",
@@ -515,11 +576,6 @@ def guardar_actividades_cronograma(registros: list[dict]):
 
 
 def get_actividades_fecha(fecha: str, nombre_hoja: str = None) -> list[dict]:
-    """
-    Devuelve actividades del cronograma para una fecha.
-    Si nombre_hoja se pasa, filtra por actividades donde a_cargo_de
-    menciona al docente, a 'TUTORES', o es general ('DOCENTES', etc.).
-    """
     with _conn() as con:
         rows = [dict(r) for r in con.execute(
             "SELECT * FROM actividades_cronograma WHERE fecha=? ORDER BY hora_inicio",
@@ -569,7 +625,7 @@ def get_all_comisiones() -> list[dict]:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# BLOQUES DIARIO LOG — estado completado/pendiente por día
+# BLOQUES DIARIO LOG
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _bloque_key(bloque: dict) -> str:
@@ -600,7 +656,6 @@ def marcar_bloque_diario(fecha: str, nombre_hoja: str, bloque: dict,
 
 
 def cerrar_bloque(fecha: str, nombre_hoja: str, bloque: dict, notas: str = ""):
-    """Cierra (bloquea) un bloque: lo marca completado + cerrado y guarda notas."""
     key = _bloque_key(bloque)
     with _conn() as con:
         con.execute(
@@ -613,7 +668,6 @@ def cerrar_bloque(fecha: str, nombre_hoja: str, bloque: dict, notas: str = ""):
 
 
 def get_logs_dia(fecha: str, nombre_hoja: str) -> dict:
-    """Devuelve {bloque_key: {completado, cerrado, notas}} para el día dado."""
     with _conn() as con:
         rows = con.execute(
             "SELECT * FROM bloques_diario_log WHERE fecha=? AND nombre_hoja=?",
@@ -623,15 +677,10 @@ def get_logs_dia(fecha: str, nombre_hoja: str) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TOP-DOWN SYNC — WeeklyPlan → Daily tracker objective injection
+# TOP-DOWN SYNC — WeeklyPlan → Daily tracker
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def get_objetivos_semana_materia(semana: int, materia: str, grado: str) -> list[dict]:
-    """
-    Devuelve objetivos de cualquier sesión ya registrada en esta semana
-    para la misma materia+grado. Usado para inyectar automáticamente el
-    plan semanal del administrador en el tracker diario del docente.
-    """
     with _conn() as con:
         return [dict(r) for r in con.execute(
             """SELECT mo.texto, mo.depende_de
@@ -645,11 +694,10 @@ def get_objetivos_semana_materia(semana: int, materia: str, grado: str) -> list[
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# HELPER — sesión diaria automática para bloques de clase
+# ADMIN HELPERS
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def reset_dia_docente(fecha: str, nombre_hoja: str):
-    """Elimina todos los logs del día para un docente (acción admin)."""
     with _conn() as con:
         con.execute(
             "DELETE FROM bloques_diario_log WHERE fecha=? AND nombre_hoja=?",
@@ -659,10 +707,6 @@ def reset_dia_docente(fecha: str, nombre_hoja: str):
 
 def get_or_create_sesion_diaria(fecha: str, semana: int, materia: str,
                                  grado: str, hora_inicio: str, hora_fin: str) -> int:
-    """
-    Busca una sesión ya existente para esta clase en esta fecha.
-    Si no existe, la crea automáticamente y devuelve el ID.
-    """
     with _conn() as con:
         row = con.execute(
             """SELECT id FROM sesiones
@@ -680,5 +724,5 @@ def get_or_create_sesion_diaria(fecha: str, semana: int, materia: str,
         return cur.lastrowid
 
 
-# Inicializar la BD al importar el módulo
+# ── Initialize DB on import ───────────────────────────────────────────────────
 init_db()
