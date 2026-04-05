@@ -525,8 +525,17 @@ div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stTextInput"] {
 # ─────────────────────────────────────────────────────────────────────────────
 BASE_DIR         = os.path.dirname(os.path.abspath(__file__))
 PROMPTS_DIR      = os.path.join(BASE_DIR, "prompts_maestros")
-CACHE_DIR        = st.secrets.get("CACHE_DIR",  os.path.join(BASE_DIR, "cache_libros"))
-LOG_DIR          = st.secrets.get("LOG_DIR",    os.path.join(BASE_DIR, "logs"))
+def _secret(key, default=None):
+    try:
+        v = st.secrets.get(key, None)
+        if v is not None:
+            return v
+    except Exception:
+        pass
+    return os.environ.get(key, default)
+
+CACHE_DIR        = _secret("CACHE_DIR",  os.path.join(BASE_DIR, "cache_libros"))
+LOG_DIR          = _secret("LOG_DIR",    os.path.join(BASE_DIR, "logs"))
 SESSION_BASE_DIR = os.path.join(tempfile.gettempdir(), "pria_sessions")
 for _d in (CACHE_DIR, LOG_DIR, SESSION_BASE_DIR):
     os.makedirs(_d, exist_ok=True)
@@ -592,7 +601,14 @@ def forzar_lista(valor) -> list:
     return []
 
 def _get_keys() -> list:
-    return st.secrets.get("GEMINI_API_KEYS", [])
+    import json as _json
+    raw = _secret("GEMINI_API_KEYS", "[]")
+    if isinstance(raw, list):
+        return raw
+    try:
+        return _json.loads(raw)
+    except Exception:
+        return [raw] if raw else []
 
 def _rotate_key():
     keys = _get_keys()
