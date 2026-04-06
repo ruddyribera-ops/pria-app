@@ -27,12 +27,16 @@ def _parse_time_range(s: str) -> tuple[str | None, str | None]:
     if not s:
         return None, None
     s = str(s).strip()
+    
+    def _pad(t: str) -> str:
+        return f"0{t}" if len(t) == 4 else t
+
     m = re.search(r'(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})', s)
     if m:
-        return m.group(1), m.group(2)
+        return _pad(m.group(1)), _pad(m.group(2))
     m = re.search(r'(\d{1,2}:\d{2})', s)
     if m:
-        return m.group(1), None
+        return _pad(m.group(1)), None
     return None, None
 
 

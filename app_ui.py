@@ -33,6 +33,7 @@ from db_pria import (
     guardar_comisiones, get_comisiones_docente, get_all_comisiones,
     marcar_bloque_diario, cerrar_bloque, get_logs_dia, get_or_create_sesion_diaria,
     get_objetivos_semana_materia, reset_dia_docente, reabrir_bloque,
+    guardar_vigilancias, get_vigilancias,
 )
 from parser_archivos import (
     parse_horarios, parse_calendario,
@@ -1367,6 +1368,33 @@ if ss.get("usuario_rol") == "admin":
                         except Exception as _e:
                             st.error(f"Error: {_e}")
 
+                st.markdown("**👁️ Roles de Vigilancia Recreos (.pdf)**")
+                f_vig = st.file_uploader("Vigilancias", type=["pdf"], key="adm_vig",
+                                         label_visibility="collapsed")
+                if f_vig and st.button("Extraer ubicaciones (AI Gemini)", key="btn_imp_vig"):
+                    with st.spinner("Extrayendo Inteligencia..."):
+                        try:
+                            import tempfile
+                            _keys = _get_keys()
+                            _client = genai.Client(api_key=_keys[0])
+                            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                                tmp.write(f_vig.read())
+                                tmp_path = tmp.name
+                            _gfile = _client.files.upload(file=tmp_path)
+                            _prompt = "Devuelve un JSON estrictamente con la lista de TODOS los docentes y su lugar de vigilancia. Formato de repuesta SOLAMENTE arreglo: [{\"nombre_hoja\": \"(un solo apellido o primer nombre en MAYUSCULAS del docente)\", \"ubicacion\": \"(zona y turno)\"}]. Identifica a cada docente por su nombre de tabla primario (ej. VANESA o SUSI o CUELLAR)."
+                            _resp = _client.models.generate_content(model=GEMINI_MODEL, contents=[_prompt, _gfile])
+                            import os; os.remove(tmp_path)
+                            _clean = _resp.text.replace("```json","").replace("```","").strip()
+                            import json; _data = json.loads(_clean)
+                            if isinstance(_data, dict): _data = _data.get("vigilancias", [_data])
+                            for entry in _data:
+                                n = entry.get("nombre_hoja", "").upper().replace(",", "").replace(".", "")
+                                entry["nombre_hoja"] = n.split()[0] if n else "UNKNOWN"
+                            guardar_vigilancias(_data)
+                            st.success(f"✅ {len(_data)} asignaciones importadas inteligentemente.")
+                        except Exception as _e:
+                            st.error(f"Error AI: {_e}")
+
             # ── PLAN SEMANAL DOCENTE — Palma-Ribera Extraction Engine ────────
             st.divider()
             st.markdown("**📋 Plan Semanal Docente (.docx / .txt)**")
@@ -1451,8 +1479,19 @@ if ss.get("usuario_rol") == "admin":
                                 _h_ini = str(_blk.get("hora_inicio", "00:00")).strip()
                                 _h_fin = str(_blk.get("hora_fin",    "00:00")).strip()
                                 _mat   = str(_blk.get("materia", "Sin materia")).strip()
-                                _obj   = str(_blk.get("objetivo_inferido", "")).strip()
-                                _tasks = [str(t).strip() for t in _blk.get("tareas", []) if str(t).strip()]
+                                _obj_raw = _blk.get("objetivo_inferido", _blk.get("objetivo", _blk.get("tema", "")))
+                                _obj   = str(_obj_raw).strip() if _obj_raw else ""
+                                _tasks_raw = _blk.get("tareas", _blk.get("tareas_progresivas", []))
+                                _tasks = []
+                                if isinstance(_tasks_raw, list):
+                                    for t in _tasks_raw:
+                                        if isinstance(t, str): _tasks.append(t.strip())
+                                        elif isinstance(t, dict): _tasks.append(str(list(t.values())[0]).strip())
+                
+                                if not _obj and not _tasks:
+                                    continue
+                                if not _tasks and _obj:
+                                    _tasks = [_obj]
 
                                 if not _tasks:
                                     continue
@@ -1643,6 +1682,7 @@ if zona == "🌅  Diario":
         _eventos_cal      = get_eventos_fecha(_fecha_iso)
         _actividades_crono= get_actividades_fecha(_fecha_iso, _nombre_hoja)
         _logs_dia         = get_logs_dia(_fecha_iso, _nombre_hoja) if _nombre_hoja else {}
+        _vigilancias      = get_vigilancias()
         _semana_num       = _school_week  # school week number (not ISO)
 
         # Build header % from already-loaded data
@@ -1743,7 +1783,8 @@ if zona == "🌅  Diario":
                     _nivel = f" — {_b['nivel_grado']}" if _b.get('nivel_grado') else ""
                     _label = f"{(_b.get('materia') or '').title()}{_nivel}"
                 elif _tipo == 'vigilancia_recreo':
-                    _label = f"Guardia de Recreo · {_b.get('ubicacion') or 'Patio'}"
+                    _zona = _vigilancias.get(_nombre_hoja.upper())
+                    _label = f"Guardia de Recreo · 📍 {_zona}" if _zona else f"Guardia de Recreo · {_b.get('ubicacion') or 'Patio'}"
                 else:
                     _label = {
                         'ingreso':       'Horario de Ingreso',
