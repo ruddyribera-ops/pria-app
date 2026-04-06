@@ -32,7 +32,7 @@ from db_pria import (
     guardar_actividades_cronograma, get_actividades_fecha,
     guardar_comisiones, get_comisiones_docente, get_all_comisiones,
     marcar_bloque_diario, cerrar_bloque, get_logs_dia, get_or_create_sesion_diaria,
-    get_objetivos_semana_materia, reset_dia_docente,
+    get_objetivos_semana_materia, reset_dia_docente, reabrir_bloque,
 )
 from parser_archivos import (
     parse_horarios, parse_calendario,
@@ -1336,7 +1336,7 @@ if not ss.uploaded_tb_bytes and ss.get("usuario_rol") != "admin":
 # ─────────────────────────────────────────────────────────────────────────────
 if ss.get("usuario_rol") == "admin":
     with st.expander("⚙️ Panel de Administración", expanded=False):
-        adm_tab_arch, adm_tab_users = st.tabs(["📂 Archivos Fuente", "👥 Gestión de Usuarios"])
+        adm_tab_arch, adm_tab_users, adm_tab_tracker = st.tabs(["📂 Archivos Fuente", "👥 Gestión de Usuarios", "🌅 Reset Diario"])
 
         # ── ARCHIVOS FUENTE ───────────────────────────────────────────────────
         with adm_tab_arch:
@@ -1345,6 +1345,7 @@ if ss.get("usuario_rol") == "admin":
 
             with col_a1:
                 st.markdown("**📅 Horarios Oficiales (.xlsx)**")
+                st.info("💡 El nombre de la pestaña en el Excel (ej. RUDDY) debe coincidir con el código del docente para sincronizarse.", icon="💡")
                 f_horario = st.file_uploader("Horarios", type=["xlsx"], key="adm_horario",
                                              label_visibility="collapsed")
                 if f_horario and st.button("Importar horarios", key="btn_imp_horario"):
@@ -1413,7 +1414,7 @@ if ss.get("usuario_rol") == "admin":
             with _pa_r2c2:
                 _hojas_plan = get_all_hojas()
                 _plan_hoja = st.selectbox(
-                    "Docente (hoja)", _hojas_plan if _hojas_plan else ["— sin horarios —"],
+                    "Sincronizar con el horario de:", _hojas_plan if _hojas_plan else ["— sin horarios —"],
                     key="adm_plan_hoja"
                 )
 
@@ -1559,6 +1560,20 @@ if ss.get("usuario_rol") == "admin":
             else:
                 st.info("No hay usuarios registrados aún.")
 
+        # ── RESET DIARIO (ADMIN) ───────────────────────────────────────────────
+        with adm_tab_tracker:
+            st.markdown("#### Reiniciar Tracker Diario")
+            st.caption("Limpia todos los registros del día para un docente, permitiéndole empezar de cero.")
+            _admin_rst_date = st.date_input("Fecha a reiniciar:")
+            _admin_rst_hojas = get_all_hojas()
+            _admin_rst_hoja = st.selectbox("Docente", _admin_rst_hojas if _admin_rst_hojas else ["—"], key="adm_rst_hoja")
+            if st.button("↺ Reiniciar Tracker", type="primary", key="btn_adm_rst_dia"):
+                if _admin_rst_hoja and _admin_rst_hoja != "—":
+                    reset_dia_docente(_admin_rst_date.strftime('%Y-%m-%d'), _admin_rst_hoja)
+                    st.success(f"Día {_admin_rst_date} reiniciado con éxito para la hoja: {_admin_rst_hoja}.")
+                else:
+                    st.error("Selecciona un docente válido.")
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SELECTOR TEMPORAL
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1663,16 +1678,7 @@ if zona == "🌅  Diario":
                 </div>""",
                 unsafe_allow_html=True
             )
-        # Admin-only reset control
-        if ss.get("usuario_rol") == "admin" and _nombre_hoja and _pre_cerrados > 0:
-            with _hdr_right:
-                st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
-                _reset_hojas = get_all_hojas() or [_nombre_hoja]
-                _rst_hoja = st.selectbox("Docente", _reset_hojas, key="rst_hoja",
-                                         label_visibility="collapsed")
-                if st.button("↺ Reiniciar día", key="btn_rst_dia", use_container_width=True):
-                    reset_dia_docente(_fecha_iso, _rst_hoja)
-                    st.rerun()
+        # (El control de reseteo para administradores ahora está en el panel de administración general)
 
         if _dow >= 5:
             st.info("Hoy no hay clases. Aquí verás el próximo lunes cuando sea día hábil.")
@@ -1774,6 +1780,9 @@ if zona == "🌅  Diario":
                             "<span class='aid-badge aid-badge--closed'>✓ Cerrado</span>",
                             unsafe_allow_html=True
                         )
+                        if st.button("Reabrir", key=f"reab_{_fecha_iso}_{_bkey.replace('|','_')}", use_container_width=True):
+                            reabrir_bloque(_fecha_iso, _nombre_hoja, _b)
+                            st.rerun()
                     st.markdown(
                         "<div style='height:1px;background:#1A1D23;margin:1px 0'></div>",
                         unsafe_allow_html=True

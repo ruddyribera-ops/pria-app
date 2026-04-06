@@ -667,6 +667,15 @@ def cerrar_bloque(fecha: str, nombre_hoja: str, bloque: dict, notas: str = ""):
         )
 
 
+def reabrir_bloque(fecha: str, nombre_hoja: str, bloque: dict):
+    key = _bloque_key(bloque)
+    with _conn() as con:
+        con.execute(
+            "UPDATE bloques_diario_log SET cerrado=0, completado=0 WHERE fecha=? AND nombre_hoja=? AND bloque_key=?",
+            (fecha, nombre_hoja.upper(), key)
+        )
+
+
 def get_logs_dia(fecha: str, nombre_hoja: str) -> dict:
     with _conn() as con:
         rows = con.execute(
