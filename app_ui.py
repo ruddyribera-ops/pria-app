@@ -1341,6 +1341,7 @@ if ss.get("usuario_rol") == "admin":
         # ── ARCHIVOS FUENTE ───────────────────────────────────────────────────
         with adm_tab_arch:
             st.markdown("Sube los archivos oficiales del colegio. Al subir, los datos anteriores se reemplazan.")
+            st.info("💾 Todos los archivos importados aquí se guardan permanentemente en la base de datos. **No necesitas volver a subirlos cada vez**, solo cuando hayan actualizaciones oficiales.", icon="💾")
             col_a1, col_a2 = st.columns(2)
 
             with col_a1:
@@ -1426,7 +1427,12 @@ if ss.get("usuario_rol") == "admin":
                         import docx as _dx
                         if f_plan.name.lower().endswith('.docx'):
                             _doc = _dx.Document(io.BytesIO(f_plan.read()))
-                            _plan_txt = "\n".join(p.text for p in _doc.paragraphs if p.text.strip())
+                            _texts = [p.text.strip() for p in _doc.paragraphs if p.text.strip()]
+                            for table in _doc.tables:
+                                for row in table.rows:
+                                    for cell in row.cells:
+                                        if cell.text.strip(): _texts.append(cell.text.strip())
+                            _plan_txt = "\n".join(_texts)
                         else:
                             _plan_txt = f_plan.read().decode('utf-8', errors='ignore')
 
