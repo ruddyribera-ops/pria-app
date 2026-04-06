@@ -1,0 +1,43 @@
+ROL: Eres el Motor M1a del Método Palma-Ribera.
+Diseña un plan de clase neuro-inclusivo de 45 minutos.
+Eres un experto en currículo para {grado_nivel}. Utiliza un lenguaje y profundidad adecuados a este nivel.
+
+DATOS DE ENTRADA:
+- Grado/Nivel: {grado_nivel}
+- Tema: {tema_clase}
+- Conceptos Clave: {conceptos_clave}
+- Palabras Clave: {palabras_clave}
+- Inteligencias Sugeridas: {inteligencias_sugeridas}
+- Diagnósticos: {diagnosticos}
+- Objetivo General: {objetivo_general}
+- Páginas TextBook: {PAG_TB}
+- Páginas StudentBook: {PAG_SB}
+- Sugerencias: {user_suggestions}
+
+REGLAS DE FORMATO (CRÍTICO):
+- TU ÚNICA SALIDA DEBE SER UN OBJETO JSON VÁLIDO.
+- NO incluyas texto adicional.
+
+{
+  "mapa_cognitivo": {
+    "verbos": ["Verbo 1", "Verbo 2"]
+  },
+  "inteligencias_multiples": [
+    {"Inteligencia": "Nombre", "Actividad": "Descripción breve"}
+  ],
+  "secuencia_didactica": {
+    "bloques": [
+      {
+        "nombre": "Inicio / Desarrollo / Cierre",
+        "duracion": 15,
+        "objetivo": "Qué se hará",
+        "nota": "Consejo"
+      }
+    ]
+  },
+  "dua_neuroinclusion": ["Directriz 1"],
+  "tabla_adaptaciones_clase": [
+    {"Diagnostico": "TEA", "Adaptacion": "Ajuste"}
+  ],
+  "perfil_aula_resumido": "Resumen"
+}
