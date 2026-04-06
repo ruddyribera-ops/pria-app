@@ -1422,6 +1422,9 @@ if ss.get("usuario_rol") == "admin":
                                 "taxonomía de Bloom (representar, analizar, deducir, construir, evaluar…).\n"
                                 "4. DESCOMPONER cada contenido en exactamente 3 o 4 tareas progresivas y "
                                 "accionables que el docente ejecutará en el aula, ordenadas cronológicamente.\n\n"
+                                "CRÍTICO: Debes INFERIR OBLIGATORIAMENTE los objetivos y las tareas para CADA bloque "
+                                "incluso si el documento solo contiene un título o tema genérico. Usa tu conocimiento "
+                                "pedagógico para crear las tareas automáticamente si no constan de forma explícita.\n\n"
                                 f"PLAN SEMANAL:\n{_plan_txt[:6000]}\n\n"
                                 "Responde ÚNICAMENTE con un array JSON válido (sin markdown, sin texto extra).\n"
                                 "Formato exacto por cada bloque encontrado:\n"
@@ -1604,8 +1607,20 @@ if zona == "🌅  Diario":
     _EVENTO_ICONO = {'feriado':'🚫','acto_civico':'🎌','institucional':'📣','curricular':'📖'}
 
     with tab_dia:
-        _hoy      = _dt.now()
-        _dow      = _hoy.weekday()   # 0=lun … 6=dom
+        import pytz
+        from datetime import timedelta as _td
+        bolivia_tz = pytz.timezone('America/La_Paz')
+        _hoy_local = _dt.now(bolivia_tz)
+        
+        _hora_actual = _hoy_local.hour + _hoy_local.minute / 60.0
+        _is_primary = "primaria" in str(ss.get("nivel_grado", "")).lower() or "primaria" in str(ss.get("nivel", "")).lower()
+        if (_is_primary and _hora_actual >= 13.0) or (not _is_primary and _hora_actual >= 13.66):
+            _hoy_local += _td(days=1)
+            if _hoy_local.weekday() >= 5:
+                _hoy_local += _td(days=(7 - _hoy_local.weekday()))
+                
+        _hoy = _hoy_local
+        _dow = _hoy.weekday()   # 0=lun … 6=dom
         _fecha_iso = _hoy.strftime('%Y-%m-%d')
         _nombre_hoja = ss.get("usuario_hoja", "")
 
