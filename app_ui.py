@@ -1300,35 +1300,7 @@ paginas_temas   = datos_libro.get("paginas_temas",   {})
 # ─────────────────────────────────────────────────────────────────────────────
 # EMPTY STATE — sin libro cargado
 # ─────────────────────────────────────────────────────────────────────────────
-if not ss.uploaded_tb_bytes and ss.get("usuario_rol") != "admin":
-    st.markdown("""
-    <div style="text-align:center;padding:3rem 2rem;background:#16191D;
-    border-radius:18px;border:1px solid #2A2D35;margin-top:2rem;">
-        <div style="font-size:4rem">🦉</div>
-        <h2 style="color:#E8EAF0;margin:1rem 0 0.5rem">Bienvenido a PRIA</h2>
-        <p style="color:#9DA3B4;font-size:1.05rem;font-weight:500">
-            Para comenzar, completa tu perfil y carga los materiales en el panel lateral.
-        </p>
-        <div style="display:flex;justify-content:center;gap:2rem;margin-top:1.5rem;flex-wrap:wrap;">
-            <div style="background:#1E2128;border:1px solid #2A2D35;border-radius:12px;padding:1rem 1.5rem;">
-                <div style="font-size:1.8rem">1️⃣</div>
-                <div style="font-weight:700;color:#E8EAF0">Perfil Docente</div>
-                <div style="color:#6B7185;font-size:0.9rem">Nombre</div>
-            </div>
-            <div style="background:#1E2128;border:1px solid #2A2D35;border-radius:12px;padding:1rem 1.5rem;">
-                <div style="font-size:1.8rem">2️⃣</div>
-                <div style="font-weight:700;color:#E8EAF0">Libro de Texto</div>
-                <div style="color:#6B7185;font-size:0.9rem">PDF del TextBook</div>
-            </div>
-            <div style="background:#1E2128;border:1px solid #2A2D35;border-radius:12px;padding:1rem 1.5rem;">
-                <div style="font-size:1.8rem">3️⃣</div>
-                <div style="font-weight:700;color:#E8EAF0">Diagnósticos</div>
-                <div style="color:#6B7185;font-size:0.9rem">Expedientes del aula (opcional)</div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    st.stop()
+# REMOVED: Teachers now land directly in the Daily Tracker (admin pre-loads dependencies)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
