@@ -228,6 +228,21 @@ def init_db():
             alerta_condensacion INTEGER DEFAULT 0,
             creado_en        {ts}
         )""",
+    # Add this new table definition to the list of tables to be created
+tables = [
+    # ... existing table definitions ...
+
+    f"""CREATE TABLE IF NOT EXISTS weekly_plan_objectives (
+        id            {pk},
+        semana        INTEGER NOT NULL,
+        nombre_hoja   TEXT NOT NULL, -- Corresponds to teacher's sheet name
+        materia       TEXT,
+        grado         TEXT,
+        objetivo_texto TEXT NOT NULL,
+        UNIQUE(semana, nombre_hoja, objetivo_texto)
+    )""",
+]
+# ... rest of init_db() ...
     ]
 
     with _conn() as con:
@@ -418,6 +433,20 @@ def get_planes_buffer(materia: str = None) -> list[dict]:
             pass
     return rows
 
+def guardar_objetivos_semana(semana: int, nombre_hoja: str, materia: str, grado: str, objetivos: list[str]):
+    with _conn() as con:
+        # First, clear objectives for this week/teacher to avoid duplicates if re-uploaded
+        con.execute(
+            "DELETE FROM weekly_plan_objectives WHERE semana = ? AND nombre_hoja = ?",
+            (semana, nombre_hoja.upper())
+        )
+        # Then, insert the new objectives
+        for obj_text in objetivos:
+            con.execute(
+                """INSERT INTO weekly_plan_objectives (semana, nombre_hoja, materia, grado, objetivo_texto)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (semana, nombre_hoja.upper(), materia, grado, obj_text)
+            )
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ALERTAS DE TIEMPO
@@ -731,16 +760,77 @@ def get_logs_dia(fecha: str, nombre_hoja: str) -> dict:
 # TOP-DOWN SYNC — WeeklyPlan → Daily tracker
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def get_objetivos_semana_materia(semana: int, materia: str, grado: str) -> list[dict]:
+def get_objetivos_semana_materia(semana: int, nombre_hoja: str, materia: str, grado: str) -> list[dict]:
+    # --- Prioritize objectives from the admin-uploaded weekly plan ---
     with _conn() as con:
-        rows = con.execute(
-            """SELECT mo.texto, mo.depende_de, s.materia as s_mat, s.grado as s_grad, mo.id
-               FROM micro_objetivos mo
-               JOIN sesiones s ON mo.sesion_id = s.id
-               WHERE s.semana = ?
-               ORDER BY mo.id ASC""",
-            (semana,)
+        rows_weekly = con.execute(
+            """SELECT objetivo_texto AS texto, NULL AS depende_de, NULL AS id
+               FROM weekly_plan_objectives
+               WHERE semana = ? AND nombre_hoja = ? -- Assuming nombre_hoja is needed for matching
+               ORDER BY id ASC""",
+            (semana, nombre_hoja.upper()) # Use the provided nombre_hoja directly
+            # Note: We might need to pass nombre_hoja explicitly if materia doesn't map directly
         ).fetchall()
+        if rows_weekly:
+            # Return objectives directly from weekly plan if found
+            return [dict(r) for r in rows_weekly]
+
+    # --- Fallback: Retrieve objectives from past sessions if no weekly plan objectives exist ---
+    query = """
+        SELECT mo.id, mo.texto, mo.depende_de, mo.origen_semana,
+               s.materia as s_mat, s.grado as s_grad
+        FROM micro_objetivos mo
+        JOIN sesiones s ON mo.sesion_id = s.id
+        WHERE s.semana = ?
+    """
+    params = [semana]
+    if materia:
+        query += " AND s.materia = ?"
+        params.append(materia)
+    # Add grade matching if needed, but materia might be enough for filtering
+    query += " ORDER BY s.materia, s.grado, mo.id ASC"
+
+    with _conn() as con:
+        rows_sessions = con.execute(query, params).fetchall()
+
+    def _normalize(text):
+        import unicodedata, re
+        if not text: return ""
+        text = str(text).upper()
+        text = ''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
+        return re.sub(r'[^A-Z0-9]', '', text)
+
+    norm_mat = _normalize(materia)
+    norm_grado = _normalize(grado)
+
+    matched = []
+    seen_texts = set() # To avoid duplicate objective texts if multiple sessions match
+
+    for r in rows_sessions:
+        r_mat = _normalize(r["s_mat"])
+        r_grad = _normalize(r["s_grad"])
+
+        match_mat = (norm_mat in r_mat) or (r_mat in norm_mat)
+        if not match_mat:
+            if "LENGUA" in norm_mat and "LENGUA" in r_mat: match_mat = True
+            if "MATEMA" in norm_mat and "MATEMA" in r_mat: match_mat = True
+
+        match_grado = (norm_grado in r_grad) or (r_grad in norm_grado)
+        if not match_grado and r_grad and norm_grado:
+            import re
+            m1 = re.search(r'(\d)', r_grad)
+            m2 = re.search(r'(\d)', norm_grado)
+            if m1 and m2 and m1.group(1) == m2.group(1):
+                if ('S' in r_grad or 'SEC' in r_grad) and ('S' in norm_grado or 'SEC' in norm_grado):
+                    match_grado = True
+                elif ('P' in r_grad or 'PRIM' in r_grad) and ('P' in norm_grado or 'PRIM' in norm_grado):
+                    match_grado = True
+
+        if match_mat and (match_grado or not norm_grado or not r_grad):
+            if r["texto"] not in seen_texts:
+                matched.append({"texto": r["texto"], "depende_de": r["depende_de"], "id": r["id"]})
+                seen_texts.add(r["texto"])
+    return matched
 
     def _normalize(text):
         import unicodedata, re

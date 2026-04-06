@@ -1381,7 +1381,7 @@ if ss.get("usuario_rol") == "admin":
                                 tmp.write(f_vig.read())
                                 tmp_path = tmp.name
                             _gfile = _client.files.upload(file=tmp_path)
-                            _prompt = "Devuelve un JSON estrictamente con la lista de TODOS los docentes y su lugar de vigilancia. Formato de repuesta SOLAMENTE arreglo: [{\"nombre_hoja\": \"(un solo apellido o primer nombre en MAYUSCULAS del docente)\", \"ubicacion\": \"(zona y turno)\"}]. Identifica a cada docente por su nombre de tabla primario (ej. VANESA o SUSI o CUELLAR)."
+                            _prompt = "Eres un asistente sumamente estricto. Analiza este rol de vigilancia. Extrae EXACTAMENTE la zona individual corta en la que debe pararse CADA uno de los docentes. REGLA 1: NO agrupes zonas ni me des las descripciones completas de los módulos, solo el punto de guardia del profesor. Devuelve un JSON estrictamente así: [{\"nombre_hoja\": \"(apellido o primer nombre en MAYUSCULAS)\", \"ubicacion\": \"(ej: Patio Central - 1er Recreo)\"}]."
                             _resp = _client.models.generate_content(model=GEMINI_MODEL, contents=[_prompt, _gfile])
                             import os; os.remove(tmp_path)
                             _clean = _resp.text.replace("```json","").replace("```","").strip()
@@ -1849,8 +1849,7 @@ if zona == "🌅  Diario":
                     _objetivos = get_micro_objetivos(_sesion_id)
                     # Auto-inject from WeeklyPlan if none exist yet
                     if not _objetivos:
-                        _plan_objs = get_objetivos_semana_materia(_semana_num, _mat_db, _niv_db)
-                        if _plan_objs:
+                       _plan_objs = get_objetivos_semana_materia(_semana_num, _nombre_hoja, _mat_db, _niv_db)
                             guardar_micro_objetivos(
                                 _sesion_id,
                                 [{"texto": o["texto"], "depende_de": o.get("depende_de")}
