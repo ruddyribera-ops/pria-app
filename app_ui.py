@@ -1783,7 +1783,12 @@ if zona == "🌅  Diario":
                     _nivel = f" — {_b['nivel_grado']}" if _b.get('nivel_grado') else ""
                     _label = f"{(_b.get('materia') or '').title()}{_nivel}"
                 elif _tipo == 'vigilancia_recreo':
-                    _zona = _vigilancias.get(_nombre_hoja.upper())
+                    _zona = None
+                    _nh_upp = _nombre_hoja.upper()
+                    for k_name, v_zona in _vigilancias.items():
+                        if k_name in _nh_upp or _nh_upp in k_name:
+                            _zona = v_zona
+                            break
                     _label = f"Guardia de Recreo · 📍 {_zona}" if _zona else f"Guardia de Recreo · {_b.get('ubicacion') or 'Patio'}"
                 else:
                     _label = {
