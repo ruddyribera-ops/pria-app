@@ -696,8 +696,8 @@ def get_objetivos_semana_materia(semana: int, materia: str, grado: str) -> list[
                FROM micro_objetivos mo
                JOIN sesiones s ON mo.sesion_id = s.id
                WHERE s.semana = ? AND LOWER(s.materia) = LOWER(?) AND LOWER(s.grado) = LOWER(?)
-               GROUP BY mo.texto
-               ORDER BY mo.id""",
+               GROUP BY mo.texto, mo.depende_de
+               ORDER BY MIN(mo.id)""",
             (semana, materia, grado)
         ).fetchall()]
 
