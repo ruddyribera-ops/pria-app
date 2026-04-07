@@ -541,7 +541,7 @@ SESSION_BASE_DIR = os.path.join(tempfile.gettempdir(), "pria_sessions")
 for _d in (CACHE_DIR, LOG_DIR, SESSION_BASE_DIR):
     os.makedirs(_d, exist_ok=True)
 
-GEMINI_MODEL = "gemini-2.0-flash-lite"
+GEMINI_MODEL = "gemini-2.5-flash"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # INICIALIZACIÓN DE SESIÓN
