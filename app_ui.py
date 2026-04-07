@@ -605,11 +605,28 @@ def _get_keys() -> list:
     import json as _json
     raw = _secret("GEMINI_API_KEYS", "[]")
     if isinstance(raw, list):
-        return raw
+        return [str(k).strip() for k in raw if str(k).strip()]
     try:
-        return _json.loads(raw)
+        parsed = _json.loads(raw)
+        if isinstance(parsed, list):
+            keys = [str(k).strip() for k in parsed if str(k).strip()]
+        elif isinstance(parsed, str):
+            keys = [parsed.strip()] if parsed.strip() else []
+        else:
+            keys = []
+        if keys:
+            return keys
     except Exception:
-        return [raw] if raw else []
+        pass
+
+    # Fallback: single-key env/secret
+    single = str(_secret("GEMINI_API_KEY", "") or "").strip()
+    if single:
+        return [single]
+
+    # Last fallback: raw non-JSON string in GEMINI_API_KEYS
+    raw_s = str(raw or "").strip()
+    return [raw_s] if raw_s and raw_s != "[]" else []
 
 def _rotate_key():
     keys = _get_keys()
@@ -1376,6 +1393,12 @@ if ss.get("usuario_rol") == "admin":
                         try:
                             import tempfile
                             _keys = _get_keys()
+                            if not _keys:
+                                st.error(
+                                    "No hay clave Gemini configurada en el servidor. "
+                                    "Configura `GEMINI_API_KEYS` (JSON array) o `GEMINI_API_KEY` en Railway Variables."
+                                )
+                                st.stop()
                             _client = genai.Client(api_key=_keys[0])
                             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                                 tmp.write(f_vig.read())
