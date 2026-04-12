@@ -7,8 +7,11 @@ import time
 import tempfile
 import uuid
 import io
+import re
+import unicodedata
 import openpyxl
-from datetime import datetime as _dt
+import extra_streamlit_components as stx
+from datetime import datetime as _dt, timedelta as _timedelta
 from google import genai
 from exportar import (
     render_panel_exportacion,
@@ -24,21 +27,182 @@ from db_pria import (
     minutos_para_fin_clase,
     # Auth
     crear_usuario, verificar_login, get_all_usuarios,
-    actualizar_password, toggle_usuario_activo, eliminar_usuario,
+    actualizar_password, actualizar_usuario_admin,
+    toggle_usuario_activo, eliminar_usuario,
     get_usuario_by_email,
     # Sistema Diario
     guardar_horario_docente, get_horario_dia, get_all_hojas,
+    get_horario_docente_completo, guardar_bloque_horario_manual,
+    eliminar_bloque_horario_manual, guardar_vigilancia_manual,
+    eliminar_vigilancia_manual,
     guardar_eventos_calendario, get_eventos_fecha, get_eventos_rango,
     guardar_actividades_cronograma, get_actividades_fecha,
     guardar_comisiones, get_comisiones_docente, get_all_comisiones,
     marcar_bloque_diario, cerrar_bloque, get_logs_dia, get_or_create_sesion_diaria,
     get_objetivos_semana_materia, reset_dia_docente, reabrir_bloque,
     guardar_vigilancias, get_vigilancias,
+    crear_token_recordarme, verificar_token_recordarme, revocar_token_recordarme,
 )
 from parser_archivos import (
     parse_horarios, parse_calendario,
     parse_cronograma, parse_comisiones,
 )
+
+
+def _norm_name_key(_s: str) -> str:
+    _s = str(_s or "").upper().strip()
+    _s = ''.join(c for c in unicodedata.normalize('NFD', _s) if unicodedata.category(c) != 'Mn')
+    _s = re.sub(r'\b(PROF(?:ESOR(?:A)?)?|DOCENTE|MISS|MISTER|MR|MRS|MS|LIC\.?)\b', ' ', _s)
+    _s = re.sub(r'[^A-Z0-9 ]+', ' ', _s)
+    _s = re.sub(r'\s+', ' ', _s).strip()
+    return _s
+
+
+def _extract_vigilancia_blocks(ubicacion_texto: str, dia_objetivo: str, fallback_slots: list[tuple[str, str]] | None = None) -> list[dict]:
+    """Extrae bloques de vigilancia desde texto tipo:
+    'LUNES 10:10-10:30 PATIO CENTRAL, MARTES 9:25-9:40 PARQUE, ...'"""
+    txt = str(ubicacion_texto or "").strip()
+    if not txt:
+        return []
+
+    day_map = {
+        "LUNES": "lunes",
+        "MARTES": "martes",
+        "MIERCOLES": "miercoles",
+        "MIÉRCOLES": "miercoles",
+        "JUEVES": "jueves",
+        "VIERNES": "viernes",
+    }
+    pat = re.compile(
+        r'(LUNES|MARTES|MI(?:E|É)RCOLES|JUEVES|VIERNES)\s+'
+        r'(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})\s*'
+        r'(.*?)(?=(?:,\s*(?:LUNES|MARTES|MI(?:E|É)RCOLES|JUEVES|VIERNES)\s+\d{1,2}:\d{2}\s*[-–]\s*\d{1,2}:\d{2})|$)',
+        flags=re.IGNORECASE
+    )
+
+    def _pad(t: str) -> str:
+        t = str(t or "").strip()
+        return f"0{t}" if len(t) == 4 else t
+
+    out = []
+    for m in pat.finditer(txt):
+        dia_raw = (m.group(1) or "").upper()
+        dia = day_map.get(dia_raw, "")
+        if dia != dia_objetivo:
+            continue
+        hi = _pad(m.group(2))
+        hf = _pad(m.group(3))
+        zona = (m.group(4) or "").strip(" ,.;") or "Patio"
+        out.append({
+            "dia_semana": dia,
+            "hora_inicio": hi,
+            "hora_fin": hf,
+            "tipo_bloque": "vigilancia_recreo",
+            "materia": None,
+            "nivel_grado": None,
+            "ubicacion": zona,
+            "valor_original": f"{dia_raw} {hi}-{hf} {zona}",
+        })
+
+    # Formato alterno SIN HORA, p.ej.:
+    # "PRIMARIA RECREO 1 LUNES PATIO CENTRAL, PRIMARIA RECREO 1 MARTES PARQUE"
+    if not out:
+        day_token = {
+            'lunes': 'LUNES', 'martes': 'MARTES', 'miercoles': 'MIERCOLES',
+            'jueves': 'JUEVES', 'viernes': 'VIERNES'
+        }.get(dia_objetivo, '').upper()
+        alt_parts = [p.strip() for p in re.split(r'[,;\n\|]+\s*', txt) if p.strip()]
+        alt_matches = []
+        for part in alt_parts:
+            p_up = part.upper().replace('MIÉRCOLES', 'MIERCOLES')
+            if day_token and day_token in p_up:
+                idx = p_up.find(day_token)
+                pref = part[:idx].strip(' ,.-')
+                zona = part[idx + len(day_token):].strip(' ,.-') or 'Patio'
+                alt_matches.append((pref, zona))
+
+        if alt_matches:
+            slots = fallback_slots or []
+            if not slots:
+                slots = [('10:10', '10:30')]
+            for i, (pref, zona) in enumerate(alt_matches):
+                hi, hf = slots[i % len(slots)]
+                etiqueta = f"{pref} {day_token} {zona}".strip()
+                out.append({
+                    "dia_semana": dia_objetivo,
+                    "hora_inicio": hi,
+                    "hora_fin": hf,
+                    "tipo_bloque": "vigilancia_recreo",
+                    "materia": None,
+                    "nivel_grado": None,
+                    "ubicacion": zona,
+                    "valor_original": etiqueta,
+                })
+
+    # Último fallback: si no pudo parsear estructura, inyecta usando slots del día
+    # para no dejar al docente sin bloque de vigilancia.
+    if not out and fallback_slots:
+        zona_txt = txt.strip(" ,.;") or "Patio"
+        for hi, hf in fallback_slots:
+            out.append({
+                "dia_semana": dia_objetivo,
+                "hora_inicio": hi,
+                "hora_fin": hf,
+                "tipo_bloque": "vigilancia_recreo",
+                "materia": None,
+                "nivel_grado": None,
+                "ubicacion": zona_txt,
+                "valor_original": zona_txt,
+            })
+    return out
+
+
+def _name_match_score(a: str, b: str) -> float:
+    a_n = _norm_name_key(a)
+    b_n = _norm_name_key(b)
+    if not a_n or not b_n:
+        return 0.0
+    if a_n == b_n:
+        return 1.0
+    if a_n in b_n or b_n in a_n:
+        return 0.95
+    sa, sb = set(a_n.split()), set(b_n.split())
+    if sa and sb:
+        j = len(sa & sb) / max(1, len(sa | sb))
+        if j > 0:
+            return 0.6 + 0.35 * j
+    return 0.0
+
+
+def _pick_best_name_key(target_name: str, candidates: list[str], min_score: float = 0.72) -> str | None:
+    best, best_s = None, 0.0
+    for c in candidates:
+        s = _name_match_score(target_name, c)
+        if s > best_s:
+            best, best_s = c, s
+    return best if best and best_s >= min_score else None
+
+
+def _pick_vigilancia_day_text(texto: str, dia_objetivo: str) -> str:
+    txt = str(texto or '').strip()
+    if not txt:
+        return ''
+    day_token = {
+        'lunes': 'LUNES', 'martes': 'MARTES', 'miercoles': 'MIERCOLES',
+        'jueves': 'JUEVES', 'viernes': 'VIERNES'
+    }.get(dia_objetivo, '').upper()
+    if not day_token:
+        return txt
+
+    parts = [p.strip() for p in re.split(r',\s*', txt) if p.strip()]
+    picked = []
+    for p in parts:
+        pu = p.upper().replace('MIÉRCOLES', 'MIERCOLES')
+        if day_token in pu:
+            idx = pu.find(day_token)
+            tail = p[idx + len(day_token):].strip(' ,.-')
+            picked.append(tail or p)
+    return ' / '.join(picked) if picked else txt
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIGURACIÓN DE PANTALLA
@@ -541,7 +705,7 @@ SESSION_BASE_DIR = os.path.join(tempfile.gettempdir(), "pria_sessions")
 for _d in (CACHE_DIR, LOG_DIR, SESSION_BASE_DIR):
     os.makedirs(_d, exist_ok=True)
 
-GEMINI_MODEL = "gemini-3.1-pro-preview"
+GEMINI_MODEL = _secret("GEMINI_MODEL", "gemini-2.0-flash-lite")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # INICIALIZACIÓN DE SESIÓN
@@ -585,6 +749,7 @@ _defaults: dict = {
     "_pptx_cache":            None,
     "teacher_name":           "",
     "school_name":            "",
+    "remember_token":         None,
 }
 for _k, _v in _defaults.items():
     if _k not in st.session_state:
@@ -605,11 +770,28 @@ def _get_keys() -> list:
     import json as _json
     raw = _secret("GEMINI_API_KEYS", "[]")
     if isinstance(raw, list):
-        return raw
+        return [str(k).strip() for k in raw if str(k).strip()]
     try:
-        return _json.loads(raw)
+        parsed = _json.loads(raw)
+        if isinstance(parsed, list):
+            keys = [str(k).strip() for k in parsed if str(k).strip()]
+        elif isinstance(parsed, str):
+            keys = [parsed.strip()] if parsed.strip() else []
+        else:
+            keys = []
+        if keys:
+            return keys
     except Exception:
-        return [raw] if raw else []
+        pass
+
+    # Fallback: single-key env/secret
+    single = str(_secret("GEMINI_API_KEY", "") or "").strip()
+    if single:
+        return [single]
+
+    # Last fallback: raw non-JSON string in GEMINI_API_KEYS
+    raw_s = str(raw or "").strip()
+    return [raw_s] if raw_s and raw_s != "[]" else []
 
 def _rotate_key():
     keys = _get_keys()
@@ -1091,11 +1273,61 @@ st.caption("Método Palma-Ribera · DUA · Inteligencias Múltiples · Motor Gem
 # ─────────────────────────────────────────────────────────────────────────────
 # AUTENTICACIÓN — login por usuario (email + contraseña)
 # ─────────────────────────────────────────────────────────────────────────────
+_cookie_mgr = stx.CookieManager()
+_REM_COOKIE = "pria_remember"
+_REM_DAYS = 30
+_REM_QP = "rt"
+
+# En algunos navegadores/components la primera lectura de cookies llega vacía
+# en el primer render tras refresh. Hacemos un rerun de bootstrap una sola vez.
+if "_cookie_bootstrap_done" not in st.session_state:
+    st.session_state._cookie_bootstrap_done = False
+
 if "usuario_email" not in st.session_state:
     st.session_state.usuario_email  = None
     st.session_state.usuario_nombre = None
     st.session_state.usuario_hoja   = None
     st.session_state.usuario_rol    = None
+
+if not st.session_state.get("autenticado"):
+    _qp_tk = st.query_params.get(_REM_QP, None)
+    if isinstance(_qp_tk, list):
+        _qp_tk = _qp_tk[0] if _qp_tk else None
+
+    _cookies_all = _cookie_mgr.get_all() or {}
+    if (not st.session_state.get("_cookie_bootstrap_done")) and (not _cookies_all):
+        st.session_state._cookie_bootstrap_done = True
+        st.rerun()
+
+    _tk_cookie = _cookies_all.get(_REM_COOKIE) if isinstance(_cookies_all, dict) else _cookie_mgr.get(_REM_COOKIE)
+    _tk = _qp_tk or _tk_cookie
+    if _tk:
+        _u_auto = verificar_token_recordarme(_tk)
+        if _u_auto:
+            st.session_state.autenticado      = True
+            st.session_state.usuario_email    = _u_auto["email"]
+            st.session_state.usuario_nombre   = _u_auto["nombre"]
+            st.session_state.usuario_hoja     = _u_auto["nombre_hoja"]
+            st.session_state.usuario_rol      = _u_auto["rol"]
+            st.session_state.teacher_name     = _u_auto["nombre"]
+            st.session_state.remember_token   = _tk
+
+            # sincroniza ambos mecanismos de persistencia
+            if _tk_cookie != _tk:
+                _cookie_mgr.set(
+                    _REM_COOKIE,
+                    _tk,
+                    expires_at=_dt.utcnow() + _timedelta(days=_REM_DAYS),
+                )
+            st.query_params[_REM_QP] = _tk
+
+            _log_event("auto_login", True)
+            st.rerun()
+        else:
+            revocar_token_recordarme(_tk)
+            _cookie_mgr.delete(_REM_COOKIE)
+            if _REM_QP in st.query_params:
+                del st.query_params[_REM_QP]
 
 if not st.session_state.get("autenticado"):
     with st.container(border=True):
@@ -1104,6 +1336,7 @@ if not st.session_state.get("autenticado"):
         _email = st.text_input("Usuario o correo:", placeholder="admin  /  nombre@laspalmas.edu",
                                key="login_email")
         _pwd   = st.text_input("Contraseña:", type="password", key="login_pwd")
+        _remember_me = st.checkbox("Mantener sesión iniciada (30 días)", value=True, key="login_remember")
         if st.button("Ingresar", type="primary", use_container_width=True, key="btn_login"):
             _usuario = verificar_login(_email, _pwd)
             if _usuario:
@@ -1113,6 +1346,23 @@ if not st.session_state.get("autenticado"):
                 st.session_state.usuario_hoja     = _usuario["nombre_hoja"]
                 st.session_state.usuario_rol      = _usuario["rol"]
                 st.session_state.teacher_name     = _usuario["nombre"]
+
+                _old_tk = _cookie_mgr.get(_REM_COOKIE)
+                if _old_tk:
+                    revocar_token_recordarme(_old_tk)
+                    _cookie_mgr.delete(_REM_COOKIE)
+
+                if _remember_me:
+                    _new_tk = crear_token_recordarme(_usuario["id"], dias=_REM_DAYS)
+                    _cookie_mgr.set(
+                        _REM_COOKIE,
+                        _new_tk,
+                        expires_at=_dt.utcnow() + _timedelta(days=_REM_DAYS),
+                    )
+                    time.sleep(0.25)
+                    st.session_state.remember_token = _new_tk
+                    st.query_params[_REM_QP] = _new_tk
+
                 _log_event("login", True)
                 st.rerun()
             else:
@@ -1135,6 +1385,13 @@ with st.sidebar:
     st.markdown(f"**{_nombre_display}**")
     st.caption(f"{'👑 Administrador' if _rol_display == 'admin' else '🎓 Docente'} · {ss.get('usuario_email','')}")
     if st.button("Cerrar sesión", key="btn_logout", use_container_width=True):
+        _tk = _cookie_mgr.get(_REM_COOKIE)
+        if _tk:
+            revocar_token_recordarme(_tk)
+            _cookie_mgr.delete(_REM_COOKIE)
+        st.session_state.remember_token = None
+        if _REM_QP in st.query_params:
+            del st.query_params[_REM_QP]
         for _k in ["autenticado","usuario_email","usuario_nombre","usuario_hoja","usuario_rol"]:
             st.session_state.pop(_k, None)
         st.rerun()
@@ -1287,7 +1544,15 @@ with st.sidebar:
         st.rerun()
     if st.button("🚪 Cerrar Sesión", use_container_width=True):
         _log_event("logout", True)
-        ss.autenticado = False
+        _tk = _cookie_mgr.get(_REM_COOKIE)
+        if _tk:
+            revocar_token_recordarme(_tk)
+            _cookie_mgr.delete(_REM_COOKIE)
+        ss.remember_token = None
+        if _REM_QP in st.query_params:
+            del st.query_params[_REM_QP]
+        for _k in ["autenticado","usuario_email","usuario_nombre","usuario_hoja","usuario_rol"]:
+            ss.pop(_k, None)
         st.rerun()
 
 
@@ -1309,7 +1574,9 @@ paginas_temas   = datos_libro.get("paginas_temas",   {})
 # ─────────────────────────────────────────────────────────────────────────────
 if ss.get("usuario_rol") == "admin":
     with st.expander("⚙️ Panel de Administración", expanded=False):
-        adm_tab_arch, adm_tab_users, adm_tab_tracker = st.tabs(["📂 Archivos Fuente", "👥 Gestión de Usuarios", "🌅 Reset Diario"])
+        adm_tab_arch, adm_tab_users, adm_tab_tracker, adm_tab_manual = st.tabs([
+            "📂 Archivos Fuente", "👥 Gestión de Usuarios", "🌅 Reset Diario", "🛠️ Editor Manual"
+        ])
 
         # ── ARCHIVOS FUENTE ───────────────────────────────────────────────────
         with adm_tab_arch:
@@ -1375,21 +1642,84 @@ if ss.get("usuario_rol") == "admin":
                     with st.spinner("Extrayendo Inteligencia..."):
                         try:
                             import tempfile
+                            import re
+                            import unicodedata
                             _keys = _get_keys()
+                            if not _keys:
+                                st.error(
+                                    "No hay clave Gemini configurada en el servidor. "
+                                    "Configura `GEMINI_API_KEYS` (JSON array) o `GEMINI_API_KEY` en Railway Variables."
+                                )
+                                st.stop()
                             _client = genai.Client(api_key=_keys[0])
+                            _hojas_docentes = [h.upper().strip() for h in get_all_hojas() if str(h).strip()]
                             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                                 tmp.write(f_vig.read())
                                 tmp_path = tmp.name
                             _gfile = _client.files.upload(file=tmp_path)
-                            _prompt = "Devuelve un JSON estrictamente con la lista de TODOS los docentes y su lugar de vigilancia. Formato de repuesta SOLAMENTE arreglo: [{\"nombre_hoja\": \"(un solo apellido o primer nombre en MAYUSCULAS del docente)\", \"ubicacion\": \"(zona y turno)\"}]. Identifica a cada docente por su nombre de tabla primario (ej. VANESA o SUSI o CUELLAR)."
+                            _prompt = (
+                                "Extrae los roles de vigilancia del PDF y responde SOLO JSON válido (sin markdown).\n"
+                                "Si te doy una lista de docentes esperados, debes devolver exactamente una entrada por docente esperado.\n"
+                                "Formato exacto: [{\"nombre_hoja\":\"NOMBRE\",\"ubicacion\":\"ZONA Y TURNO\"}]\n"
+                                "Reglas:\n"
+                                "1) nombre_hoja debe ser uno de los esperados (en mayúsculas).\n"
+                                "2) Si no encuentras un docente en el PDF, usa ubicacion='SIN ASIGNAR'.\n"
+                                "3) No inventes docentes fuera de la lista esperada.\n"
+                                f"Docentes esperados: {json.dumps(_hojas_docentes, ensure_ascii=False)}"
+                            )
                             _resp = _client.models.generate_content(model=GEMINI_MODEL, contents=[_prompt, _gfile])
                             import os; os.remove(tmp_path)
                             _clean = _resp.text.replace("```json","").replace("```","").strip()
                             import json; _data = json.loads(_clean)
                             if isinstance(_data, dict): _data = _data.get("vigilancias", [_data])
+                            if not isinstance(_data, list):
+                                _data = []
+
+                            # Normaliza y filtra a la lista esperada
+                            def _norm_name(_s: str) -> str:
+                                _s = str(_s or "").upper().strip()
+                                _s = ''.join(c for c in unicodedata.normalize('NFD', _s) if unicodedata.category(c) != 'Mn')
+                                _s = re.sub(r'\b(PROF(?:ESOR(?:A)?)?|DOCENTE|MISS|MISTER|MR|MRS|MS|LIC\.?)\b', ' ', _s)
+                                _s = re.sub(r'[^A-Z0-9 ]+', ' ', _s)
+                                _s = re.sub(r'\s+', ' ', _s).strip()
+                                return _s
+
+                            _esperados_set = set(_hojas_docentes)
+                            _esperados_norm = {_norm_name(h): h for h in _hojas_docentes}
+                            _map = {}
                             for entry in _data:
-                                n = entry.get("nombre_hoja", "").upper().replace(",", "").replace(".", "")
-                                entry["nombre_hoja"] = n.split()[0] if n else "UNKNOWN"
+                                n_raw = str(entry.get("nombre_hoja", "")).strip()
+                                n = n_raw.upper().replace(",", "").replace(".", "").strip()
+                                n_norm = _norm_name(n_raw)
+
+                                # matching robusto contra lista esperada (exacto + contenido)
+                                matched = None
+                                if n in _esperados_set:
+                                    matched = n
+                                elif n_norm in _esperados_norm:
+                                    matched = _esperados_norm[n_norm]
+                                else:
+                                    for exp_norm, exp_raw in _esperados_norm.items():
+                                        if exp_norm and (exp_norm in n_norm or n_norm in exp_norm):
+                                            matched = exp_raw
+                                            break
+
+                                if not matched:
+                                    continue
+                                _map[matched] = str(entry.get("ubicacion", "")).strip() or "SIN ASIGNAR"
+
+                            # Garantiza cobertura completa de docentes
+                            if _hojas_docentes:
+                                _data = [{"nombre_hoja": h, "ubicacion": _map.get(h, "SIN ASIGNAR")} for h in _hojas_docentes]
+                            else:
+                                _data = [
+                                    {
+                                        "nombre_hoja": str(e.get("nombre_hoja", "UNKNOWN")).upper().strip(),
+                                        "ubicacion": str(e.get("ubicacion", "SIN ASIGNAR")).strip() or "SIN ASIGNAR",
+                                    }
+                                    for e in _data
+                                ]
+
                             guardar_vigilancias(_data)
                             st.success(f"✅ {len(_data)} asignaciones importadas inteligentemente.")
                         except Exception as _e:
@@ -1440,36 +1770,91 @@ if ss.get("usuario_rol") == "admin":
                             st.error("El archivo está vacío o no se pudo leer el texto.")
                         else:
                             _plan_prompt = (
-                                "Eres un experto en el Método Palma-Ribera para planificación pedagógica "
-                                f"de Las Palmas School. Grado: {_plan_grado.strip()}.\n\n"
-                                "Se te proporciona un plan semanal docente. Tu tarea es:\n"
-                                "1. Identificar TODOS los bloques de clase con su horario y materia.\n"
-                                "2. Tomar el campo CONTENIDO de cada bloque como fuente primaria — "
-                                "NO busques una sección llamada 'Objetivos'.\n"
-                                "3. INFERIR el objetivo de aprendizaje usando un verbo cognitivo de la "
-                                "taxonomía de Bloom (representar, analizar, deducir, construir, evaluar…).\n"
-                                "4. DESCOMPONER cada contenido en exactamente 3 o 4 tareas progresivas y "
-                                "accionables que el docente ejecutará en el aula, ordenadas cronológicamente.\n\n"
-                                "CRÍTICO: Debes INFERIR OBLIGATORIAMENTE los objetivos y las tareas para CADA bloque "
-                                "incluso si el documento solo contiene un título o tema genérico. Usa tu conocimiento "
-                                "pedagógico para crear las tareas automáticamente si no constan de forma explícita.\n\n"
-                                f"PLAN SEMANAL:\n{_plan_txt[:6000]}\n\n"
-                                "Responde ÚNICAMENTE con un array JSON válido (sin markdown, sin texto extra).\n"
-                                "Formato exacto por cada bloque encontrado:\n"
-                                '[{"hora_inicio":"07:55","hora_fin":"08:40","materia":"LENGUAJE",'
-                                '"objetivo_inferido":"Los estudiantes lograrán...",'
-                                '"tareas":["Tarea 1","Tarea 2","Tarea 3","Tarea 4"]}]'
+                                "Eres un agente experto en diseño instruccional y análisis de documentos educativos. "
+                                f"Contexto institucional: Las Palmas School. Grado/nivel de referencia: {_plan_grado.strip()}.\n\n"
+                                "Debes procesar texto plano de un plan de lecciones semanal y devolver SOLO JSON válido.\n\n"
+                                "REGLAS OBLIGATORIAS:\n"
+                                "1) EXTRACCIÓN DE METADATOS\n"
+                                "- Extrae: semana (int), fechas, docente_tutor, proyecto_anual.\n"
+                                "- Si falta un metadato, usa 'N/A' (excepto semana: usa 0).\n\n"
+                                "2) PROCESAMIENTO DE BLOQUES (LUNES A VIERNES)\n"
+                                "- Procesa cada día y cada bloque horario de 45 minutos.\n"
+                                "- Por cada bloque extrae: horario, materia, unidad, contenido, materiales.\n"
+                                "- Si una materia ocupa bloques continuos, crea bloques separados y aplica progresión pedagógica entre bloques consecutivos.\n"
+                                "- Normaliza cualquier variación de 'Habilidades para la vida' como 'habilidades'.\n"
+                                "- Si faltan unidad/contenido/materiales, infiere por contexto; si no es posible, usa 'N/A'.\n\n"
+                                "3) MICRO-OBJETIVOS (3 a 4 por bloque)\n"
+                                "- Genera exactamente 3 o 4 micro-objetivos por bloque.\n"
+                                "- Usa verbos observables y medibles (Taxonomía de Bloom): identificar, clasificar, comparar, resolver, justificar, diseñar, crear, etc.\n"
+                                "- Cada objetivo debe ser verificable al finalizar 45 minutos.\n"
+                                "- Si el bloque es de festejo/convivencia/acto, usa objetivos socioemocionales o actitudinales observables.\n\n"
+                                "4) CONSISTENCIA\n"
+                                "- No repitas micro-objetivos textualmente entre bloques del mismo día.\n"
+                                "- 'materiales' debe ser SIEMPRE un array de strings.\n\n"
+                                "5) SALIDA\n"
+                                "- Devuelve ÚNICAMENTE un objeto JSON válido, sin markdown ni texto extra.\n"
+                                "- Usa exactamente este esquema:\n"
+                                "{\n"
+                                '  "plan_semanal": {\n'
+                                '    "semana": 0,\n'
+                                '    "fechas": "string",\n'
+                                '    "docente_tutor": "string",\n'
+                                '    "proyecto_anual": "string",\n'
+                                '    "dias": [\n'
+                                "      {\n"
+                                '        "dia": "string",\n'
+                                '        "bloques": [\n'
+                                "          {\n"
+                                '            "horario": "string",\n'
+                                '            "materia": "string",\n'
+                                '            "unidad": "string",\n'
+                                '            "contenido": "string",\n'
+                                '            "materiales": ["string"],\n'
+                                '            "micro_objetivos": ["string", "string", "string"]\n'
+                                "          }\n"
+                                "        ]\n"
+                                "      }\n"
+                                "    ]\n"
+                                "  }\n"
+                                "}\n\n"
+                                f"PLAN SEMANAL:\n{_plan_txt[:7000]}"
                             )
                             _plan_keys = _get_keys()
+                            if not _plan_keys:
+                                st.error("No hay llaves Gemini configuradas para procesar el plan semanal.")
+                                st.stop()
                             _plan_client = genai.Client(api_key=_plan_keys[0])
                             _plan_resp = _plan_client.models.generate_content(
                                 model=GEMINI_MODEL, contents=_plan_prompt
                             )
                             _plan_clean = _plan_resp.text.replace("```json","").replace("```","").strip()
-                            # Handle both array and object responses
+                            # Handle legacy array response and new object schema response
                             _plan_data = json.loads(_plan_clean)
                             if isinstance(_plan_data, dict):
-                                _plan_data = _plan_data.get("bloques", _plan_data.get("clases", [_plan_data]))
+                                if "plan_semanal" in _plan_data:
+                                    _dias = _plan_data.get("plan_semanal", {}).get("dias", [])
+                                    _flat = []
+                                    for _d in _dias if isinstance(_dias, list) else []:
+                                        _bloques_dia = _d.get("bloques", []) if isinstance(_d, dict) else []
+                                        for _b in _bloques_dia if isinstance(_bloques_dia, list) else []:
+                                            if not isinstance(_b, dict):
+                                                continue
+                                            _horario = str(_b.get("horario", "")).strip()
+                                            _h_ini, _h_fin = "", ""
+                                            if "-" in _horario:
+                                                _parts = [p.strip() for p in _horario.split("-") if p.strip()]
+                                                if len(_parts) >= 2:
+                                                    _h_ini, _h_fin = _parts[0], _parts[1]
+                                            _flat.append({
+                                                "hora_inicio": _h_ini or "00:00",
+                                                "hora_fin": _h_fin or "00:00",
+                                                "materia": _b.get("materia", "Sin materia"),
+                                                "objetivo_inferido": _b.get("contenido", ""),
+                                                "tareas": _b.get("micro_objetivos", []),
+                                            })
+                                    _plan_data = _flat
+                                else:
+                                    _plan_data = _plan_data.get("bloques", _plan_data.get("clases", [_plan_data]))
                             if not isinstance(_plan_data, list):
                                 _plan_data = []
 
@@ -1485,8 +1870,20 @@ if ss.get("usuario_rol") == "admin":
                                 _tasks = []
                                 if isinstance(_tasks_raw, list):
                                     for t in _tasks_raw:
-                                        if isinstance(t, str): _tasks.append(t.strip())
-                                        elif isinstance(t, dict): _tasks.append(str(list(t.values())[0]).strip())
+                                        if isinstance(t, str):
+                                            _tt = t.strip()
+                                            if _tt:
+                                                _tasks.append(_tt)
+                                        elif isinstance(t, dict):
+                                            _vals = list(t.values())
+                                            if _vals:
+                                                _tv = str(_vals[0]).strip()
+                                                if _tv:
+                                                    _tasks.append(_tv)
+                                        elif t is not None:
+                                            _tv = str(t).strip()
+                                            if _tv:
+                                                _tasks.append(_tv)
                 
                                 if not _obj and not _tasks:
                                     continue
@@ -1525,7 +1922,12 @@ if ss.get("usuario_rol") == "admin":
                                     f"{_plan_grado.strip()}."
                                 )
                     except json.JSONDecodeError:
-                        st.error(f"JSON inválido. Respuesta de la IA:\n\n`{_plan_resp.text[:500]}`")
+                        _raw_plan_txt = ""
+                        try:
+                            _raw_plan_txt = _plan_resp.text[:500]
+                        except Exception:
+                            _raw_plan_txt = "(sin respuesta de texto disponible)"
+                        st.error(f"JSON inválido. Respuesta de la IA:\n\n`{_raw_plan_txt}`")
                     except Exception as _plan_e:
                         st.error(f"Error: {_plan_e}")
 
@@ -1564,7 +1966,7 @@ if ss.get("usuario_rol") == "admin":
             usuarios = get_all_usuarios()
             if usuarios:
                 for u in usuarios:
-                    u_col1, u_col2, u_col3 = st.columns([3, 1, 1])
+                    u_col1, u_col2, u_col3, u_col4 = st.columns([3, 1, 1, 1])
                     with u_col1:
                         estado = "✅" if u["activo"] else "⛔"
                         st.markdown(f"{estado} **{u['nombre']}** — {u['email']} · `{u['nombre_hoja']}` · _{u['rol']}_")
@@ -1577,6 +1979,69 @@ if ss.get("usuario_rol") == "admin":
                         if st.button("Eliminar", key=f"del_{u['id']}"):
                             eliminar_usuario(u["id"])
                             st.rerun()
+                    with u_col4:
+                        if st.button("Editar acceso", key=f"edit_{u['id']}"):
+                            st.session_state["adm_edit_uid"] = u["id"]
+                            st.rerun()
+
+                _edit_uid = st.session_state.get("adm_edit_uid")
+                if _edit_uid:
+                    _u_target = next((x for x in usuarios if x["id"] == _edit_uid), None)
+                    if _u_target:
+                        st.divider()
+                        st.markdown("#### ✏️ Editar usuario (admin)")
+                        st.caption("Puedes cambiar nombre visible, correo (usuario) y contraseña.")
+
+                        e_col1, e_col2 = st.columns(2)
+                        with e_col1:
+                            _new_name = st.text_input(
+                                "Nuevo nombre",
+                                value=_u_target["nombre"],
+                                key=f"adm_new_name_{_edit_uid}"
+                            )
+                            _new_email = st.text_input(
+                                "Nuevo usuario/correo",
+                                value=_u_target["email"],
+                                key=f"adm_new_email_{_edit_uid}"
+                            )
+                        with e_col2:
+                            _new_pwd = st.text_input(
+                                "Nueva contraseña (opcional)",
+                                type="password",
+                                key=f"adm_new_pwd_{_edit_uid}",
+                                placeholder="Deja vacío para no cambiar"
+                            )
+                            _new_pwd2 = st.text_input(
+                                "Confirmar contraseña",
+                                type="password",
+                                key=f"adm_new_pwd2_{_edit_uid}"
+                            )
+
+                        s_col1, s_col2 = st.columns(2)
+                        with s_col1:
+                            if st.button("💾 Guardar cambios", type="primary", key=f"adm_save_user_{_edit_uid}"):
+                                if _new_pwd and _new_pwd != _new_pwd2:
+                                    st.error("Las contraseñas no coinciden.")
+                                else:
+                                    ok, msg = actualizar_usuario_admin(
+                                        usuario_id=_edit_uid,
+                                        nuevo_email=_new_email,
+                                        nuevo_nombre=_new_name,
+                                        nueva_password=_new_pwd or None,
+                                    )
+                                    if ok:
+                                        st.success("✅ Usuario actualizado correctamente.")
+                                        if (ss.get("usuario_email") or "").lower().strip() == (_u_target.get("email") or "").lower().strip():
+                                            ss.usuario_email = (_new_email or ss.usuario_email).lower().strip()
+                                            ss.usuario_nombre = _new_name or ss.usuario_nombre
+                                        st.session_state.pop("adm_edit_uid", None)
+                                        st.rerun()
+                                    else:
+                                        st.error(msg)
+                        with s_col2:
+                            if st.button("Cancelar", key=f"adm_cancel_user_{_edit_uid}"):
+                                st.session_state.pop("adm_edit_uid", None)
+                                st.rerun()
             else:
                 st.info("No hay usuarios registrados aún.")
 
@@ -1594,10 +2059,144 @@ if ss.get("usuario_rol") == "admin":
                 else:
                     st.error("Selecciona un docente válido.")
 
+        # ── EDITOR MANUAL (ADMIN) ───────────────────────────────────────────
+        with adm_tab_manual:
+            st.markdown("#### 🛠️ Editor Manual de Bloques y Vigilancia")
+            st.caption("Usa esta sección para corregir manualmente horarios y vigilancia por docente.")
+
+            _hojas_horario = set(get_all_hojas())
+            _hojas_usuarios = {str(u.get("nombre_hoja") or "").upper().strip() for u in get_all_usuarios()}
+            _hojas_all = sorted(h for h in (_hojas_horario | _hojas_usuarios) if h)
+
+            _adm_m_hoja = st.selectbox(
+                "Docente / Hoja",
+                _hojas_all if _hojas_all else ["—"],
+                key="adm_manual_hoja_sel"
+            )
+
+            if _adm_m_hoja and _adm_m_hoja != "—":
+                st.markdown("##### Bloques actuales")
+                _bloques = get_horario_docente_completo(_adm_m_hoja)
+                if _bloques:
+                    for _b in _bloques:
+                        _b_txt = (
+                            f"**{_b.get('dia_semana','').title()}** · {_b.get('hora_inicio','')}–{_b.get('hora_fin','')} · "
+                            f"`{_b.get('tipo_bloque','')}` · {_b.get('materia') or _b.get('ubicacion') or '-'}"
+                        )
+                        c1, c2, c3 = st.columns([6, 1, 1])
+                        with c1:
+                            st.markdown(_b_txt)
+                        with c2:
+                            if st.button("Editar", key=f"adm_blk_edit_{_b['id']}"):
+                                st.session_state["adm_edit_block_id"] = _b["id"]
+                                st.rerun()
+                        with c3:
+                            if st.button("Eliminar", key=f"adm_blk_del_{_b['id']}"):
+                                eliminar_bloque_horario_manual(_b["id"])
+                                if st.session_state.get("adm_edit_block_id") == _b["id"]:
+                                    st.session_state.pop("adm_edit_block_id", None)
+                                st.rerun()
+                else:
+                    st.info("No hay bloques para este docente. Puedes crear el primero abajo.")
+
+                _edit_id = st.session_state.get("adm_edit_block_id")
+                _edit_obj = next((x for x in _bloques if x["id"] == _edit_id), None) if _edit_id else None
+
+                st.divider()
+                st.markdown("##### ✍️ Crear / Editar bloque")
+
+                _day_opts = ["lunes", "martes", "miercoles", "jueves", "viernes"]
+                _tipo_opts = ["clase", "vigilancia_recreo", "ingreso", "atencion_ppff", "planificacion", "recreo_libre"]
+
+                f1, f2, f3 = st.columns(3)
+                with f1:
+                    _f_dia = st.selectbox(
+                        "Día",
+                        _day_opts,
+                        index=_day_opts.index(_edit_obj.get("dia_semana")) if _edit_obj and _edit_obj.get("dia_semana") in _day_opts else 0,
+                        key="adm_blk_day"
+                    )
+                    _f_hi = st.text_input("Hora inicio", value=_edit_obj.get("hora_inicio", "") if _edit_obj else "", key="adm_blk_hi", placeholder="10:10")
+                    _f_hf = st.text_input("Hora fin", value=_edit_obj.get("hora_fin", "") if _edit_obj else "", key="adm_blk_hf", placeholder="10:30")
+                with f2:
+                    _f_tipo = st.selectbox(
+                        "Tipo bloque",
+                        _tipo_opts,
+                        index=_tipo_opts.index(_edit_obj.get("tipo_bloque")) if _edit_obj and _edit_obj.get("tipo_bloque") in _tipo_opts else 0,
+                        key="adm_blk_tipo"
+                    )
+                    _f_mat = st.text_input("Materia", value=_edit_obj.get("materia", "") if _edit_obj else "", key="adm_blk_mat")
+                    _f_niv = st.text_input("Nivel/Grado", value=_edit_obj.get("nivel_grado", "") if _edit_obj else "", key="adm_blk_niv")
+                with f3:
+                    _f_ubi = st.text_input("Ubicación", value=_edit_obj.get("ubicacion", "") if _edit_obj else "", key="adm_blk_ubi")
+                    _f_val = st.text_input("Valor original", value=_edit_obj.get("valor_original", "") if _edit_obj else "", key="adm_blk_val")
+
+                s1, s2 = st.columns(2)
+                with s1:
+                    if st.button("💾 Guardar bloque", type="primary", key="adm_blk_save"):
+                        if not _f_hi.strip():
+                            st.error("Hora inicio es obligatoria.")
+                        else:
+                            guardar_bloque_horario_manual(
+                                nombre_hoja=_adm_m_hoja,
+                                dia_semana=_f_dia,
+                                hora_inicio=_f_hi,
+                                hora_fin=_f_hf,
+                                tipo_bloque=_f_tipo,
+                                materia=_f_mat or None,
+                                nivel_grado=_f_niv or None,
+                                ubicacion=_f_ubi or None,
+                                valor_original=_f_val or None,
+                                bloque_id=_edit_obj.get("id") if _edit_obj else None,
+                            )
+                            st.session_state.pop("adm_edit_block_id", None)
+                            st.success("Bloque guardado.")
+                            st.rerun()
+                with s2:
+                    if st.button("Limpiar edición", key="adm_blk_clear"):
+                        st.session_state.pop("adm_edit_block_id", None)
+                        st.rerun()
+
+                st.divider()
+                st.markdown("##### 👁️ Vigilancia manual")
+                _vig_map = get_vigilancias()
+                _vig_default = _vig_map.get(_adm_m_hoja.upper(), "")
+                _vig_key = f"adm_vig_text_{_adm_m_hoja}"
+                _vig_text = st.text_area(
+                    "Texto vigilancia (por docente)",
+                    value=_vig_default,
+                    key=_vig_key,
+                    height=120,
+                    placeholder="Ej: LUNES 10:10-10:30 PARQUE, MARTES 09:25-09:40 PATIO CENTRAL"
+                )
+                v1, v2 = st.columns(2)
+                with v1:
+                    if st.button("💾 Guardar vigilancia", key="adm_vig_save"):
+                        guardar_vigilancia_manual(_adm_m_hoja, _vig_text)
+                        st.success("Vigilancia guardada.")
+                        st.rerun()
+                with v2:
+                    if st.button("🗑️ Eliminar vigilancia", key="adm_vig_del"):
+                        eliminar_vigilancia_manual(_adm_m_hoja)
+                        st.success("Vigilancia eliminada.")
+                        st.rerun()
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SELECTOR TEMPORAL
 # ─────────────────────────────────────────────────────────────────────────────
-_zona_opciones = ["🌅  Diario", "📅  Semanal", "📆  Trimestral"]
+_is_admin_user = ss.get("usuario_rol") == "admin"
+if _is_admin_user and "admin_show_teacher_modules" not in ss:
+    ss.admin_show_teacher_modules = False
+
+if _is_admin_user:
+    with st.expander("🔒 Modo Admin", expanded=False):
+        ss.admin_show_teacher_modules = st.checkbox(
+            "Mostrar módulos docentes (Diario / Semanal)",
+            value=bool(ss.get("admin_show_teacher_modules", False)),
+            key="chk_admin_show_teacher_modules"
+        )
+
+_zona_opciones = ["🛠️  Admin"] if _is_admin_user and not ss.get("admin_show_teacher_modules", False) else ["🌅  Diario", "📅  Semanal"]
 zona = st.radio(
     "Zona de trabajo:",
     _zona_opciones,
@@ -1606,6 +2205,9 @@ zona = st.radio(
     label_visibility="collapsed",
 )
 st.markdown("---")
+
+if zona == "🛠️  Admin":
+    st.info("Usa el **Panel de Administración** para editar bloques y vigilancia manualmente.")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -1685,10 +2287,62 @@ if zona == "🌅  Diario":
         _vigilancias      = get_vigilancias()
         _semana_num       = _school_week  # school week number (not ISO)
 
+        def _ui_bkey(_blk: dict) -> str:
+            _k = f"{_blk.get('dia_semana','')}|{_blk.get('hora_inicio','')}|{_blk.get('tipo_bloque','')}"
+            if _blk.get('tipo_bloque') == 'vigilancia_recreo':
+                _extra = str(_blk.get('ubicacion') or _blk.get('valor_original') or '').strip().upper()
+                if _extra:
+                    _k += f"|{_extra}"
+            return _k
+
+        # Inyecta bloques de vigilancia desde tabla vigilancias_recreo cuando
+        # no existan en el horario oficial del docente para ese día.
+        if _nombre_hoja:
+            _vig_txt = None
+            _best_vig_key = _pick_best_name_key(_nombre_hoja, list(_vigilancias.keys()), min_score=0.62)
+            if _best_vig_key:
+                _vig_txt = _vigilancias.get(_best_vig_key)
+
+            _has_vig_day = any(
+                (b.get('tipo_bloque') == 'vigilancia_recreo' and b.get('dia_semana') == _dia_es)
+                for b in _bloques_horario
+            )
+            if _vig_txt and not _has_vig_day:
+                _fallback_slots = [
+                    (str(b.get('hora_inicio') or '').strip(), str(b.get('hora_fin') or '').strip())
+                    for b in _bloques_horario
+                    if str(b.get('hora_inicio') or '').strip() and str(b.get('hora_fin') or '').strip()
+                    and b.get('tipo_bloque') in ('recreo_libre', 'vigilancia_recreo')
+                ]
+                _extra_vigs = _extract_vigilancia_blocks(_vig_txt, _dia_es, fallback_slots=_fallback_slots)
+                if _extra_vigs:
+                    _bloques_horario.extend(_extra_vigs)
+                    _bloques_horario = sorted(
+                        _bloques_horario,
+                        key=lambda x: (str(x.get('hora_inicio') or ''), str(x.get('tipo_bloque') or ''))
+                    )
+
+        # Deduplicar bloques para evitar keys repetidas de Streamlit
+        _seen_bloques = set()
+        _bloques_unicos = []
+        for _bh in _bloques_horario:
+            _sig = (
+                str(_bh.get('dia_semana') or ''),
+                str(_bh.get('hora_inicio') or ''),
+                str(_bh.get('hora_fin') or ''),
+                str(_bh.get('tipo_bloque') or ''),
+                str(_bh.get('ubicacion') or _bh.get('valor_original') or '').strip().upper(),
+            )
+            if _sig in _seen_bloques:
+                continue
+            _seen_bloques.add(_sig)
+            _bloques_unicos.append(_bh)
+        _bloques_horario = _bloques_unicos
+
         # Build header % from already-loaded data
         _pre_cerrados = sum(
             1 for _bh in _bloques_horario
-            if _logs_dia.get(f"{_bh['dia_semana']}|{_bh['hora_inicio']}|{_bh['tipo_bloque']}", {}).get('cerrado', 0)
+            if _logs_dia.get(_ui_bkey(_bh), {}).get('cerrado', 0)
         )
         _pre_total = len(_bloques_horario)
         _pre_pct   = int(_pre_cerrados / _pre_total * 100) if _pre_total else 0
@@ -1745,11 +2399,11 @@ if zona == "🌅  Diario":
             _total_bloques   = len(_bloques_horario)
             _bloques_cerrados    = sum(
                 1 for _b in _bloques_horario
-                if _logs_dia.get(f"{_b['dia_semana']}|{_b['hora_inicio']}|{_b['tipo_bloque']}", {}).get('cerrado', 0)
+                if _logs_dia.get(_ui_bkey(_b), {}).get('cerrado', 0)
             )
             _bloques_completados = sum(
                 1 for _b in _bloques_horario
-                if _logs_dia.get(f"{_b['dia_semana']}|{_b['hora_inicio']}|{_b['tipo_bloque']}", {}).get('completado', 0)
+                if _logs_dia.get(_ui_bkey(_b), {}).get('completado', 0)
             )
             _pct = int(_bloques_cerrados / _total_bloques * 100) if _total_bloques else 0
             _progreso_txt = (
@@ -1769,7 +2423,7 @@ if zona == "🌅  Diario":
                 _hora      = f"{_hora_ini} – {_hora_fin}"
                 _color     = _BLOQUE_COLOR.get(_tipo, '#333')
                 _icono     = _BLOQUE_ICONO.get(_tipo, '📌')
-                _bkey      = f"{_b['dia_semana']}|{_hora_ini}|{_tipo}"
+                _bkey      = _ui_bkey(_b)
                 _log       = _logs_dia.get(_bkey, {})
                 _done      = bool(_log.get('completado', 0))
                 _cerrado   = bool(_log.get('cerrado', 0))
@@ -1783,12 +2437,15 @@ if zona == "🌅  Diario":
                     _nivel = f" — {_b['nivel_grado']}" if _b.get('nivel_grado') else ""
                     _label = f"{(_b.get('materia') or '').title()}{_nivel}"
                 elif _tipo == 'vigilancia_recreo':
-                    _zona = None
-                    _nh_upp = _nombre_hoja.upper()
-                    for k_name, v_zona in _vigilancias.items():
-                        if k_name in _nh_upp or _nh_upp in k_name:
-                            _zona = v_zona
-                            break
+                    # Prioriza ubicación ya parseada en el bloque actual
+                    _zona_bloque = str(_b.get('ubicacion') or '').strip()
+                    _zona = _zona_bloque if _zona_bloque and _zona_bloque.lower() != 'patio' else None
+
+                    # Solo sobrescribir zona si no viene ya definida en el bloque
+                    if not _zona:
+                        _best_vig_key2 = _pick_best_name_key(_nombre_hoja, list(_vigilancias.keys()), min_score=0.62)
+                        if _best_vig_key2:
+                            _zona = _pick_vigilancia_day_text(_vigilancias.get(_best_vig_key2, ''), _dia_es)
                     _label = f"Guardia de Recreo · 📍 {_zona}" if _zona else f"Guardia de Recreo · {_b.get('ubicacion') or 'Patio'}"
                 else:
                     _label = {

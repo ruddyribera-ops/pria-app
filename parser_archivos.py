@@ -53,7 +53,11 @@ def _classify_block(valor: str) -> tuple[str, str | None, str | None, str | None
     if 'HORARIO DE INGRESO' in v:
         return 'ingreso', None, None, None
 
-    if 'VIGILANCIA RECREO' in v or 'GUARDIA RECREO' in v:
+    if (
+        (('VIGIL' in v or 'GUARDIA' in v) and 'RECREO' in v)
+        or 'ROL DE VIGILANCIA' in v
+        or 'VIGILANCIA DEL RECREO' in v
+    ):
         if 'PRIM' in v:
             return 'vigilancia_recreo', None, None, 'Área Primaria'
         if 'SEC' in v:
@@ -118,37 +122,66 @@ def parse_horarios(wb_bytes: bytes) -> list[dict]:
         # Buscar fila de encabezado (contiene 'LUNES')
         header_row_idx = None
         lunes_col_idx = None
+        day_cols = {}
         for r_idx, row in enumerate(ws.iter_rows(values_only=True)):
             for c_idx, cell in enumerate(row):
-                if str(cell).upper().strip() in ('LUNES',):
+                label = str(cell).upper().strip() if cell is not None else ""
+                if label in ('LUNES',):
                     header_row_idx = r_idx
                     lunes_col_idx = c_idx
-                    break
+                if label in ('LUNES',):
+                    day_cols['lunes'] = c_idx
+                elif label in ('MARTES',):
+                    day_cols['martes'] = c_idx
+                elif label in ('MIÉRCOLES', 'MIERCOLES'):
+                    day_cols['miercoles'] = c_idx
+                elif label in ('JUEVES',):
+                    day_cols['jueves'] = c_idx
+                elif label in ('VIERNES',):
+                    day_cols['viernes'] = c_idx
             if header_row_idx is not None:
                 break
 
         if header_row_idx is None or lunes_col_idx is None:
             continue
 
-        # La columna de tiempo es la inmediatamente anterior a LUNES
-        time_col = lunes_col_idx - 1
+        # Fallback: si no se detectaron todas las columnas de días por nombre,
+        # asumimos disposición contigua desde LUNES.
+        if len(day_cols) < 5:
+            day_cols = {
+                'lunes': lunes_col_idx,
+                'martes': lunes_col_idx + 1,
+                'miercoles': lunes_col_idx + 2,
+                'jueves': lunes_col_idx + 3,
+                'viernes': lunes_col_idx + 4,
+            }
 
         # Recorrer filas de datos
         for row in ws.iter_rows(min_row=header_row_idx + 2, values_only=True):
-            # Obtener tiempo de la columna de tiempo
-            tiempo_raw = row[time_col] if time_col < len(row) else None
-            if not tiempo_raw:
-                continue
-            tiempo_str = str(tiempo_raw).strip()
-            if not any(c.isdigit() for c in tiempo_str):
-                continue
+            # El tiempo puede estar en cualquier columna previa a LUNES
+            # (no siempre justo a la izquierda por diferencias de formato).
+            hora_inicio, hora_fin = None, None
+            for c_idx in range(0, max(0, lunes_col_idx)):
+                if c_idx >= len(row):
+                    continue
+                cell = row[c_idx]
+                if not cell:
+                    continue
+                candidate = str(cell).strip()
+                if not any(ch.isdigit() for ch in candidate):
+                    continue
+                h_i, h_f = _parse_time_range(candidate)
+                if h_i:
+                    hora_inicio, hora_fin = h_i, h_f
+                    break
 
-            hora_inicio, hora_fin = _parse_time_range(tiempo_str)
             if not hora_inicio:
                 continue
 
-            for d_offset, dia in enumerate(DIAS_ES):
-                col_idx = lunes_col_idx + d_offset
+            for dia in DIAS_ES:
+                col_idx = day_cols.get(dia)
+                if col_idx is None:
+                    continue
                 if col_idx >= len(row):
                     continue
                 valor = row[col_idx]
