@@ -7,7 +7,7 @@ Auto-detects backend:
 """
 
 import os, re, json, hashlib, sqlite3, secrets
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from contextlib import contextmanager
 
 # ── Backend detection ─────────────────────────────────────────────────────────
@@ -519,7 +519,9 @@ def verificar_login(email: str, password: str) -> dict | None:
 def crear_token_recordarme(usuario_id: int, dias: int = 30) -> str:
     token_raw = secrets.token_urlsafe(48)
     token_hash = _hash_token(token_raw)
-    expira_en = (datetime.utcnow() + timedelta(days=max(1, int(dias)))).isoformat()
+    expira_en = (
+        datetime.now(timezone.utc) + timedelta(days=max(1, int(dias)))
+    ).isoformat()
     with _conn() as con:
         con.execute(
             """INSERT INTO auth_tokens (usuario_id, token_hash, expira_en, revocado)
@@ -554,7 +556,7 @@ def verificar_token_recordarme(token_raw: str) -> dict | None:
     except Exception:
         return None
 
-    if datetime.utcnow() >= expira_dt:
+    if datetime.now(timezone.utc) >= expira_dt:
         return None
 
     d = dict(row)
@@ -826,25 +828,48 @@ def guardar_bloque_horario_manual(
                     int(bloque_id),
                 ),
             )
+            return bloque_id
         else:
-            con.execute(
-                """INSERT INTO horario_docente
-                   (nombre_hoja, dia_semana, hora_inicio, hora_fin, tipo_bloque,
-                    materia, nivel_grado, ubicacion, valor_original, orden)
-                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                (
-                    nh,
-                    ds,
-                    hi,
-                    hf,
-                    tb,
-                    materia,
-                    nivel_grado,
-                    ubicacion,
-                    valor_original,
-                    orden,
-                ),
-            )
+            if _USE_PG:
+                cur = con.execute(
+                    """INSERT INTO horario_docente
+                       (nombre_hoja, dia_semana, hora_inicio, hora_fin, tipo_bloque,
+                        materia, nivel_grado, ubicacion, valor_original, orden)
+                       VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id""",
+                    (
+                        nh,
+                        ds,
+                        hi,
+                        hf,
+                        tb,
+                        materia,
+                        nivel_grado,
+                        ubicacion,
+                        valor_original,
+                        orden,
+                    ),
+                )
+                return cur.lastrowid
+            else:
+                con.execute(
+                    """INSERT INTO horario_docente
+                       (nombre_hoja, dia_semana, hora_inicio, hora_fin, tipo_bloque,
+                        materia, nivel_grado, ubicacion, valor_original, orden)
+                       VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        nh,
+                        ds,
+                        hi,
+                        hf,
+                        tb,
+                        materia,
+                        nivel_grado,
+                        ubicacion,
+                        valor_original,
+                        orden,
+                    ),
+                )
+                return con.execute("SELECT last_insert_rowid()").lastrowid
 
 
 def eliminar_bloque_horario_manual(bloque_id: int):

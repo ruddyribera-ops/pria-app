@@ -1,6 +1,9 @@
 # Secrets — NEVER commit
 .streamlit/secrets.toml
 
+# Dev dependencies
+requirements-dev.txt
+
 # DB — exclude live DB to avoid overwriting prod data on redeploy
 pria_estado.db
 
@@ -16,6 +19,13 @@ __pycache__/
 *.pyc
 *.pyo
 .env
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+*.db
+tests/test_pria.db
 
 # OS
 .DS_Store
