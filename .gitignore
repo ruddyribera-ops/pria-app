@@ -39,3 +39,16 @@ prompts_maestros - copia/
 
 # Base datos (large JSON cache files)
 base_datos_pria/
+
+# Temp/cleanup scripts (not part of the app)
+cleanup.py
+cleanup2.py
+fix_file.py
+app_ui.py.corrupted
+
+# A/B test results (dev artifacts)
+pria_ab_results_motor_alpha_test.json
+pria_ab_tests.json
+
+# Debug scripts
+debug_ingreso.py

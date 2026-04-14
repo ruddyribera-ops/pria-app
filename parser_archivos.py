@@ -114,6 +114,7 @@ def parse_horarios(wb_bytes: bytes) -> list[dict]:
             continue
         ws = wb[sheet_name]
         nombre_hoja = sheet_name.strip().upper()
+        print(f"DEBUG: Parseando hoja: {nombre_hoja}")
 
         # Buscar fila de encabezado (contiene 'LUNES')
         header_row_idx = None
