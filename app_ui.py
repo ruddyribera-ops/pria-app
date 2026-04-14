@@ -1976,7 +1976,7 @@ st.markdown("---")
 # ZONA DIARIA — Dashboard del Día
 # ═════════════════════════════════════════════════════════════════════════════
 if zona == "🌅  Diario":
-    # ── Compute date variables for daily view ──────────────────────────────
+    # ── Date & teacher navigation ──────────────────────────────────────────
     _DIAS_HOY = {0: "lunes", 1: "martes", 2: "miercoles", 3: "jueves", 4: "viernes"}
     _DIAS_LABEL = {
         "lunes": "Lunes",
@@ -1999,24 +1999,70 @@ if zona == "🌅  Diario":
         11: "noviembre",
         12: "diciembre",
     }
-    bolivia_tz = pytz.timezone("America/La_Paz")
-    _hoy_local = _dt.now(bolivia_tz)
-    _hora_actual = _hoy_local.hour + _hoy_local.minute / 60.0
-    _is_primary = (
-        "primaria" in str(ss.get("nivel_grado", "")).lower()
-        or "primaria" in str(ss.get("nivel", "")).lower()
-    )
-    if (_is_primary and _hora_actual >= 13.0) or (
-        not _is_primary and _hora_actual >= 13.66
-    ):
-        _hoy_local += _td(days=1)
-        if _hoy_local.weekday() >= 5:
-            _hoy_local += _td(days=(7 - _hoy_local.weekday()))
 
-    _hoy = _hoy_local
+    # Current time in Bolivia (for "EN CURSO" highlighting only — no rollover)
+    bolivia_tz = pytz.timezone("America/La_Paz")
+    _ahora = _dt.now(bolivia_tz)
+    _hora_actual = _ahora.hour + _ahora.minute / 60.0
+    _hoy_date = _ahora.date()
+
+    # ── Date picker ─────────────────────────────────────────────────────────
+    _nav_col1, _nav_col2, _nav_col3 = st.columns([1, 2, 1])
+    with _nav_col1:
+        if st.button("⬅ Ayer", use_container_width=True, key="btn_ayer"):
+            ss.selected_date = (
+                _hoy_date if "selected_date" not in ss else ss.selected_date
+            ) - _td(days=1)
+    with _nav_col2:
+        _sel_date = st.date_input(
+            "📅 Fecha:",
+            value=ss.get("selected_date", _hoy_date),
+            key="date_picker_diario",
+        )
+        ss.selected_date = _sel_date
+    with _nav_col3:
+        if st.button("Mañana ➡", use_container_width=True, key="btn_manana"):
+            ss.selected_date = (
+                _hoy_date if "selected_date" not in ss else ss.selected_date
+            ) + _td(days=1)
+
+    # Quick "Hoy" button if not on today
+    if ss.get("selected_date", _hoy_date) != _hoy_date:
+        if st.button("📍 Volver a Hoy", key="btn_hoy", use_container_width=True):
+            ss.selected_date = _hoy_date
+            st.rerun()
+
+    # ── Teacher selector ─────────────────────────────────────────────────────
+    _mi_hoja = ss.get("usuario_hoja", "")
+    _todas_hojas = get_all_hojas()
+    _is_admin = ss.get("usuario_rol") == "admin"
+
+    # Build teacher options: own name first, then others
+    _hoja_options = []
+    if _mi_hoja:
+        _hoja_options.append(_mi_hoja)
+    for h in _todas_hojas:
+        if h != _mi_hoja:
+            _hoja_options.append(h)
+
+    _selected_hoja = st.selectbox(
+        "👤 Ver horario de:",
+        options=_hoja_options,
+        index=0,
+        key="sel_teacher_diario",
+        help="Selecciona tu nombre o el de otro docente para ver su horario.",
+    )
+    _is_own_schedule = _selected_hoja == _mi_hoja
+
+    if not _is_own_schedule:
+        st.info(f"👁️ Viendo horario de **{_selected_hoja}** (solo lectura)")
+
+    # ── Compute date variables from selected date ──────────────────────────
+    _hoy = _dt.combine(ss.get("selected_date", _hoy_date), _ahora.time())
+    _hoy = bolivia_tz.localize(_hoy) if _hoy.tzinfo is None else _hoy
     _dow = _hoy.weekday()  # 0=lun … 6=dom
     _fecha_iso = _hoy.strftime("%Y-%m-%d")
-    _nombre_hoja = ss.get("usuario_hoja", "")
+    _nombre_hoja = _selected_hoja
     _SCHOOL_START = _dt(2026, 2, 2).date()
     _school_delta = max(0, (_hoy.date() - _SCHOOL_START).days)
     _school_week = _school_delta // 7 + 1
@@ -2039,6 +2085,8 @@ if zona == "🌅  Diario":
         _school_week=_school_week,
         _dia_escolar=_dia_escolar,
         _dia_label=_dia_label,
+        _hora_actual=_hora_actual,
+        _is_own_schedule=_is_own_schedule,
         get_horario_dia=get_horario_dia,
         get_eventos_fecha=get_eventos_fecha,
         get_actividades_fecha=get_actividades_fecha,

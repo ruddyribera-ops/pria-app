@@ -2,7 +2,9 @@
 Daily View - Mi Día Tab
 ========================
 Renders the daily dashboard with:
-- Today's schedule blocks
+- Date navigation (Ay/Hoy/Mañana picker)
+- Teacher selector (view other teachers' schedules, read-only)
+- Schedule blocks with time-based highlighting
 - Vigilancia/recreo duties
 - Academic debt tracking
 - Commission duties
@@ -24,6 +26,8 @@ def render_daily_view(
     _school_week: int,
     _dia_escolar: int,
     _dia_label: str,
+    _hora_actual: float,
+    _is_own_schedule: bool,
     get_horario_dia,
     get_eventos_fecha,
     get_actividades_fecha,
@@ -45,6 +49,7 @@ def render_daily_view(
     - Schedule blocks for the day
     - Vigilancia (recreo duty) blocks
     - Events from cronograma
+    - Read-only mode when viewing another teacher
     """
 
     # Constants for this view
@@ -55,20 +60,6 @@ def render_daily_view(
         "miercoles": "Miércoles",
         "jueves": "Jueves",
         "viernes": "Viernes",
-    }
-    _MESES_LABEL = {
-        1: "enero",
-        2: "febrero",
-        3: "marzo",
-        4: "abril",
-        5: "mayo",
-        6: "junio",
-        7: "julio",
-        8: "agosto",
-        9: "septiembre",
-        10: "octubre",
-        11: "noviembre",
-        12: "diciembre",
     }
     _BLOQUE_ICONO = {
         "ingreso": "🏫",
@@ -96,20 +87,6 @@ def render_daily_view(
     # ═══════════════════════════════════════════════════════════════════════════
     # LOAD DATA
     # ═══════════════════════════════════════════════════════════════════════════
-    bolivia_tz = pytz.timezone("America/La_Paz")
-    _hoy_local = _dt.now(bolivia_tz)
-    _hora_actual = _hoy_local.hour + _hoy_local.minute / 60.0
-    _is_primary = (
-        "primaria" in str(ss.get("nivel_grado", "")).lower()
-        or "primaria" in str(ss.get("nivel", "")).lower()
-    )
-    if (_is_primary and _hora_actual >= 13.0) or (
-        not _is_primary and _hora_actual >= 13.66
-    ):
-        _hoy_local += _td(days=1)
-        if _hoy_local.weekday() >= 5:
-            _hoy_local += _td(days=(7 - _hoy_local.weekday()))
-
     _bloques_horario = get_horario_dia(_nombre_hoja, _dia_es) if _nombre_hoja else []
     _eventos_cal = get_eventos_fecha(_fecha_iso)
     _actividades_crono = get_actividades_fecha(_fecha_iso, _nombre_hoja)
@@ -130,10 +107,13 @@ def render_daily_view(
     # Render header
     _hdr_left, _hdr_right = st.columns([5, 1])
     with _hdr_left:
+        _title = (
+            "Tu Ruta del Día" if _is_own_schedule else f"Ruta del Día · {_nombre_hoja}"
+        )
         st.markdown(
             f"""<div class="aid-day-header">
               <div class="aid-day-header__left">
-                <div class="aid-day-header__title">Tu Ruta del Día</div>
+                <div class="aid-day-header__title">{_title}</div>
                 <div class="aid-day-header__sub">{_dia_label}</div>
               </div>
               <div class="aid-day-header__right">
@@ -149,7 +129,13 @@ def render_daily_view(
 
     # Weekend message
     if _dow >= 5:
-        st.info("Hoy no hay clases. Aquí verás el próximo lunes cuando sea día hábil.")
+        st.info(
+            "Fin de semana — no hay clases. Usa los botones ⬅ ➡ para navegar a un día hábil."
+        )
+        # Still show events on weekends if any
+        _feriados = [e for e in _eventos_cal if e["tipo"] == "feriado"]
+        if _feriados:
+            st.error(f"🚫 **FERIADO:** {_feriados[0]['nombre_evento']}", icon="🚫")
         return
 
     # Feriado alert
@@ -232,7 +218,7 @@ def render_daily_view(
         _cerrado = bool(_log.get("cerrado", 0))
         _notas_log = _log.get("notas", "")
 
-        # Time-based state
+        # Time-based state (uses real current time for highlighting)
         _hora_ini_float = float(_hora_ini.replace(":", ".")) if _hora_ini else 0
         _hora_fin_float = float(_hora_fin.replace(":", ".")) if _hora_fin else 99
         _is_active = _hora_ini_float <= _hora_actual < _hora_fin_float
@@ -306,7 +292,8 @@ def render_daily_view(
                     "<span class='aid-badge aid-badge--closed'>✓ Cerrado</span>",
                     unsafe_allow_html=True,
                 )
-                if st.button(
+                # Only allow reopen on own schedule
+                if _is_own_schedule and st.button(
                     "Reabrir",
                     key=f"reab_{_fecha_iso}_{_bkey.replace('|', '_')}",
                     use_container_width=True,
@@ -343,23 +330,30 @@ def render_daily_view(
             with _bc2:
                 st.markdown(f"### {_icono} {_label}")
 
-                # Checkbox for completion
-                _new_done = st.checkbox(
-                    "Completado" if _done else "Marcar como hecho",
-                    value=_done,
-                    key=f"chk_{_fecha_iso}_{_bkey.replace('|', '_')}",
-                )
-                if _new_done != _done:
-                    marcar_bloque_diario(_fecha_iso, _nombre_hoja, _b, _new_done)
-                    st.rerun()
+                # Checkbox for completion (only on own schedule)
+                if _is_own_schedule:
+                    _new_done = st.checkbox(
+                        "Completado" if _done else "Marcar como hecho",
+                        value=_done,
+                        key=f"chk_{_fecha_iso}_{_bkey.replace('|', '_')}",
+                    )
+                    if _new_done != _done:
+                        marcar_bloque_diario(_fecha_iso, _nombre_hoja, _b, _new_done)
+                        st.rerun()
 
-                # Close button
-                if _tipo == "clase" and st.button(
-                    "🔒 Cerrar bloque",
-                    key=f"cls_{_fecha_iso}_{_bkey.replace('|', '_')}",
-                ):
-                    cerrar_bloque(_fecha_iso, _nombre_hoja, _b)
-                    st.rerun()
+                    # Close button (only on own schedule)
+                    if _tipo == "clase" and st.button(
+                        "🔒 Cerrar bloque",
+                        key=f"cls_{_fecha_iso}_{_bkey.replace('|', '_')}",
+                    ):
+                        cerrar_bloque(_fecha_iso, _nombre_hoja, _b)
+                        st.rerun()
+                else:
+                    # Read-only indicator for other teachers
+                    if _done:
+                        st.markdown("✅ Completado")
+                    if _cerrado:
+                        st.markdown("🔒 Cerrado")
 
             st.markdown("</div>", unsafe_allow_html=True)
             st.markdown(
@@ -368,4 +362,7 @@ def render_daily_view(
             )
 
     # ── End of day ───────────────────────────────────────────────────────────────
-    st.success("🎉 Has llegado al final de tu día. ¡Buen trabajo!")
+    if _is_own_schedule:
+        st.success("🎉 Has llegado al final de tu día. ¡Buen trabajo!")
+    else:
+        st.info(f"📋 Fin del horario de **{_nombre_hoja}**.")
