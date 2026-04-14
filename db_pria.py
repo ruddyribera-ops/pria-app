@@ -625,8 +625,32 @@ def guardar_horario_docente(registros: list[dict]):
 
 
 def get_horario_dia(nombre_hoja: str, dia_semana: str) -> list[dict]:
+    """
+    Returns schedule blocks for a teacher on a given day.
+    Dynamically injects vigilancia_recreo blocks from the vigilancias_recreo table
+    (the master list), so all teachers see their assigned recess duties.
+    """
+    # Official recess time slots
+    _RECESO_TIMES = {
+        "PRIMARIA RECREO 1": ("10:10", "10:30"),
+        "PRIMARIA RECREO 2": ("12:00", "12:15"),
+        "SECUNDARIA RECREO 1": ("09:25", "10:10"),
+        "SECUNDARIA RECREO 2": ("11:15", "12:00"),
+    }
+    # Normalize accented days
+    _DIAS_NORM = {
+        "MIÉRCOLES": "MIERCOLES",
+        "MIERCOLES": "MIERCOLES",
+        "LUNES": "LUNES",
+        "MARTES": "MARTES",
+        "JUEVES": "JUEVES",
+        "VIERNES": "VIERNES",
+    }
+    _ALL_DAYS = {"LUNES", "MIERCOLES", "JUEVES", "VIERNES"}
+
     with _conn() as con:
-        return [
+        # Get regular blocks
+        blocks = [
             dict(r)
             for r in con.execute(
                 """SELECT * FROM horario_docente
@@ -635,6 +659,91 @@ def get_horario_dia(nombre_hoja: str, dia_semana: str) -> list[dict]:
                 (nombre_hoja.upper(), dia_semana.lower()),
             ).fetchall()
         ]
+
+        dia_upper = dia_semana.upper()
+        dia_norm = _DIAS_NORM.get(dia_upper, dia_upper)
+
+        # Build set of existing (hora_inicio, tipo_bloque) to avoid duplicate injection
+        existing_keys = {
+            (b["hora_inicio"], b["tipo_bloque"])
+            for b in blocks
+            if b.get("hora_inicio") and b.get("tipo_bloque")
+        }
+
+        injected = []
+
+        vigilancias_rows = con.execute(
+            "SELECT ubicacion FROM vigilancias_recreo WHERE nombre_hoja=?",
+            (nombre_hoja.upper(),),
+        ).fetchall()
+
+        for row in vigilancias_rows:
+            ubicacion_raw = row["ubicacion"] or ""
+            if not ubicacion_raw or ubicacion_raw.upper().strip() == "SIN ASIGNAR":
+                continue
+
+            # Split multiple locations separated by comma
+            # e.g. "PRIMARIA RECREO 1 MARTES PATIO CENTRAL, PRIMARIA RECREO 2 MARTES COLISEO"
+            for ubicacion in ubicacion_raw.split(","):
+                ubicacion = ubicacion.strip()
+                if not ubicacion:
+                    continue
+                ub_up = ubicacion.upper()
+
+                # Find which slot this matches (PRIMARIA/SECUNDARIA + RECREO 1/2)
+                recreo_slot = None
+                for slot_key in _RECESO_TIMES:
+                    if slot_key.upper() in ub_up:
+                        recreo_slot = slot_key
+                        break
+
+                # Determine if this entry is for the current day
+                dia_match = False
+                for day_name in ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES"]:
+                    if day_name in ub_up:
+                        day_norm = _DIAS_NORM.get(day_name, day_name)
+                        if day_norm == dia_norm:
+                            dia_match = True
+                        break
+
+                # Handle ANGÉLICA case: "PARQUE" without nivel prefix
+                if not recreo_slot and ub_up.strip() == "PARQUE":
+                    recreo_slot = "PRIMARIA RECREO 1"
+                    dia_match = dia_norm in _ALL_DAYS
+
+                if not dia_match or not recreo_slot:
+                    continue
+
+                ini, fin = _RECESO_TIMES[recreo_slot]
+                nivel = (
+                    "Primaria" if "PRIMARIA" in recreo_slot.upper() else "Secundaria"
+                )
+
+                # Skip if horario_docente already has a block at this time
+                block_key = (ini, "vigilancia_recreo")
+                if block_key in existing_keys:
+                    continue
+
+                injected.append(
+                    {
+                        "id": None,
+                        "nombre_hoja": nombre_hoja.upper(),
+                        "dia_semana": dia_semana.lower(),
+                        "hora_inicio": ini,
+                        "hora_fin": fin,
+                        "tipo_bloque": "vigilancia_recreo",
+                        "materia": None,
+                        "nivel_grado": nivel,
+                        "ubicacion": ubicacion,
+                        "valor_original": ubicacion,
+                        "orden": None,
+                    }
+                )
+
+        # Merge and sort all blocks by hora_inicio
+        all_blocks = blocks + injected
+        all_blocks.sort(key=lambda b: b.get("hora_inicio") or "")
+        return all_blocks
 
 
 def get_all_hojas() -> list[str]:
