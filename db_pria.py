@@ -7,16 +7,8 @@ Auto-detects backend:
 """
 
 import os, re, json, hashlib, sqlite3, secrets
-from datetime import datetime, date
+from datetime import datetime, date, timedelta, timezone
 from contextlib import contextmanager
-
-# Load .env file for local development connected to prod DB
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except ImportError:
-    pass
 
 # ── Backend detection ─────────────────────────────────────────────────────────
 _PG_URL = os.environ.get("DATABASE_URL", "")
@@ -151,6 +143,14 @@ def init_db():
             activo        INTEGER DEFAULT 1,
             creado_en     {ts}
         )""",
+        f"""CREATE TABLE IF NOT EXISTS auth_tokens (
+            id            {pk},
+            usuario_id    INTEGER NOT NULL,
+            token_hash    TEXT NOT NULL UNIQUE,
+            expira_en     TEXT NOT NULL,
+            revocado      INTEGER DEFAULT 0,
+            creado_en     {ts}
+        )""",
         f"""CREATE TABLE IF NOT EXISTS horario_docente (
             id            {pk},
             nombre_hoja   TEXT NOT NULL,
@@ -232,16 +232,6 @@ def init_db():
             alerta_condensacion INTEGER DEFAULT 0,
             creado_en        {ts}
         )""",
-        # Motor analytics table
-        f"""CREATE TABLE IF NOT EXISTS motor_usage (
-            id              {pk},
-            motor_name      TEXT NOT NULL,
-            user_email      TEXT,
-            success         INTEGER NOT NULL,
-            duration_ms     REAL NOT NULL,
-            prompt_version  TEXT,
-            created_at      {ts}
-        )""",
     ]
 
     with _conn() as con:
@@ -250,6 +240,7 @@ def init_db():
 
     # Migrations — add columns that may not exist in older DBs
     _migration_col("bloques_diario_log", "cerrado", "INTEGER DEFAULT 0")
+    _migration_col("horario_docente", "orden", "INTEGER")
 
 
 def _migration_col(table: str, col: str, col_def: str):
@@ -475,42 +466,31 @@ def minutos_para_fin_clase(hora_fin_str: str) -> int | None:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# USUARIOS / AUTH (with salt-based hashing)
+# USUARIOS / AUTH
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def _generate_salt() -> str:
-    """Generate a cryptographically secure salt."""
-    return secrets.token_hex(32)
+def _hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
 
 
-def _hash_password(password: str, salt: str) -> str:
-    """Hash password with salt using SHA-256."""
-    combined = f"{salt}{password}".encode()
-    return hashlib.sha256(combined).hexdigest()
-
-
-def _verify_password(password: str, salt: str, password_hash: str) -> bool:
-    """Verify password against stored hash."""
-    return _hash_password(password, salt) == password_hash
+def _hash_token(token: str) -> str:
+    return hashlib.sha256(str(token or "").encode()).hexdigest()
 
 
 def crear_usuario(
     email: str, password: str, nombre: str, nombre_hoja: str, rol: str = "docente"
 ) -> bool:
     try:
-        salt = _generate_salt()
-        password_hash = _hash_password(password, salt)
         with _conn() as con:
             con.execute(
-                "INSERT INTO usuarios (email, password_hash, nombre, nombre_hoja, rol, salt) VALUES (?,?,?,?,?,?)",
+                "INSERT INTO usuarios (email, password_hash, nombre, nombre_hoja, rol) VALUES (?,?,?,?,?)",
                 (
                     email.lower().strip(),
-                    password_hash,
+                    _hash_password(password),
                     nombre,
                     nombre_hoja.upper().strip(),
                     rol,
-                    salt,
                 ),
             )
         return True
@@ -525,44 +505,80 @@ def crear_usuario(
 
 
 def verificar_login(email: str, password: str) -> dict | None:
+    _em = email.lower().strip()
     with _conn() as con:
         row = con.execute(
-            "SELECT * FROM usuarios WHERE email=? AND activo=1",
-            (email.lower().strip(),),
+            "SELECT * FROM usuarios WHERE email=? AND activo=1", (_em,)
         ).fetchone()
-    if row:
-        salt = row.get("salt", "")
-        stored_hash = row.get("password_hash", "")
 
-        # Handle legacy passwords (no salt) - upgrade to new format
-        if not salt:
-            # Try old hash format (password directly hashed)
-            if stored_hash == hashlib.sha256(password.encode()).hexdigest():
-                # Upgrade to secure salt-based hash
-                _upgrade_password_hash(row["id"], password)
-                # Re-fetch user
-                return get_usuario_by_email(email)
-
-        # Verify with new salt-based hash
-        elif _verify_password(password, salt, stored_hash):
-            return dict(row)
+    if row and row["password_hash"] == _hash_password(password):
+        return dict(row)
     return None
 
 
-def _upgrade_password_hash(user_id: int, password: str) -> bool:
-    """Upgrade legacy password to secure salt-based hash."""
-    try:
-        salt = _generate_salt()
-        new_hash = _hash_password(password, salt)
+def crear_token_recordarme(usuario_id: int, dias: int = 30) -> str:
+    token_raw = secrets.token_urlsafe(48)
+    token_hash = _hash_token(token_raw)
+    expira_en = (
+        datetime.now(timezone.utc) + timedelta(days=max(1, int(dias)))
+    ).isoformat()
+    with _conn() as con:
+        con.execute(
+            """INSERT INTO auth_tokens (usuario_id, token_hash, expira_en, revocado)
+               VALUES (?,?,?,0)""",
+            (int(usuario_id), token_hash, expira_en),
+        )
+    return token_raw
 
-        with _conn() as con:
-            con.execute(
-                "UPDATE usuarios SET password_hash=?, salt=? WHERE id=?",
-                (new_hash, salt, user_id),
-            )
-        return True
+
+def verificar_token_recordarme(token_raw: str) -> dict | None:
+    token_hash = _hash_token(token_raw)
+    with _conn() as con:
+        row = con.execute(
+            """SELECT u.*,
+                      at.id AS token_id,
+                      at.expira_en AS token_expira_en,
+                      at.revocado AS token_revocado
+               FROM auth_tokens at
+               JOIN usuarios u ON u.id = at.usuario_id
+               WHERE at.token_hash=? AND at.revocado=0 AND u.activo=1""",
+            (token_hash,),
+        ).fetchone()
+
+    if not row:
+        return None
+
+    # Convert to dict to ensure .get() works regardless of row type
+    row_dict = dict(row)
+    expira_raw = str(row_dict.get("token_expira_en") or "").strip()
+    try:
+        expira_dt = datetime.fromisoformat(expira_raw)
     except Exception:
-        return False
+        return None
+
+    if datetime.now(timezone.utc) >= expira_dt:
+        return None
+
+    d = dict(row)
+    d.pop("token_id", None)
+    d.pop("token_expira_en", None)
+    d.pop("token_revocado", None)
+    return d
+
+
+def revocar_token_recordarme(token_raw: str):
+    token_hash = _hash_token(token_raw)
+    with _conn() as con:
+        con.execute(
+            "UPDATE auth_tokens SET revocado=1 WHERE token_hash=?", (token_hash,)
+        )
+
+
+def revocar_tokens_usuario(usuario_id: int):
+    with _conn() as con:
+        con.execute(
+            "UPDATE auth_tokens SET revocado=1 WHERE usuario_id=?", (int(usuario_id),)
+        )
 
 
 def get_usuario_by_email(email: str) -> dict | None:
@@ -590,6 +606,46 @@ def actualizar_password(email: str, nueva_password: str):
             (_hash_password(nueva_password), email.lower().strip()),
         )
 
+    u = get_usuario_by_email(email)
+    if u:
+        revocar_tokens_usuario(int(u["id"]))
+
+
+def actualizar_usuario_admin(
+    usuario_id: int,
+    nuevo_email: str | None = None,
+    nueva_password: str | None = None,
+    nuevo_nombre: str | None = None,
+) -> tuple[bool, str]:
+    """Actualiza credenciales básicas de un usuario desde panel admin."""
+    try:
+        with _conn() as con:
+            if nuevo_email is not None and str(nuevo_email).strip():
+                con.execute(
+                    "UPDATE usuarios SET email=? WHERE id=?",
+                    (str(nuevo_email).strip().lower(), usuario_id),
+                )
+            if nuevo_nombre is not None and str(nuevo_nombre).strip():
+                con.execute(
+                    "UPDATE usuarios SET nombre=? WHERE id=?",
+                    (str(nuevo_nombre).strip(), usuario_id),
+                )
+            if nueva_password is not None and str(nueva_password).strip():
+                con.execute(
+                    "UPDATE usuarios SET password_hash=? WHERE id=?",
+                    (_hash_password(str(nueva_password).strip()), usuario_id),
+                )
+                con.execute(
+                    "UPDATE auth_tokens SET revocado=1 WHERE usuario_id=?",
+                    (int(usuario_id),),
+                )
+        return True, "ok"
+    except Exception as e:
+        msg = str(e).lower()
+        if "unique" in msg or "duplicate" in msg:
+            return False, "Ese correo ya existe."
+        return False, f"Error al actualizar: {e}"
+
 
 def toggle_usuario_activo(usuario_id: int, activo: bool):
     with _conn() as con:
@@ -609,10 +665,8 @@ def eliminar_usuario(usuario_id: int):
 
 
 def guardar_horario_docente(registros: list[dict]):
-    print(f"DEBUG: Guardando {len(registros)} registros de horario...")
     with _conn() as con:
         con.execute("DELETE FROM horario_docente")
-        # Optimization: use executemany with named placeholders
         con.executemany(
             """INSERT INTO horario_docente
                (nombre_hoja, dia_semana, hora_inicio, hora_fin,
@@ -621,129 +675,165 @@ def guardar_horario_docente(registros: list[dict]):
                        :tipo_bloque,:materia,:nivel_grado,:ubicacion,:valor_original)""",
             registros,
         )
-    print("DEBUG: Guardado de horarios completado.")
 
 
 def get_horario_dia(nombre_hoja: str, dia_semana: str) -> list[dict]:
-    """
-    Returns schedule blocks for a teacher on a given day.
-    Dynamically injects vigilancia_recreo blocks from the vigilancias_recreo table
-    (the master list), so all teachers see their assigned recess duties.
-    """
-    # Official recess time slots
-    _RECESO_TIMES = {
-        "PRIMARIA RECREO 1": ("10:10", "10:30"),
-        "PRIMARIA RECREO 2": ("12:00", "12:15"),
-        "SECUNDARIA RECREO 1": ("09:25", "10:10"),
-        "SECUNDARIA RECREO 2": ("11:15", "12:00"),
+    _nh = str(nombre_hoja or "").upper().strip()
+    _dia = str(dia_semana or "").lower().strip()
+
+    # Official recess times
+    RECESO_TIMES = {
+        "primaria": [("10:10", "10:30"), ("12:00", "12:15")],
+        "secundaria": [("09:25", "10:10"), ("11:15", "12:00")],
     }
-    # Normalize accented days
-    _DIAS_NORM = {
-        "MIÉRCOLES": "MIERCOLES",
-        "MIERCOLES": "MIERCOLES",
-        "LUNES": "LUNES",
-        "MARTES": "MARTES",
-        "JUEVES": "JUEVES",
-        "VIERNES": "VIERNES",
-    }
-    _ALL_DAYS = {"LUNES", "MIERCOLES", "JUEVES", "VIERNES"}
+
+    def _strip_accents(s: str) -> str:
+        import unicodedata
+
+        return "".join(
+            c
+            for c in unicodedata.normalize("NFD", s)
+            if unicodedata.category(c) != "Mn"
+        )
+
+    def _norm_dia(d: str) -> str:
+        return _strip_accents(d.lower().strip())
+
+    def _time_overlaps(h_ini, h_fin, r_ini, r_fin):
+        if not h_ini or not r_ini:
+            return False
+        return h_ini <= r_fin and r_ini <= (h_fin or h_ini)
 
     with _conn() as con:
-        # Get regular blocks
-        blocks = [
+        rows = [
             dict(r)
             for r in con.execute(
                 """SELECT * FROM horario_docente
                WHERE nombre_hoja=? AND dia_semana=?
-               ORDER BY hora_inicio ASC""",
-                (nombre_hoja.upper(), dia_semana.lower()),
+               ORDER BY COALESCE(orden, 99999) ASC, hora_inicio ASC, id ASC""",
+                (_nh, _dia),
             ).fetchall()
         ]
 
-        dia_upper = dia_semana.upper()
-        dia_norm = _DIAS_NORM.get(dia_upper, dia_upper)
-
-        # Build set of existing (hora_inicio, tipo_bloque) to avoid duplicate injection
-        existing_keys = {
-            (b["hora_inicio"], b["tipo_bloque"])
-            for b in blocks
-            if b.get("hora_inicio") and b.get("tipo_bloque")
+        # Dynamically inject vigilancia blocks from vigilancias_recreo table
+        norm_dia = _norm_dia(_dia)
+        vigilancias = {
+            r["nombre_hoja"].upper(): r["ubicacion"]
+            for r in con.execute(
+                "SELECT nombre_hoja, ubicacion FROM vigilancias_recreo"
+            ).fetchall()
         }
+        vigilancia_ubicacion = vigilancias.get(_nh)
 
-        injected = []
+        if vigilancia_ubicacion and rows:
+            # Determine nivel from existing blocks (Primaria starts 07:xx, Secundaria 08:xx+)
+            has_primaria = any(
+                r["hora_inicio"] and r["hora_inicio"] < "08:30" for r in rows
+            )
+            nivel = "primaria" if has_primaria else "secundaria"
+            recesos = RECESO_TIMES[nivel]
 
-        vigilancias_rows = con.execute(
-            "SELECT ubicacion FROM vigilancias_recreo WHERE nombre_hoja=?",
-            (nombre_hoja.upper(),),
-        ).fetchall()
-
-        for row in vigilancias_rows:
-            ubicacion_raw = row["ubicacion"] or ""
-            if not ubicacion_raw or ubicacion_raw.upper().strip() == "SIN ASIGNAR":
-                continue
-
-            # Split multiple locations separated by comma
-            # e.g. "PRIMARIA RECREO 1 MARTES PATIO CENTRAL, PRIMARIA RECREO 2 MARTES COLISEO"
-            for ubicacion in ubicacion_raw.split(","):
-                ubicacion = ubicacion.strip()
-                if not ubicacion:
-                    continue
-                ub_up = ubicacion.upper()
-
-                # Find which slot this matches (PRIMARIA/SECUNDARIA + RECREO 1/2)
-                recreo_slot = None
-                for slot_key in _RECESO_TIMES:
-                    if slot_key.upper() in ub_up:
-                        recreo_slot = slot_key
-                        break
-
-                # Determine if this entry is for the current day
-                dia_match = False
-                for day_name in ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES"]:
-                    if day_name in ub_up:
-                        day_norm = _DIAS_NORM.get(day_name, day_name)
-                        if day_norm == dia_norm:
-                            dia_match = True
-                        break
-
-                # Handle ANGÉLICA case: "PARQUE" without nivel prefix
-                if not recreo_slot and ub_up.strip() == "PARQUE":
-                    recreo_slot = "PRIMARIA RECREO 1"
-                    dia_match = dia_norm in _ALL_DAYS
-
-                if not dia_match or not recreo_slot:
-                    continue
-
-                ini, fin = _RECESO_TIMES[recreo_slot]
-                nivel = (
-                    "Primaria" if "PRIMARIA" in recreo_slot.upper() else "Secundaria"
+            for r_ini, r_fin in recesos:
+                # Skip if already a block at this time
+                ocupado = any(
+                    _time_overlaps(
+                        r.get("hora_inicio"), r.get("hora_fin"), r_ini, r_fin
+                    )
+                    for r in rows
                 )
-
-                # Skip if horario_docente already has a block at this time
-                block_key = (ini, "vigilancia_recreo")
-                if block_key in existing_keys:
+                if ocupado:
                     continue
 
-                injected.append(
-                    {
-                        "id": None,
-                        "nombre_hoja": nombre_hoja.upper(),
-                        "dia_semana": dia_semana.lower(),
-                        "hora_inicio": ini,
-                        "hora_fin": fin,
-                        "tipo_bloque": "vigilancia_recreo",
-                        "materia": None,
-                        "nivel_grado": nivel,
-                        "ubicacion": ubicacion,
-                        "valor_original": ubicacion,
-                        "orden": None,
-                    }
-                )
+                # Parse multiple locations (comma-separated)
+                locations = [loc.strip() for loc in vigilancia_ubicacion.split(",")]
+                for loc in locations:
+                    # ANGÉLICA special case: PARQUE → Primaria R1
+                    if _nh == "ANGÉLICA" and "PARQUE" in loc.upper():
+                        loc = "Patio Central"
+                    # Format: "recreo - [location]"
+                    rows.append(
+                        {
+                            "id": None,
+                            "nombre_hoja": _nh,
+                            "dia_semana": _dia,
+                            "hora_inicio": r_ini,
+                            "hora_fin": r_fin,
+                            "tipo_bloque": "vigilancia_recreo",
+                            "materia": None,
+                            "nivel_grado": nivel.title(),
+                            "ubicacion": loc,
+                            "valor_original": f"recreo - {loc}",
+                            "orden": 0,
+                        }
+                    )
+            # Re-sort by hora_inicio
+            rows.sort(key=lambda r: r.get("hora_inicio") or "")
 
-        # Merge and sort all blocks by hora_inicio
-        all_blocks = blocks + injected
-        all_blocks.sort(key=lambda b: b.get("hora_inicio") or "")
-        return all_blocks
+        if rows:
+            return rows
+
+        # Fallback tolerante a errores de escritura / abreviaciones en nombre_hoja
+        cand = [
+            dict(r)
+            for r in con.execute(
+                """SELECT * FROM horario_docente
+               WHERE dia_semana=?
+               ORDER BY nombre_hoja, COALESCE(orden, 99999) ASC, hora_inicio ASC, id ASC""",
+                (_dia,),
+            ).fetchall()
+        ]
+
+    if not cand:
+        return []
+
+    import unicodedata
+
+    def _norm(s: str) -> str:
+        s = str(s or "").upper().strip()
+        s = "".join(
+            c
+            for c in unicodedata.normalize("NFD", s)
+            if unicodedata.category(c) != "Mn"
+        )
+        s = re.sub(
+            r"\b(PROF(?:ESOR(?:A)?)?|DOCENTE|MISS|MISTER|MR|MRS|MS|LIC\.?)\b", " ", s
+        )
+        s = re.sub(r"[^A-Z0-9 ]+", " ", s)
+        s = re.sub(r"\s+", " ", s).strip()
+        return s
+
+    target = _norm(_nh)
+    if not target:
+        return []
+
+    by_name = {}
+    for r in cand:
+        by_name.setdefault(str(r.get("nombre_hoja") or "").upper().strip(), []).append(
+            r
+        )
+
+    def _score(a: str, b: str) -> float:
+        if not a or not b:
+            return 0.0
+        if a == b:
+            return 1.0
+        if a in b or b in a:
+            return 0.95
+        sa, sb = set(a.split()), set(b.split())
+        if sa and sb:
+            j = len(sa & sb) / max(1, len(sa | sb))
+            if j > 0:
+                return 0.6 + 0.35 * j
+        return 0.0
+
+    best_name = None
+    best_score = 0.0
+    for raw_name in by_name.keys():
+        s = _score(target, _norm(raw_name))
+        if s > best_score:
+            best_score, best_name = s, raw_name
+
+    return by_name.get(best_name, []) if best_name and best_score >= 0.75 else []
 
 
 def get_all_hojas() -> list[str]:
@@ -752,6 +842,162 @@ def get_all_hojas() -> list[str]:
             "SELECT DISTINCT nombre_hoja FROM horario_docente ORDER BY nombre_hoja"
         ).fetchall()
     return [r["nombre_hoja"] for r in rows]
+
+
+def get_horario_docente_completo(nombre_hoja: str) -> list[dict]:
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT * FROM horario_docente
+               WHERE nombre_hoja=?
+               ORDER BY
+                 CASE dia_semana
+                   WHEN 'lunes' THEN 1
+                   WHEN 'martes' THEN 2
+                   WHEN 'miercoles' THEN 3
+                   WHEN 'jueves' THEN 4
+                   WHEN 'viernes' THEN 5
+                   ELSE 9
+                 END,
+                 COALESCE(orden, 99999) ASC,
+                 hora_inicio ASC,
+                 id ASC""",
+            (str(nombre_hoja or "").upper().strip(),),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def guardar_bloque_horario_manual(
+    nombre_hoja: str,
+    dia_semana: str,
+    hora_inicio: str,
+    hora_fin: str,
+    tipo_bloque: str,
+    materia: str = None,
+    nivel_grado: str = None,
+    ubicacion: str = None,
+    valor_original: str = None,
+    bloque_id: int = None,
+    orden: int = None,
+):
+    nh = str(nombre_hoja or "").upper().strip()
+    ds = str(dia_semana or "").lower().strip()
+    hi = str(hora_inicio or "").strip()
+    hf = str(hora_fin or "").strip()
+    tb = str(tipo_bloque or "").strip()
+
+    with _conn() as con:
+        if bloque_id:
+            con.execute(
+                """UPDATE horario_docente
+                   SET nombre_hoja=?, dia_semana=?, hora_inicio=?, hora_fin=?,
+                       tipo_bloque=?, materia=?, nivel_grado=?, ubicacion=?, valor_original=?, orden=?
+                   WHERE id=?""",
+                (
+                    nh,
+                    ds,
+                    hi,
+                    hf,
+                    tb,
+                    materia,
+                    nivel_grado,
+                    ubicacion,
+                    valor_original,
+                    orden,
+                    int(bloque_id),
+                ),
+            )
+            return bloque_id
+        else:
+            if _USE_PG:
+                cur = con.execute(
+                    """INSERT INTO horario_docente
+                       (nombre_hoja, dia_semana, hora_inicio, hora_fin, tipo_bloque,
+                        materia, nivel_grado, ubicacion, valor_original, orden)
+                       VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id""",
+                    (
+                        nh,
+                        ds,
+                        hi,
+                        hf,
+                        tb,
+                        materia,
+                        nivel_grado,
+                        ubicacion,
+                        valor_original,
+                        orden,
+                    ),
+                )
+                return cur.lastrowid
+            else:
+                con.execute(
+                    """INSERT INTO horario_docente
+                       (nombre_hoja, dia_semana, hora_inicio, hora_fin, tipo_bloque,
+                        materia, nivel_grado, ubicacion, valor_original, orden)
+                       VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        nh,
+                        ds,
+                        hi,
+                        hf,
+                        tb,
+                        materia,
+                        nivel_grado,
+                        ubicacion,
+                        valor_original,
+                        orden,
+                    ),
+                )
+                return con.execute("SELECT last_insert_rowid()").lastrowid
+
+
+def eliminar_bloque_horario_manual(bloque_id: int):
+    with _conn() as con:
+        con.execute("DELETE FROM horario_docente WHERE id=?", (int(bloque_id),))
+
+
+def guardar_vigilancia_manual(nombre_hoja: str, ubicacion: str):
+    nh = str(nombre_hoja or "").upper().strip()
+    ub = str(ubicacion or "").strip()
+    with _conn() as con:
+        con.execute("DELETE FROM vigilancias_recreo WHERE nombre_hoja=?", (nh,))
+        con.execute(
+            "INSERT INTO vigilancias_recreo (nombre_hoja, ubicacion) VALUES (?, ?)",
+            (nh, ub),
+        )
+
+
+def eliminar_vigilancia_manual(nombre_hoja: str):
+    with _conn() as con:
+        con.execute(
+            "DELETE FROM vigilancias_recreo WHERE nombre_hoja=?",
+            (str(nombre_hoja or "").upper().strip(),),
+        )
+
+
+def reemplazar_horario_docente_manual(nombre_hoja: str, filas: list[dict]):
+    """Reemplaza todos los bloques de un docente con una lista ordenada (editor inline)."""
+    nh = str(nombre_hoja or "").upper().strip()
+    with _conn() as con:
+        con.execute("DELETE FROM horario_docente WHERE nombre_hoja=?", (nh,))
+        for i, f in enumerate(filas, 1):
+            con.execute(
+                """INSERT INTO horario_docente
+                   (nombre_hoja, dia_semana, hora_inicio, hora_fin, tipo_bloque,
+                    materia, nivel_grado, ubicacion, valor_original, orden)
+                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    nh,
+                    str(f.get("dia_semana") or "").lower().strip(),
+                    str(f.get("hora_inicio") or "").strip(),
+                    str(f.get("hora_fin") or "").strip(),
+                    str(f.get("tipo_bloque") or "").strip(),
+                    (str(f.get("materia") or "").strip() or None),
+                    (str(f.get("nivel_grado") or "").strip() or None),
+                    (str(f.get("ubicacion") or "").strip() or None),
+                    (str(f.get("valor_original") or "").strip() or None),
+                    int(f.get("orden") or i),
+                ),
+            )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -840,17 +1086,6 @@ def get_actividades_fecha(fecha: str, nombre_hoja: str = None) -> list[dict]:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def guardar_comisiones_docente(registros: list[dict]):
-    with _conn() as con:
-        con.execute("DELETE FROM comisiones_docente")
-        con.executemany(
-            """INSERT INTO comisiones_docente
-               (nombre_docente, nombre_hoja, comision, funciones)
-               VALUES (:nombre_docente,:nombre_hoja,:comision,:funciones)""",
-            registros,
-        )
-
-
 def get_comisiones_docente(nombre_hoja: str) -> list[dict]:
     with _conn() as con:
         return [
@@ -896,17 +1131,6 @@ def guardar_comisiones(registros: list[dict]):
         )
 
 
-def get_comisiones_docente(nombre_hoja: str) -> list[dict]:
-    with _conn() as con:
-        return [
-            dict(r)
-            for r in con.execute(
-                "SELECT * FROM comisiones_docente WHERE nombre_hoja=?",
-                (nombre_hoja.upper(),),
-            ).fetchall()
-        ]
-
-
 def get_all_comisiones() -> list[dict]:
     with _conn() as con:
         return [
@@ -923,7 +1147,16 @@ def get_all_comisiones() -> list[dict]:
 
 
 def _bloque_key(bloque: dict) -> str:
-    return f"{bloque.get('dia_semana', '')}|{bloque.get('hora_inicio', '')}|{bloque.get('tipo_bloque', '')}"
+    k = f"{bloque.get('dia_semana', '')}|{bloque.get('hora_inicio', '')}|{bloque.get('tipo_bloque', '')}"
+    if bloque.get("tipo_bloque") == "vigilancia_recreo":
+        extra = (
+            str(bloque.get("ubicacion") or bloque.get("valor_original") or "")
+            .strip()
+            .upper()
+        )
+        if extra:
+            k += f"|{extra}"
+    return k
 
 
 def get_bloque_log(fecha: str, nombre_hoja: str, bloque: dict) -> dict | None:
@@ -1093,75 +1326,6 @@ def get_or_create_sesion_diaria(
             ),
         )
         return cur.lastrowid
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# MOTOR ANALYTICS
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-def guardar_motor_uso(
-    motor_name: str,
-    success: bool,
-    duration_ms: float,
-    user_email: str = None,
-    prompt_version: str = None,
-):
-    """Save motor usage to database for analytics."""
-    with _conn() as con:
-        con.execute(
-            """INSERT INTO motor_usage (motor_name, user_email, success, duration_ms, prompt_version)
-               VALUES (?,?,?,?,?)""",
-            (motor_name, user_email, 1 if success else 0, duration_ms, prompt_version),
-        )
-
-
-def get_motor_analytics(
-    dias: int = 7,
-    motor_name: str = None,
-) -> dict:
-    """
-    Get motor usage analytics.
-
-    Args:
-        dias: Number of days to look back
-        motor_name: Optional filter for specific motor
-
-    Returns:
-        dict with usage stats per motor
-    """
-    fecha_limite = datetime.now().strftime("%Y-%m-%d")
-
-    where_clause = "WHERE created_at >= ?"
-    params = [fecha_limite]
-
-    if motor_name:
-        where_clause += " AND motor_name = ?"
-        params.append(motor_name)
-
-    with _conn() as con:
-        # Get stats per motor
-        stats = con.execute(
-            f"""SELECT motor_name, COUNT(*) as total_uses,
-                       SUM(success) as successes,
-                       AVG(duration_ms) as avg_duration
-                FROM motor_usage {where_clause}
-                GROUP BY motor_name""",
-            params,
-        ).fetchall()
-
-        return [
-            {
-                "name": r["motor_name"],
-                "uses": r["total_uses"],
-                "successes": r["successes"],
-                "success_rate": (r["successes"] / r["total_uses"] * 100)
-                if r["total_uses"] > 0
-                else 0,
-                "avg_duration_ms": r["avg_duration"] or 0,
-            }
-            for r in stats
-        ]
 
 
 # ── Initialize DB on import ───────────────────────────────────────────────────
