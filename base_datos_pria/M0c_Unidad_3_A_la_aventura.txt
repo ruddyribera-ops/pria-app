@@ -1,0 +1,70 @@
+¡Hola! Soy el **Motor M0c del Método Palma-Ribera**. Tras analizar detalladamente la estructura de tu Proyecto ABP *"El Diario del Explorador - Rumbo al Nuevo Mundo"*, los contenidos de la Unidad 3 y las necesidades específicas de tus estudiantes, he diseñado las herramientas de evaluación. 
+
+Estas herramientas promueven una evaluación formativa, justa y neuro-inclusiva.
+
+---
+
+## 1. Rúbrica de Evaluación Integral del Proyecto
+
+Esta rúbrica evalúa los contenidos académicos de la Unidad 3 integrados en las misiones del proyecto, así como el trabajo en equipo y la presentación final.
+
+| Criterio / Misión | 🌟 Excelente (4) | ✅ Satisfactorio (3) | 🚀 En Proceso (2) | 🧭 Requiere Apoyo (1) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Misión 1: Biografía (Expresión Escrita y Literatura)** | Redacta la biografía de Colón en 3ª persona con un orden cronológico impecable. Identifica y describe claramente su arquetipo de personaje. | Redacta la biografía en 3ª persona con buen orden cronológico. Menciona su arquetipo de personaje aunque con poca profundidad. | Redacta la biografía pero presenta algunos saltos temporales. El uso de la 3ª persona es inconsistente o falta el arquetipo. | La biografía carece de orden cronológico claro, no usa la 3ª persona adecuadamente y omite el análisis del personaje. |
+| **Misión 2: Gramática (Grados del Adjetivo)** | Utiliza los 3 grados del adjetivo (positivo, comparativo, superlativo) de forma natural, correcta y variada para describir los paisajes en el diario. | Utiliza al menos 2 grados del adjetivo correctamente en sus descripciones del diario de a bordo. | Intenta usar los grados del adjetivo, pero presenta confusiones o se limita únicamente al grado positivo. | No utiliza adjetivos descriptivos en el texto o desconoce cómo formar los grados comparativo y superlativo. |
+| **Misión 2: Léxico (Prefijos y Sufijos)** | Crea y utiliza múltiples palabras derivadas con prefijos y sufijos de manera creativa y correcta para enriquecer el relato. | Utiliza algunas palabras derivadas con prefijos y sufijos correctamente en su texto. | Identifica prefijos y sufijos si se le indican, pero le cuesta integrarlos por iniciativa propia en su redacción. | No incluye ni forma nuevas palabras utilizando prefijos o sufijos en el diario. |
+| **Misión 2: Ortografía (Diptongos y Triptongos)** | Subraya, acentúa correctamente y justifica de manera impecable todas las palabras con diptongos y triptongos. | Subraya y acentúa la mayoría de las palabras con diptongos y triptongos, con errores menores en la justificación. | Identifica algunos diptongos/triptongos, pero presenta varios errores en la aplicación de la tilde o en la separación silábica. | No logra identificar los diptongos y triptongos, y omite las reglas generales de acentuación en estos casos. |
+| **Misión 3: Entrevista (Expresión Oral)** | Diseña preguntas abiertas y cerradas profundas. Su lenguaje no verbal y escucha activa en el *Role-Play* son sobresalientes. | Formula preguntas abiertas y cerradas adecuadas. Muestra buena actitud, fluidez y escucha activa durante la entrevista. | Formula principalmente preguntas cerradas. Su expresión oral es algo dudosa y el lenguaje no verbal es rígido. | Las preguntas carecen de estructura. No hay contacto visual, ni escucha activa durante la representación. |
+| **Presentación y Trabajo en Equipo (Feria)** | El formato final es creativo. El grupo trabajó de forma equitativa, resolviendo conflictos y apoyando el rol de cada integrante. | El formato final es ordenado. El grupo trabajó bien en conjunto, aunque algunos roles destacaron más que otros. | La presentación está incompleta o desorganizada. Hubo dificultades notables para trabajar en equipo y asumir roles. | No logran presentar el portafolio final o el trabajo fue realizado por un solo miembro sin colaboración del resto. |
+
+---
+
+## 2. Ficha de Autoevaluación: "El Mapa de mis Aprendizajes"
+
+Esta herramienta está diseñada para ser completada de forma individual al finalizar la Fase 3, fomentando la metacognición (Inteligencia Intrapersonal).
+
+**Nombre del Explorador/a:** _________________________ **Fecha:** _________
+**Mi rol en la tripulación:** __________________________
+
+**Instrucciones:** Lee cada frase y colorea la carita que mejor represente cómo te sentiste en esta aventura.
+
+| En mi viaje por este proyecto... | 😄 (¡Genial!) | 🙂 (Bien) | 😐 (Me costó un poco) |
+| :--- | :---: | :---: | :---: |
+| Comprendí cómo ordenar los hechos de la vida de Cristóbal Colón. | ◯ | ◯ | ◯ |
+| Pude usar adjetivos (como *tranquilísimo* o *más grande que*) en mi escritura. | ◯ | ◯ | ◯ |
+| Logré formar palabras nuevas usando prefijos y sufijos. | ◯ | ◯ | ◯ |
+| Reconocí los diptongos/triptongos y supe cuándo ponerles tilde. | ◯ | ◯ | ◯ |
+| Ayudé a crear preguntas interesantes para la entrevista a Colón. | ◯ | ◯ | ◯ |
+| Cumplí con mi rol dentro de mi tripulación. | ◯ | ◯ | ◯ |
+
+**Reflexión en el Cuaderno de Bitácora:**
+1. 💡 **Lo que más me gustó descubrir en este proyecto fue:** 
+   *(Espacio para escribir)*
+2. ⚓ **El mayor reto o tormenta que enfrenté (lo más difícil) fue:**
+   *(Espacio para escribir)*
+3. 🔭 **Si volviera a hacer este viaje, ¿qué haría diferente para mejorar?**
+   *(Espacio para escribir)*
+
+---
+
+## 3. Adaptaciones de la Evaluación para los Diagnósticos del Aula
+
+La rúbrica y la autoevaluación son herramientas vivas. Así es como debes aplicarlas según la neurodiversidad de tu aula:
+
+🧠 **Estudiante con TEA (Trastorno del Espectro Autista):**
+*   **Evaluación basada en su rol:** La calificación de "Trabajo en Equipo" no debe penalizarle si prefirió trabajar con menor interacción social. Evalúa si cumplió estrictamente la función asignada (ej. verificar fechas).
+*   **Autoevaluación literal y privada:** Entrégale la ficha de autoevaluación con antelación para que la rellene en su "tiempo fuera" o zona tranquila. Si las preguntas abiertas (reflexión) le generan ansiedad, cámbialas por opciones de opción múltiple (ej. "El mayor reto fue: a) El ruido, b) Escribir el diario, c) Trabajar en grupo").
+
+⚡ **Estudiantes con TDAH (2):**
+*   **Calificación fraccionada (Puntaje por misiones):** No evalúes todo el proyecto al final. Usa la rúbrica al terminar cada misión. Dales retroalimentación inmediata (ej. "¡Misión 1 superada con Excelente, buen trabajo en la biografía!").
+*   **Valoración de la Cinestesia:** En la evaluación de la "Misión 3" y "Presentación", valora positivamente su energía, capacidad de gesticular y movimiento controlado durante el *Role-Play*, tomándolo como un uso efectivo del "Lenguaje no verbal".
+
+📝 **Estudiante con Dislexia:**
+*   **Priorización Oral sobre Escrita:** En la rúbrica general, si en la "Misión 1" (Biografía) o "Misión 2" (Diario) presenta faltas de ortografía (omisión de letras, inversiones), **no le restes puntos** en los criterios de Literatura o Gramática.
+*   **Evaluación Ortográfica Adaptada:** Para el criterio exclusivo de "Diptongos/Triptongos", permítele demostrar su conocimiento separando las sílabas con palmadas o marcándolas con colores, evaluando el proceso lógico y no la escritura final en papel.
+*   **Autoevaluación:** Permite que responda a las tres preguntas de reflexión (Cuaderno de Bitácora) mediante un audio o conversando directamente contigo.
+
+🌟 **Estudiante con Altas Capacidades:**
+*   **Criterio de Excelencia Extendido:** En la rúbrica, para el criterio de "Léxico", su "Excelente (4)" requerirá el reto acordado: crear un glosario de términos inventados explicando morfológicamente su creación al resto.
+*   **Evaluación del Liderazgo Intelectual:** En "Trabajo en equipo", evalúa su capacidad para guiar (y no imponerse) al resto de la tripulación como "Investigador Principal", fomentando su desarrollo interpersonal.
+*   **Metacognición profunda:** En su ficha de autoevaluación, añade una pregunta extra: *"¿Qué nueva pregunta histórica te surgió tras investigar a Colón que no estaba en los libros?"*

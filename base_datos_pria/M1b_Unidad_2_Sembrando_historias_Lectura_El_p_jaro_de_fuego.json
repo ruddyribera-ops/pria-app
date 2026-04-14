@@ -1,0 +1,28 @@
+{
+    "diapositivas": [
+        {
+            "titulo": "Bienvenidos al Vuelo del Pájaro de Fuego",
+            "guion_docente": "¡Hola a todos! Hoy viajaremos a un mundo lleno de mitología y folclore. Vamos a explorar la famosa leyenda de 'El pájaro de fuego'. En la pantalla y en la pizarra tienen nuestro cronograma visual del día: primero descubriremos qué saben sobre criaturas mágicas, luego leeremos juntos por partes, y al final crearemos un mapa visual de la historia. ¡Comencemos abriendo la página 10 de nuestro TextBook!",
+            "texto_pantalla": "Cronograma de la clase:\n1. Explorar el mito (TextBook p. 10)\n2. Lectura y descubrimiento (TextBook p. 11-15)\n3. Reto de detectives (StudentBook p. 1-3)\n4. Compartir ideas (StudentBook p. 4-5)",
+            "prompt_imagen": "Estilo de ilustración amigable y colorida para niños de 5to de primaria. Un hermoso Pájaro de Fuego brillante y mágico volando sobre un bosque encantado, mientras un grupo diverso de niños (niños y niñas) miran asombrados hacia el cielo sosteniendo un mapa en sus manos. Atmósfera mágica."
+        },
+        {
+            "titulo": "Conociendo a los Personajes",
+            "guion_docente": "Vamos a abrir el TextBook en las páginas 11 y 12. Yo leeré esta primera parte en voz alta y ustedes pueden seguir la lectura usando su guía física o subrayando con sus marcadores. Piensen en esta pregunta directa: ¿Quiénes son los personajes que aparecen y qué están buscando? Vamos a anotar juntos estas respuestas paso a paso para asegurarnos de que todos lo tenemos súper claro antes de avanzar.",
+            "texto_pantalla": "Lectura en equipo: Páginas 11 y 12.\n\nPregunta clave: ¿Quiénes son los personajes principales y qué buscan?\n\nTip: Usa tu regla de lectura o subraya los nombres en tu libro.",
+            "prompt_imagen": "Estilo de ilustración para niños de 5to de primaria. Un niño y una niña sentados en un aula acogedora, leyendo un gran libro del que salen pequeñas chispas mágicas de fuego. Tienen marcadores de colores y reglas en la mano. Tonos cálidos."
+        },
+        {
+            "titulo": "Detectives de Inferencias",
+            "guion_docente": "¡Muy bien equipo! Ahora en las páginas 13 a 15, seremos detectives. Vamos a 'inferir', es decir, descubrir pistas que no están escritas directamente. ¿Por qué creen que el personaje tomó esa decisión? Abran su StudentBook en las páginas 1, 2 y 3 para resolver las actividades. Pueden escribir sus respuestas o dibujarlas. Para quienes busquen un reto profundo: ¿En qué se parece o diferencia este Pájaro de Fuego con la leyenda del ave Fénix?",
+            "texto_pantalla": "Investigación: TextBook (p. 13-15) y StudentBook (p. 1-3).\n\n¿Qué podemos inferir con las pistas del texto?\n- Opción 1: Escribir o dictar tu respuesta.\n- Opción 2: Dibujar un organizador gráfico.\n\nReto Experto: Compara al Pájaro de Fuego con el legendario Fénix.",
+            "prompt_imagen": "Estilo de ilustración para niños de 5to de primaria. Un niño y una niña con sombreros de detective, sosteniendo una lupa gigante, investigando unas huellas brillantes en forma de garras de ave mágica sobre un pergamino. Elementos de mitología en el fondo."
+        },
+        {
+            "titulo": "Compartiendo Nuestro Mapa",
+            "guion_docente": "Para nuestro cierre, vamos a las páginas 4 y 5 del StudentBook. Vamos a estructurar todo lo que inferimos sobre las motivaciones de los personajes creando un storyboard o mapa visual. Cuando terminen, ¡es hora de socializar! Pueden contarnos sus descubrimientos en voz alta o, si lo prefieren, simplemente pueden mostrarnos sus maravillosos dibujos e esquemas visuales sin tener que hablar.",
+            "texto_pantalla": "Reflexión Final: StudentBook (p. 4-5).\n\n1. Completa tu storyboard o mapa de personajes.\n2. ¡Compartamos en equipo!\n\n(Puedes explicarlo en voz alta o simplemente mostrar a todos tu fantástico dibujo).",
+            "prompt_imagen": "Estilo de ilustración para niños de 5to de primaria. Un aula iluminada y feliz donde un niño y una niña muestran muy orgullosos a sus compañeros una pizarra con dibujos estilo cómic (storyboard) sobre un pájaro de fuego. Entorno de apoyo y amistad."
+        }
+    ]
+}

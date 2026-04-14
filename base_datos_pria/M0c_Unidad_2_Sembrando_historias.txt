@@ -1,0 +1,72 @@
+¡Hola! Soy el **Motor M0c** del Método Palma-Ribera. He recibido el diseño del Proyecto ABP "El Diario de un Personaje de Leyenda" creado por el Motor M0b, así como los datos de la unidad y los perfiles de tu aula. 
+
+Mi función es diseñar las **herramientas de evaluación** para que puedas medir el progreso y el éxito de tus estudiantes de forma justa, inclusiva y motivadora.
+
+A continuación, te presento las herramientas en formato Markdown:
+
+***
+
+# 📊 Herramientas de Evaluación: "El Diario de un Personaje de Leyenda"
+
+## 1. Rúbrica de Evaluación Integral (Producto y Proceso)
+Esta rúbrica evalúa tanto el artefacto escrito (el diario) como la presentación escénica y la aplicación de los saberes básicos de Lengua.
+
+| Criterios de Evaluación | Nivel 4: Excelente 🌟 | Nivel 3: Bueno ✅ | Nivel 2: En Proceso ⚙️ | Nivel 1: Necesita Apoyo 🌱 |
+| :--- | :--- | :--- | :--- | :--- |
+| **Contenido y Estructura (El Diario)** | Crea un diario cautivador con formato cronológico claro. Refleja a la perfección la identidad, emociones y vivencias del personaje. | Escribe un diario con orden cronológico. Refleja la identidad del personaje y menciona sus emociones, aunque con menos profundidad. | El texto se parece a un diario, pero las entradas son poco claras o falta conexión con las emociones del personaje. | El texto no sigue la estructura de un diario o no asume la identidad de un personaje de la leyenda. |
+| **Gramática: Modalidades y Determinantes** | Incluye de forma natural y correcta las 4 modalidades oracionales y usa gran variedad de determinantes numerales e indefinidos. | Incluye la mayoría de las modalidades oracionales y usa algunos determinantes numerales e indefinidos correctamente. | Usa algunas modalidades oracionales, pero omite otras. Hay errores o poca variedad en el uso de los determinantes. | No se identifican las modalidades oracionales solicitadas y no utiliza determinantes numerales ni indefinidos. |
+| **Ortografía: Uso de la tilde** | Aplica correctamente las reglas de acentuación (agudas, llanas y esdrújulas) en todo el texto. | Comete pocos errores en la acentuación; demuestra comprender las reglas de agudas, llanas y esdrújulas. | Comete varios errores de acentuación, evidenciando confusión entre los tipos de palabras (agudas, llanas, esdrújulas). | No aplica las reglas de acentuación o los errores dificultan la lectura del texto. |
+| **Expresión Corporal (El Escenario Mudo)** | Transmite el mensaje de su diario usando *exclusivamente* un rico lenguaje no verbal (gestos, postura, mirada) logrando que la clase lo infiera. | Usa el lenguaje no verbal adecuadamente para transmitir el mensaje. La clase logra adivinar la situación con facilidad. | Intenta usar expresión corporal, pero se apoya en sonidos o le cuesta transmitir la emoción sin palabras. | Se niega a participar o no logra transmitir el mensaje a través del lenguaje no verbal. |
+| **Proceso y Actitud (Talleres)** | Participa activamente, gestiona su tiempo (técnica Pomodoro), cuida el diseño (artefacto) y ayuda o respeta a sus compañeros. | Trabaja bien en los talleres, completa las fases a tiempo y presenta un diseño de diario cuidado. | Se distrae en los talleres, requiere recordatorios para avanzar o el diseño del diario se presenta incompleto. | No aprovecha el tiempo de los talleres y no presenta el diario en las fechas acordadas. |
+
+---
+
+## 2. Ficha de Autoevaluación Adaptada (Diana / Cuestionario)
+Esta herramienta de metacognición está diseñada en un lenguaje sencillo para que el estudiante reflexione sobre su propio aprendizaje ("¿Qué aprendí?"). 
+
+**Nombre del personaje (y el tuyo):** __________________________________
+
+**Instrucciones:** Lee cada frase y marca con una "X" la carita que mejor represente tu trabajo en este proyecto.
+
+| Mi trabajo en el proyecto... | 😍 ¡Genial! | 🙂 Bien | 🤔 Puedo mejorar |
+| :--- | :---: | :---: | :---: |
+| 1. Entendí la leyenda y logré ponerme en los zapatos de mi personaje. | | | |
+| 2. Escribí mi diario expresando emociones y siguiendo un orden de fechas. | | | |
+| 3. Usé diferentes tipos de oraciones (preguntas, exclamaciones...) y determinantes. | | | |
+| 4. Me esforcé en revisar las tildes (agudas, llanas y esdrújulas). | | | |
+| 5. Logré actuar mi escena "sin palabras" usando mi cuerpo y mi rostro. | | | |
+| 6. Decoré mi diario para que pareciera una verdadera reliquia (física o digital). | | | |
+
+**💭 Reflexión final:**
+*   **Lo que más me ha gustado de este proyecto ha sido:** ___________________________
+*   **Lo que me ha resultado más difícil fue:** ________________________________________
+*   **Para el próximo proyecto, me gustaría mejorar en:** _____________________________
+
+---
+
+## 3. Adaptaciones de la Evaluación (Neuro-inclusivas)
+
+Para asegurar que la evaluación sea justa y mida el aprendizaje real sin que las barreras del neurodesarrollo interfieran, te propongo estas adaptaciones sobre las herramientas anteriores:
+
+### 🧩 Para el estudiante con TEA (1)
+*   **Claridad y Literalidad:** Añadir ejemplos concretos a su rúbrica (ej. en lugar de "usa modalidades", poner: "Has escrito al menos 1 pregunta (¿?), 1 exclamación (¡!) y 1 orden").
+*   **Alternativa de Presentación:** Si la exposición frente a toda la clase ("El Escenario Mudo") le genera ansiedad o sobrecarga, permitirle grabar su actuación en vídeo en un espacio tranquilo, o presentarla solo ante ti o un pequeño grupo de confianza.
+*   **Flexibilidad en lo no verbal:** No penalizar la falta de contacto visual prolongado durante la expresión corporal; evaluar la intención comunicativa a través del gesto general o el uso de objetos/marionetas si lo prefiere.
+
+### ⚡ Para los estudiantes con TDAH (2)
+*   **Evaluación de Proceso Continua:** Dar más peso al Nivel de "Proceso y Actitud" valorando su esfuerzo durante los intervalos cortos (Pomodoros). Utilizar un registro de observación docente mediante *check-lists* rápidos en el día a día, en lugar de evaluar solo el producto final.
+*   **Autoevaluación Dinámica:** Permitirles rellenar la ficha de autoevaluación de forma oral en una breve entrevista contigo, o mientras se mueven por el aula (ej. pegando gomets en carteles con las caritas).
+*   **Valoración del Movimiento:** Bonificar su energía y expresividad cinética en la fase del teatro mudo, reconociendo el dominio de su inteligencia corporal-cinestésica.
+
+### 🔤 Para el estudiante con Dislexia (1)
+*   **Evaluación Diferenciada (Contenido vs. Forma):** Separar claramente la calificación de la creatividad y la estructura del diario de la calificación ortográfica. No penalizar los errores de inversión de letras o faltas de ortografía en el borrador inicial.
+*   **Alternativa para Tildes:** Si comete errores en el uso de la tilde al escribir, hacerle una pequeña prueba oral: pídele que te lea su texto y te señale dónde está la "sílaba más fuerte" (sílaba tónica). Si la identifica auditivamente, se considera la competencia en progreso/lograda.
+*   **Uso de Códigos de Color:** Permitirle entregar el texto final con las tildes marcadas en los colores acordados (rojo, azul, verde) para demostrar que conoce la regla, en lugar de exigir un texto monocromático perfecto.
+
+### 🌟 Para el estudiante con Alta Capacidad (1)
+*   **Ampliación de la Rúbrica:** Añadir una fila extra en su rúbrica denominada "Profundización". Aquí se evaluará el "Anexo de Investigación" que M0b sugirió (origen mitológico y folclore eslavo).
+*   **Co-evaluación Activa:** Invitar a este estudiante a utilizar la rúbrica del docente para evaluar constructivamente de forma anónima a dos de sus compañeros en la fase del teatro mudo.
+*   **Rol Evaluativo de Director/a:** En la autoevaluación, añadir preguntas sobre su rol de liderazgo: *"¿Cómo ayudé a mis compañeros a mejorar sus obras? ¿Qué aprendí al guiar a otros?"*
+
+***
+*Como Motor M0c, he dejado la evaluación completamente alineada con los propósitos del Diseño DUA y el Aprendizaje Basado en Proyectos. ¡Todo está listo para medir el éxito de esta aventura literaria!*

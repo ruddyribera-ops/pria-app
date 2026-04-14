@@ -1,0 +1,28 @@
+TEST 10 - 23/03/2026 - 11:47 AM
+
+I run the new version. I changed for a paid plan for Google AI studio. 
+
+New api key and hybrid usage with the use of ollama - mistral 
+
+EUREKA! IT WORKED
+
+los titulos y temas estan todos completos. 
+
+Solo que los nombres de los pdf salen exactamente como se los ha guardado. Lets use the unit name from the textbook / studentbook (where it applies). 
+--------------------------------------------
+
+en el campo de seleccionar libro de trabajo tambien muestra el nombre del archivo pdf. cambiemos a los nombres de las unidades extraidas del texto. 
+
+
+--------------------------------------------
+
+al accionar generar sintesis y proyecto me encuentro con este error:
+
+KeyError: '\n  "unidad_sintetizada"'
+
+File "C:\Users\Windows\Desktop\PRIA v3\app_ui.py", line 228, in <module>
+    res_m0 = generar_con_ollama("Motor_M0a.txt", variables, modelo_ollama)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Windows\Desktop\PRIA v3\app_ui.py", line 126, in generar_con_ollama
+    prompt_final = template.format(**variables)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^

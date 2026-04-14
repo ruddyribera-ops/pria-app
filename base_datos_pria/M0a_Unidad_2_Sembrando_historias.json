@@ -1,0 +1,112 @@
+{
+    "unidad_sintetizada": {
+        "titulo": "Unidad 2: Sembrando historias",
+        "temas_desarrollados": [
+            {
+                "nombre": "Lectura: El pájaro de fuego",
+                "conceptos_clave": [
+                    "Comprensión lectora",
+                    "Mitología y folclore",
+                    "Identificación de personajes",
+                    "Inferencia"
+                ],
+                "inteligencias_sugeridas": [
+                    "Lingüística",
+                    "Visual-Espacial"
+                ]
+            },
+            {
+                "nombre": "Literatura: La enseñanza de los cuentos",
+                "conceptos_clave": [
+                    "Estructura narrativa",
+                    "Intención didáctica",
+                    "Moraleja",
+                    "Tradición oral"
+                ],
+                "inteligencias_sugeridas": [
+                    "Lingüística",
+                    "Interpersonal"
+                ]
+            },
+            {
+                "nombre": "Expresión oral: Decir sin palabras",
+                "conceptos_clave": [
+                    "Lenguaje no verbal",
+                    "Expresión facial",
+                    "Gestualidad",
+                    "Postura corporal"
+                ],
+                "inteligencias_sugeridas": [
+                    "Corporal-Cinestésica",
+                    "Interpersonal",
+                    "Intrapersonal"
+                ]
+            },
+            {
+                "nombre": "Estudio de la lengua: Las modalidades oracionales",
+                "conceptos_clave": [
+                    "Intención comunicativa",
+                    "Oraciones enunciativas",
+                    "Oraciones interrogativas y exclamativas",
+                    "Oraciones imperativas"
+                ],
+                "inteligencias_sugeridas": [
+                    "Lingüística",
+                    "Lógico-Matemática"
+                ]
+            },
+            {
+                "nombre": "Gramática: Los determinantes numerales y los indefinidos",
+                "conceptos_clave": [
+                    "Precisión e imprecisión de cantidades",
+                    "Concordancia de género y número",
+                    "Categorías gramaticales"
+                ],
+                "inteligencias_sugeridas": [
+                    "Lógico-Matemática",
+                    "Lingüística"
+                ]
+            },
+            {
+                "nombre": "Ortografía: El uso de la tilde",
+                "conceptos_clave": [
+                    "Sílaba tónica",
+                    "Palabras agudas, llanas y esdrújulas",
+                    "Reglas de acentuación gráfica"
+                ],
+                "inteligencias_sugeridas": [
+                    "Musical",
+                    "Visual-Espacial",
+                    "Lógico-Matemática"
+                ]
+            },
+            {
+                "nombre": "Expresión escrita: La redacción de un diario",
+                "conceptos_clave": [
+                    "Escritura autobiográfica",
+                    "Registro cronológico",
+                    "Subjetividad y emociones",
+                    "Estructura de entradas"
+                ],
+                "inteligencias_sugeridas": [
+                    "Intrapersonal",
+                    "Lingüística"
+                ]
+            },
+            {
+                "nombre": "¿Qué aprendí?",
+                "conceptos_clave": [
+                    "Metacognición",
+                    "Autoevaluación",
+                    "Síntesis de conocimientos"
+                ],
+                "inteligencias_sugeridas": [
+                    "Intrapersonal",
+                    "Lógico-Matemática"
+                ]
+            }
+        ],
+        "notas_docente": "Estrategias DUA: Para TEA (1), proporcionar anticipación visual de las actividades, instrucciones literales paso a paso y un entorno con bajo estímulo sensorial durante las tareas de lectura; permitir formatos estructurados para el diario. Para TDAH (2), fragmentar las tareas de lectura y escritura en bloques cortos, fomentar la participación activa en la 'Expresión oral' mediante juegos de roles y usar movimiento para clasificar palabras u oraciones. Para Dislexia (1), facilitar el acceso al cuento mediante audiolibros, usar esquemas visuales y códigos de color para las reglas de acentuación y gramática, y valorar el contenido sobre la corrección ortográfica en los borradores. Para Alta Capacidad (1), ofrecer actividades de extensión como la investigación del origen de 'El pájaro de fuego', el diseño de la rúbrica de evaluación o asumir el rol de director/a creativo/a en el proyecto final.",
+        "proyecto_pbl": "Proyecto 'El Diario de un Personaje de Leyenda': Los estudiantes crearán un diario (en formato físico tipo pergamino o digital multimedia) asumiendo la identidad de un personaje del cuento leído u otra leyenda. Deberán escribir entradas que apliquen correctamente las modalidades oracionales, los determinantes y el uso de tildes. Como producto final, presentarán una de sus entradas a la clase utilizando exclusivamente expresión corporal (decir sin palabras) para que sus compañeros adivinen la emoción o suceso narrado. Este proyecto permite múltiples formas de representación, expresión e implicación, ajustándose a todos los perfiles del aula."
+    }
+}

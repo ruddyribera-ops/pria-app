@@ -1,0 +1,9 @@
+TEST 8 - 23/03/2026 - 10:24AM
+
+I RAN THE APP WITH THE FIXED UPLOAD LOGIC. THE PDF UPLOADED, BUT NOW THE TEMA DROPDOWN SHOWS A MASSIVE ERROR: "Error: 429 RESOURCE_EXHAUSTED... Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests". THE OCR CRASHED BECAUSE OF API LIMITS.
+
+El temido error 429. Lo que pasó aquí es muy simple: el análisis visual de un PDF escaneado completo (el Motor Alpha Vision) es una operación pesada. Consumió rápidamente la cuota de la capa gratuita (free tier) de la primera llave API que tienes en tu archivo secrets.toml.
+
+El problema de diseño en mi código de la v4.0 fue que la función analizar_pdf_ocr no estaba conectada a tu "Sistema de Batería" (la rotación de llaves). Solo estaba usando ciegamente la llave [0]. Al agotarse, colapsó y, para empeorar las cosas, Streamlit guardó ese error en la memoria caché, por lo que te lo muestra en el menú desplegable.
+
+Vamos a blindar el Motor Alpha para que también rote las llaves automáticamente si una se queda sin saldo durante la lectura óptica.

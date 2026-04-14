@@ -1,0 +1,19 @@
+TEST 7 - 23/03/2026 - 10:20AM
+
+I RAN THE APP WITH THE NEW OCR LOGIC. THE MOTOR ALPHA VISION IS THROWING AN ERROR IN THE TEMA DROPDOWN: "Error: Files.upload() got an unexpected keyword argument 'display_name'". LA LECTURA VISUAL FALLA Y NO EXTRAE LOS TEMAS.
+
+Veo exactamente lo que pasó. El error es completamente mi responsabilidad por mezclar la sintaxis. En la nueva versión del SDK google-genai, la función client.files.upload() ya no acepta el argumento display_name de esa forma directa. Al intentar ponerle un nombre bonito al archivo en el servidor, rompí la subida.
+
+Para solucionarlo, solo necesitas reemplazar una línea en tu función analizar_pdf_ocr.
+
+Busca esta línea (alrededor de la línea 81):
+
+Python
+
+uploaded_file = client.files.upload(file=ruta_pdf, display_name=os.path.basename(ruta_pdf))
+Y cámbiala exactamente por esto:
+
+Python
+
+uploaded_file = client.files.upload(file=ruta_pdf)
+Al quitar el argumento problemático, el documento subirá sin problemas, Gemini procesará las imágenes de tu índice y te devolverá la estructura de la unidad.

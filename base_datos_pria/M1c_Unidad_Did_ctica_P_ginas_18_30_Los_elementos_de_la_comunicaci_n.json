@@ -1,0 +1,87 @@
+{
+    "ficha_trabajo": {
+        "titulo_gancho": "Misión Cósmica: Detectives de la Comunicación",
+        "historia_gancho": "¡Alerta, cadete! Hemos interceptado una transmisión desde la Estación Espacial Internacional. Para entender su reporte, necesitas dominar los Elementos de la Comunicación. Tu misión secreta (la cual puedes resolver en absoluto silencio y entregar por escrito) es identificar quién envía la señal, quién la recibe y qué intentan decir. ¡Toma tus marcadores de colores y decodifica el mensaje!",
+        "misiones": {
+            "oraculo": [
+                {
+                    "pregunta": "En un mensaje de texto desde tu teléfono, ¿quién es el encargado de escribir y enviar las palabras?",
+                    "opciones": [
+                        "A) El Emisor (Azul)",
+                        "B) El Contexto (Rojo)"
+                    ]
+                },
+                {
+                    "pregunta": "¿Qué nombre recibe la información, idea o alerta que queremos transmitir al otro planeta?",
+                    "opciones": [
+                        "A) El Canal (Naranja)",
+                        "B) El Mensaje (Amarillo)"
+                    ]
+                }
+            ],
+            "puente": [
+                {
+                    "palabra": "Receptor (Ícono: Oreja / Antena)",
+                    "significado": "Quien recibe, escucha y comprende el mensaje enviado."
+                },
+                {
+                    "palabra": "Canal (Ícono: Puente / Señal WiFi)",
+                    "significado": "El medio físico por donde viaja la información."
+                },
+                {
+                    "palabra": "Contexto (Ícono: Reloj y Mapa)",
+                    "significado": "El lugar, situación y momento exacto en que ocurre la charla."
+                },
+                {
+                    "palabra": "Código (Ícono: Candado / Letras ABC)",
+                    "significado": "El idioma, señas o conjunto de reglas que usamos para comunicarnos."
+                }
+            ],
+            "sopa": [
+                "EMISOR",
+                "RECEPTOR",
+                "MENSAJE",
+                "CANAL",
+                "CODIGO",
+                "CONTEXTO"
+            ],
+            "pergamino": {
+                "frase_con_espacios": "Para que la comunicación tenga éxito en nuestra base, el _____ (azul) debe enviar un _____ (amarillo) claro y directo al _____ (verde), utilizando un _____ (morado) que ambos puedan comprender.",
+                "palabras_secretas": [
+                    "emisor",
+                    "mensaje",
+                    "receptor",
+                    "código"
+                ]
+            },
+            "lienzo": "¡Asume el rol de Diseñador Visual! En tu pizarra individual o post-it, dibuja un diagrama o viñeta de cómic donde un astronauta le pide ayuda a la Tierra. Utiliza el código de colores de la misión: Emisor (Azul), Receptor (Verde), Mensaje (Amarillo), Canal (Naranja). Entrégalo en la puerta como tu Boleto de Salida."
+        },
+        "adaptaciones_por_mision": [
+            {
+                "Mision": "Lienzo / Boleto de Salida",
+                "Diagnostico": "Timidez",
+                "Ajuste": "Validar toda su participación de forma gráfica y escrita. Asignar el rol de 'Diseñador Visual' permitiendo que su diagrama o boleto se entregue al profesor en silencio al finalizar, evitando cualquier exposición oral o lectura pública."
+            },
+            {
+                "Mision": "Puente",
+                "Diagnostico": "Dislexia",
+                "Ajuste": "Proporcionar el vocabulario estructurado como un glosario visual, integrando los íconos (Oreja, Puente, etc.) para cada concepto. Eliminar por completo la solicitud de lectura en voz alta."
+            },
+            {
+                "Mision": "Pergamino / Oráculo",
+                "Diagnostico": "TDAH",
+                "Ajuste": "Fragmentar la actividad entregando las preguntas y las viñetas una por una (usando post-its o tarjetas). Permitir el uso de pizarras individuales borrables para facilitar el ensayo y error sin tachones."
+            },
+            {
+                "Mision": "General",
+                "Diagnostico": "TEA",
+                "Ajuste": "Dibujar en la pizarra una agenda visual anticipando los 3 pasos de la clase (Inicio, Cómic, Boleto de salida). Utilizar el salón de clases como ejemplo literal, explícito y concreto para definir qué es el 'Contexto'."
+            },
+            {
+                "Mision": "Misión Extensión",
+                "Diagnostico": "Alta Capacidad",
+                "Ajuste": "Presentar un escenario de extensión: analizar en su lienzo qué sucede con los elementos si ocurre una tormenta solar que genera 'ruido' en el canal, y retarle a inventar un código de comunicación alternativo."
+            }
+        ]
+    }
+}

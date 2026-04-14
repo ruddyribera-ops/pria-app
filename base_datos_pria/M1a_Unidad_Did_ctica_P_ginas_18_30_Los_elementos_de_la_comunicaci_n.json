@@ -1,0 +1,70 @@
+{
+    "mapa_cognitivo": {
+        "verbos": [
+            "Identificar",
+            "Diferenciar",
+            "Esquematizar",
+            "Aplicar"
+        ]
+    },
+    "inteligencias_multiples": [
+        {
+            "Inteligencia": "Lingüística",
+            "Actividad": "Lectura guiada de situaciones comunicativas cotidianas cortas (págs. 10-15) identificando los roles de cada participante."
+        },
+        {
+            "Inteligencia": "Visual-espacial",
+            "Actividad": "Elaboración de un diagrama de flujo de la comunicación utilizando un código de colores específico para cada elemento (Emisor, Receptor, Mensaje, Canal, Código, Contexto)."
+        }
+    ],
+    "secuencia_didactica": {
+        "bloques": [
+            {
+                "nombre": "Inicio",
+                "duracion": 10,
+                "objetivo": "Despertar el interés proyectando la imagen de un chat de mensajería y preguntar a la clase quién envía, quién recibe y qué se dice.",
+                "nota": "Repartir post-its o usar pizarras individuales para que respondan por escrito, evitando forzar la participación oral del alumno tímido."
+            },
+            {
+                "nombre": "Desarrollo",
+                "duracion": 25,
+                "objetivo": "Explicar los elementos de la comunicación apoyándose en las páginas 10-15 del TextBook. Realizar una práctica donde los alumnos etiquetan los elementos en 3 viñetas tipo cómic.",
+                "nota": "Mantener el mismo código de colores en la pizarra y en la hoja de práctica para facilitar la asociación visual (Ej. Emisor azul, Receptor verde)."
+            },
+            {
+                "nombre": "Cierre",
+                "duracion": 10,
+                "objetivo": "Evaluar formativamente mediante un 'Boleto de salida' (Exit Ticket) donde los alumnos identifican los elementos de un último escenario sencillo.",
+                "nota": "El boleto se entrega en silencio al salir del aula, garantizando una evaluación segura y libre de exposición social."
+            }
+        ]
+    },
+    "dua_neuroinclusion": [
+        "Ofrecer múltiples formas de representación: combinar el texto del TextBook con diagramas visuales y ejemplos de la vida real (cómics, chats).",
+        "Proporcionar múltiples formas de acción y expresión: permitir respuestas escritas, dibujadas o señaladas, eliminando la barrera de la exposición oral para el alumno tímido y reduciendo la carga para Dislexia.",
+        "Proporcionar múltiples formas de implicación: utilizar organizadores gráficos y códigos de color que reduzcan la carga cognitiva y mantengan la atención."
+    ],
+    "tabla_adaptaciones_clase": [
+        {
+            "Diagnostico": "TEA",
+            "Adaptacion": "Colocar una agenda visual de la sesión en la pizarra. Usar ejemplos literales y explícitos para explicar el concepto de 'Contexto'."
+        },
+        {
+            "Diagnostico": "TDAH",
+            "Adaptacion": "Fragmentar la práctica del Desarrollo: entregar las viñetas una por una. Permitir que borren y reescriban usando pizarras blancas individuales."
+        },
+        {
+            "Diagnostico": "Dislexia",
+            "Adaptacion": "Entregar un glosario visual con íconos para cada elemento (Ej. un sobre para Mensaje, un puente para Canal). No pedir lectura en voz alta."
+        },
+        {
+            "Diagnostico": "Alta Capacidad",
+            "Adaptacion": "Proponer un escenario complejo de extensión: analizar qué ocurre con los elementos cuando hay 'ruido' o pedir que inventen un código de comunicación secreto."
+        },
+        {
+            "Diagnostico": "Timidez",
+            "Adaptacion": "Validar su participación mediante formatos escritos o de opción múltiple. En dinámicas de pares, asignarle el rol de 'registrador' o 'diseñador visual' en lugar de portavoz."
+        }
+    ],
+    "perfil_aula_resumido": "Aula neurodiversa con necesidades de apoyo en la regulación atencional, decodificación lectora y habilidades sociocomunicativas. Requiere un entorno altamente estructurado, predecible y visual. La inclusión de un estudiante muy tímido y otro con dislexia exige flexibilidad en los métodos de evaluación y participación, priorizando medios escritos, gráficos y anónimos sobre la exposición oral pública."
+}

@@ -1,0 +1,28 @@
+{
+    "diapositivas": [
+        {
+            "titulo": "¡Bienvenidos! ¿Cómo nos comunicamos?",
+            "guion_docente": "¡Hola a todos! En la pizarra pueden ver nuestra agenda visual de hoy: primero veremos un chat, luego aprenderemos los colores de la comunicación, haremos práctica con cómics y terminaremos con un boleto de salida. Para empezar, miren esta pantalla de chat. En sus pizarras individuales o en sus post-its, escriban en silencio: ¿Quién envía el mensaje? ¿Quién lo recibe? y ¿Qué dice? Cuando terminen, solo levanten su pizarra para que yo la vea.",
+            "texto_pantalla": "Agenda:\n1. El Chat 📱\n2. Los Elementos 🎨\n3. Cómics 🗯️\n4. Boleto de salida 🎟️\n\nAnaliza el chat:\n- ¿Quién envía?\n- ¿Quién recibe?\n- ¿Qué se dice?",
+            "prompt_imagen": "Ilustración estilo cómic infantil adecuada para niños de 5to de primaria. Un niño (género masculino) sosteniendo un teléfono móvil gigante que muestra una pantalla de chat con burbujas de texto vacías. Colores brillantes, ambiente escolar inclusivo y alegre, sin texto real en la imagen."
+        },
+        {
+            "titulo": "Los Elementos de la Comunicación (Págs. 10-15)",
+            "guion_docente": "Vamos a esquematizar cómo funciona la comunicación usando colores y símbolos para que sea fácil de recordar. El Emisor, de color Azul, es quien habla o escribe. El Receptor, de color Verde, es quien escucha o lee. El Mensaje va de Amarillo con un ícono de sobre, es la idea. El Canal es Naranja con un puente, es por dónde viaja, como el aire o un papel. El Código es Morado, representa el idioma. Y el Contexto es Rojo, es el lugar y momento literal donde ocurre, por ejemplo, 'el salón de clases en la mañana'.",
+            "texto_pantalla": "🔵 Emisor (El que envía) 🗣️\n🟢 Receptor (El que recibe) 👂\n🟡 Mensaje (La idea) ✉️\n🟠 Canal (El medio) 🌉\n🟣 Código (El idioma/señas) 🔠\n🔴 Contexto (Lugar y momento exacto) 🏫",
+            "prompt_imagen": "Ilustración educativa para niños de 5to de primaria. Un niño (género masculino) dibujando un esquema en una pizarra con tizas de colores: azul, verde, amarillo, naranja, morado y rojo. Se ven íconos visuales flotando cerca de él: un sobre, un puente de ladrillos, letras y una escuela pequeña. Estilo amigable y claro."
+        },
+        {
+            "titulo": "¡A etiquetar el Cómic!",
+            "guion_docente": "Ahora vamos a aplicar lo que leímos y aprendimos. Les entregaré la primera de tres viñetas de cómic a cada uno. En silencio y usando los mismos colores de la pantalla, marquen quién es el emisor, receptor y los demás elementos. Recuerden que pueden borrar y reescribir si lo necesitan. Si alguien termina rápido, tenemos un reto: ¿Qué pasaría con los elementos si de pronto pasa una ambulancia con la sirena muy fuerte haciendo ruido?",
+            "texto_pantalla": "Práctica: Viñeta 1 🗯️\nEncuentra y marca con tus colores:\n🔵 Emisor\n🟢 Receptor\n🟡 Mensaje\n🟠 Canal\n🟣 Código\n🔴 Contexto\n\n⭐ Reto Extra: ¿Qué pasa con la comunicación si hay mucho ruido en la calle?",
+            "prompt_imagen": "Ilustración estilo cómic infantil para niños de 5to de primaria. Un niño (género masculino) con una lupa de detective observando una viñeta de cómic gigante donde dos personas hablan en un parque. Diseño colorido, claro, con estructura predecible y estimulante para la atención."
+        },
+        {
+            "titulo": "Boleto de Salida",
+            "guion_docente": "¡Excelente trabajo! Para terminar nuestra clase, vamos a hacer nuestro 'Boleto de Salida'. Lean la situación sencilla que está en la pantalla y completen su boleto en sus asientos. Cuando suene el timbre, dejen su boleto en mi escritorio en silencio al salir, no es necesario decir las respuestas en voz alta. ¡Han sido unos grandes detectives de la comunicación hoy!",
+            "texto_pantalla": "Situación:\n'Mamá le deja una nota de papel en la nevera a Leo diciendo: ¡Feliz cumpleaños! en español.'\n\nCompleta tu boleto antes de salir:\n🔵 Emisor = ?\n🟢 Receptor = ?\n🟡 Mensaje = ?\n🟠 Canal = ?\n🟣 Código = ?\n🔴 Contexto = ?",
+            "prompt_imagen": "Ilustración infantil para niños de 5to de primaria. Un niño (género masculino) leyendo sonriente una pequeña nota de papel amarillo pegada en la puerta de una nevera blanca en una cocina. Estilo cálido, colores suaves, amigables y relajantes."
+        }
+    ]
+}

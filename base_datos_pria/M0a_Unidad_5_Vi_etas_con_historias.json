@@ -1,0 +1,102 @@
+{
+    "unidad_sintetizada": {
+        "titulo": "Unidad 5: Viñetas con historias",
+        "temas_desarrollados": [
+            {
+                "nombre": "Lectura: Algo verde entró al bosque",
+                "conceptos_clave": [
+                    "Comprensión lectora",
+                    "Inferencia",
+                    "Personajes",
+                    "Entorno natural"
+                ],
+                "inteligencias_sugeridas": [
+                    "Lingüístico-verbal",
+                    "Naturalista"
+                ]
+            },
+            {
+                "nombre": "Literatura: El cómic",
+                "conceptos_clave": [
+                    "Viñetas",
+                    "Bocadillos",
+                    "Onomatopeyas",
+                    "Narrativa visual"
+                ],
+                "inteligencias_sugeridas": [
+                    "Espacial-visual",
+                    "Lingüístico-verbal"
+                ]
+            },
+            {
+                "nombre": "Expresión oral: Qué expresa el arte",
+                "conceptos_clave": [
+                    "Emociones",
+                    "Interpretación",
+                    "Comunicación no verbal",
+                    "Argumentación"
+                ],
+                "inteligencias_sugeridas": [
+                    "Interpersonal",
+                    "Intrapersonal",
+                    "Lingüístico-verbal"
+                ]
+            },
+            {
+                "nombre": "Estudio de la lengua: Las palabras homófonas y las homógrafas",
+                "conceptos_clave": [
+                    "Ortografía",
+                    "Significado",
+                    "Contexto",
+                    "Sonido vs. Escritura"
+                ],
+                "inteligencias_sugeridas": [
+                    "Lingüístico-verbal",
+                    "Lógico-matemática"
+                ]
+            },
+            {
+                "nombre": "Gramática: Los verbos y los participios irregulares",
+                "conceptos_clave": [
+                    "Raíz verbal",
+                    "Terminaciones",
+                    "Tiempos compuestos",
+                    "Excepciones gramaticales"
+                ],
+                "inteligencias_sugeridas": [
+                    "Lingüístico-verbal",
+                    "Lógico-matemática"
+                ]
+            },
+            {
+                "nombre": "Ortografía: La tilde en dé, mí, sí, sé",
+                "conceptos_clave": [
+                    "Tilde diacrítica",
+                    "Monosílabos",
+                    "Categorías gramaticales",
+                    "Reglas de acentuación"
+                ],
+                "inteligencias_sugeridas": [
+                    "Lingüístico-verbal",
+                    "Espacial-visual"
+                ]
+            },
+            {
+                "nombre": "Expresión escrita: La creación de un cómic",
+                "conceptos_clave": [
+                    "Guion",
+                    "Storyboard",
+                    "Ilustración",
+                    "Secuencia narrativa"
+                ],
+                "inteligencias_sugeridas": [
+                    "Espacial-visual",
+                    "Corporal-cinestésica",
+                    "Lingüístico-verbal"
+                ]
+            }
+        ],
+        "notas_docente": "Aplicar el DUA asegurando múltiples formas de representación y expresión. TEA (1): proporcionar rutinas visuales, anticipar las actividades de creación de cómics y estructurar el trabajo en pasos predecibles con instrucciones literales. TDAH (2): dividir las tareas largas (chunking), intercalar descansos activos y asignarles roles dinámicos o manipulativos. Dislexia (1): ofrecer alternativas como audiolibros para la lectura, usar software de voz a texto para la redacción de guiones, tipografías accesibles (sans-serif) y códigos de colores para identificar palabras homófonas y tildes diacríticas. Alta Capacidad (1): proponer investigaciones complementarias sobre la historia del arte secuencial, preguntas de pensamiento crítico ('Qué expresa el arte') y ofrecer roles de liderazgo en la estructuración de la narrativa.",
+        "proyecto_pbl": "Proyecto 'Voces de Nuestro Bosque: Exposición de Cómics'. Los estudiantes trabajarán colaborativamente para crear y presentar un cómic basado en el bosque. Se organizarán en agencias creativas con roles adaptados: el alumno con AACC puede liderar la complejidad del guion y la revisión gramatical (verbos irregulares/tildes diacríticas); el estudiante con Dislexia puede enfocarse en la narrativa visual (storyboard) o usar herramientas digitales de dictado; el alumno con TEA puede estructurar las secuencias lógicas de las viñetas mediante pautas claras; y los alumnos con TDAH pueden asumir la ilustración interactiva y el montaje espacial de la exposición. El proyecto culminará con una galería de arte escolar donde cada grupo expresará oralmente el significado y las emociones de su obra."
+    }
+}

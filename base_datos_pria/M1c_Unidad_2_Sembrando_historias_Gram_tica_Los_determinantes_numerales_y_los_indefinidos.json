@@ -1,0 +1,85 @@
+{
+    "ficha_trabajo": {
+        "titulo_gancho": "El Guardián de las Cantidades: Misión en el Laboratorio Mágico",
+        "historia_gancho": "Eres el aprendiz principal del Gran Mago Alquimista. Tras un experimento explosivo, el inventario del laboratorio mágico se ha desordenado por completo. Hay ingredientes que deben contarse con total exactitud y otros que solo requieren una estimación misteriosa. Tu misión es clasificar los objetos del entorno, diferenciar entre las cantidades precisas y las imprecisas, y asegurar que la magia fluya manteniendo el equilibrio perfecto entre los determinantes y los sustantivos. ¡El orden del reino mágico depende de tu lógica y tu destreza con las palabras!",
+        "misiones": {
+            "oraculo": [
+                {
+                    "pregunta": "Para preparar la poción de invisibilidad, el Mago dice: 'Agrega tres escamas de dragón'. ¿Qué tipo de cantidad está indicando?",
+                    "opciones": [
+                        "A) Una cantidad exacta (Determinante Numeral).",
+                        "B) Una cantidad imprecisa (Determinante Indefinido)."
+                    ]
+                },
+                {
+                    "pregunta": "Encuentras un cofre misterioso y al abrirlo exclamas: '¡Aquí hay bastantes monedas de oro!'. ¿Qué tipo de cantidad expresa esta frase?",
+                    "opciones": [
+                        "A) Una cantidad exacta (Determinante Numeral).",
+                        "B) Una estimación o cantidad imprecisa (Determinante Indefinido)."
+                    ]
+                },
+                {
+                    "pregunta": "Para que el hechizo funcione, la frase debe tener una concordancia perfecta. ¿Cuál de estos conjuros es el correcto?",
+                    "opciones": [
+                        "A) Necesito muchos varitas mágicas.",
+                        "B) Necesito muchas varitas mágicas."
+                    ]
+                }
+            ],
+            "puente": [
+                {
+                    "palabra": "Determinante Numeral",
+                    "significado": "Palabra mágica que indica una cantidad exacta y precisa, como 'tres' o 'quinto'."
+                },
+                {
+                    "palabra": "Determinante Indefinido",
+                    "significado": "Palabra mágica que indica una cantidad imprecisa o una estimación, como 'algunos' o 'varios'."
+                },
+                {
+                    "palabra": "Concordancia",
+                    "significado": "El equilibrio perfecto: la relación correcta de género y número entre el determinante y el sustantivo."
+                }
+            ],
+            "sopa": [
+                "NUMERAL",
+                "INDEFINIDO",
+                "PRECISION",
+                "ESTIMACION",
+                "CANTIDAD",
+                "CONCORDANCIA"
+            ],
+            "pergamino": {
+                "frase_con_espacios": "Para restaurar el inventario, debemos recordar que los determinantes indican la _____ de los objetos. Si usamos una cantidad exacta usamos un determinante _____, pero si es una estimación utilizamos un determinante _____. Además, siempre deben coincidir en _____ y número con el sustantivo.",
+                "palabras_secretas": [
+                    "cantidad",
+                    "numeral",
+                    "indefinido",
+                    "género"
+                ]
+            },
+            "lienzo": "Dibuja dos grandes frascos de cristal. En el primer frasco, dibuja EXACTAMENTE 4 ojos de sapo (cantidad precisa) y colorea el borde del frasco de AZUL. En el segundo frasco, dibuja ALGUNAS plumas de fénix (cantidad imprecisa) y colorea su borde de NARANJA."
+        },
+        "adaptaciones_por_mision": [
+            {
+                "Mision": "Lienzo",
+                "Diagnostico": "TEA",
+                "Ajuste": "Proporcionar los frascos ya dibujados en una plantilla visual. Entregar instrucciones literales y ejemplos concretos ('dibuja 4 círculos verdes' para el numeral; 'dibuja un montón de líneas' para el indefinido)."
+            },
+            {
+                "Mision": "Sopa y Oráculo",
+                "Diagnostico": "TDAH",
+                "Ajuste": "Convertir el Oráculo en un juego motriz: levantar una tarjeta azul para la opción A (numeral) y amarilla/naranja para la opción B (indefinido). Para la sopa de letras, asignar el rol de 'Cronometrador' para que busque las palabras en intervalos de 2 minutos."
+            },
+            {
+                "Mision": "Pergamino y Puente",
+                "Diagnostico": "Dislexia",
+                "Ajuste": "Presentar el texto del Pergamino en fuente grande (ej. OpenDyslexic o Arial 14) y resaltar visualmente los espacios. Proveer las palabras secretas impresas en tarjetas codificadas por color (azul y naranja) para que pueda manipularlas y colocarlas físicamente en los huecos sin necesidad de escribirlas."
+            },
+            {
+                "Mision": "Todas (Reto Maestro)",
+                "Diagnostico": "Alta Capacidad",
+                "Ajuste": "Añadir un desafío extra: 'El Enigma del Alquimista'. Debe inventar un problema lógico-matemático original que contenga exactamente 3 determinantes numerales y 2 indefinidos, cuidando la concordancia, para desafiar al profesor al final de la clase."
+            }
+        ]
+    }
+}

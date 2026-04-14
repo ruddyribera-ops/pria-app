@@ -1,0 +1,84 @@
+Test 11 - 23/03/2026 - 12:53PM
+
+I RAN A TEST ONE MORE TIME. THIS TIME USING A SINGLE API KEY FOR GEMINI PRO 3.1.
+
+EVERYTHING IS WORKING FANTASTICALLY EXCEPT FOR THE GENERATE A PROJECT TAB. 
+
+THIS IS THE OUTPUT OF THE TEST 
+
+📘 Unidad 3: ¡A la aventura!
+📑 Desarrollo de Temas
+📍 Lectura: Voy a Bristol
+🔑 Conceptos Clave:
+
+Comprensión lectora y extracción de información
+Vocabulario contextual sobre viajes y marinería
+Identificación de escenario y personajes
+🧠 Inteligencias Múltiples:
+
+Lingüística-verbal
+Visual-espacial
+📍 Literatura: La narración de aventuras
+🔑 Conceptos Clave:
+
+Estructura narrativa (planteamiento, nudo, desenlace)
+Características del género de aventuras
+El papel del héroe y los obstáculos
+🧠 Inteligencias Múltiples:
+
+Lingüística-verbal
+Intrapersonal
+📍 Expresión oral: La entrevista
+🔑 Conceptos Clave:
+
+Formulación de preguntas abiertas y cerradas
+Escucha activa y turnos de palabra
+Lenguaje no verbal y tono de voz
+🧠 Inteligencias Múltiples:
+
+Interpersonal
+Lingüística-verbal
+📍 Estudio de la lengua: Los prefijos y los sufijos
+🔑 Conceptos Clave:
+
+Raíz o lexema de las palabras
+Morfemas derivativos (prefijos y sufijos)
+Formación de nuevas palabras y cambio de significado
+🧠 Inteligencias Múltiples:
+
+Lógico-matemática
+Visual-espacial
+📍 Gramática: Los grados del adjetivo
+🔑 Conceptos Clave:
+
+El adjetivo calificativo y la concordancia
+Grado positivo y comparativo (igualdad, inferioridad, superioridad)
+Grado superlativo (absoluto y relativo)
+🧠 Inteligencias Múltiples:
+
+Lógico-matemática
+Corporal-cinestésica
+📍 Ortografía: La tilde en los diptongos y los triptongos
+🔑 Conceptos Clave:
+
+Diferenciación entre vocales abiertas y cerradas
+Identificación de diptongos y triptongos en la separación silábica
+Aplicación de las reglas generales de acentuación
+🧠 Inteligencias Múltiples:
+
+Musical-rítmica
+Lógico-matemática
+📍 Expresión escrita: La redacción de una biografía
+🔑 Conceptos Clave:
+
+Organización cronológica de eventos
+Uso de verbos en pasado (pretérito)
+Selección de datos biográficos relevantes
+🧠 Inteligencias Múltiples:
+
+Lingüística-verbal
+Interpersonal
+👨‍🏫 Estrategia DUA (Notas del Docente)
+Estrategias DUA: Para TEA (1), proporcionar anticipación visual de los pasos para escribir la biografía y guiones estructurados para la entrevista; usar lenguaje literal. Para TDAH (2), fraccionar tareas largas (como la lectura y redacción), permitir pausas activas e integrar dinámicas de movimiento (ej. identificar grados del adjetivo físicamente). Para Dislexia (1), utilizar tipografía sin serifa (ej. Arial, OpenDyslexic), ofrecer la lectura de 'Voy a Bristol' en formato audio y usar códigos de colores para separar silábicamente diptongos/triptongos y destacar prefijos/sufijos. Para Alta Capacidad (1), facilitar proyectos de extensión, como investigar y redactar la biografía de un explorador complejo, o liderar el diseño de preguntas profundas en la actividad de la entrevista.
+
+
