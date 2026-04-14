@@ -13,7 +13,15 @@ Renders the daily dashboard with:
 import streamlit as st
 from datetime import datetime as _dt
 import pytz
+import unicodedata
 from datetime import timedelta as _td
+
+
+def _strip_accents(s: str) -> str:
+    """Remove accents for matching (MIÉRCOLES → MIERCOLES)."""
+    return "".join(
+        c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn"
+    )
 
 
 def render_daily_view(
@@ -230,8 +238,10 @@ def render_daily_view(
             _label = f"{(_b.get('materia') or '').title()}{_nivel}"
         elif _tipo == "vigilancia_recreo":
             _zona = None
+            _recreo_nivel = None  # "Primaria" or "Secundaria"
             _nh_upp = _nombre_hoja.upper()
             _dia_actual = _DIAS_HOY.get(_dow, "")
+            _dia_actual_norm = _strip_accents(_dia_actual.upper())
 
             # Determine which recreo this block belongs to
             # RECREO 1 = morning (before 11:00), RECREO 2 = afternoon (after 11:00)
@@ -239,21 +249,21 @@ def render_daily_view(
             _recreo_num = "1" if _hora_num < 11.0 else "2"
 
             for k_name, v_zona in _vigilancias.items():
-                if k_name in _nh_upp or _nh_upp in k_name:
+                if k_name == _nh_upp or k_name in _nh_upp or _nh_upp in k_name:
                     zonas = v_zona.split(", ")
                     for zona_item in zonas:
-                        zona_upper = zona_item.upper()
+                        zona_norm = _strip_accents(zona_item.upper())
                         # Match: current day AND correct recreo number
                         if (
-                            _dia_actual.upper() in zona_upper
-                            and f"RECREO {_recreo_num}" in zona_upper
+                            _dia_actual_norm in zona_norm
+                            and f"RECREO {_recreo_num}" in zona_norm
                         ):
                             _zona = zona_item.strip()
                             break
                     # If no specific recreo match, try just the day
                     if not _zona:
                         for zona_item in zonas:
-                            if _dia_actual.upper() in zona_item.upper():
+                            if _dia_actual_norm in _strip_accents(zona_item.upper()):
                                 _zona = zona_item.strip()
                                 break
                     if not _zona:
@@ -263,7 +273,37 @@ def render_daily_view(
             if not _zona:
                 _zona = _b.get("ubicacion") or "Sin ubicación asignada"
 
-            _label = f"Guardia de Recreo · 📍 {_zona}"
+            # Parse the zona string to extract level and location
+            # Format: "PRIMARIA RECREO 1 MARTES PATIO CENTRAL"
+            # or: "SECUNDARIA RECREO 2 MIÉRCOLES KIOSCO"
+            _zona_upper = _zona.upper()
+            if "PRIMARIA" in _zona_upper:
+                _recreo_nivel = "Primaria"
+            elif "SECUNDARIA" in _zona_upper:
+                _recreo_nivel = "Secundaria"
+
+            # Extract just the location (everything after the day name)
+            _location = _zona
+            for _day_name in [
+                "LUNES",
+                "MARTES",
+                "MIÉRCOLES",
+                "MIERCOLES",
+                "JUEVES",
+                "VIERNES",
+            ]:
+                if _day_name in _zona_upper:
+                    _day_pos = _zona_upper.index(_day_name)
+                    _location = _zona[_day_pos + len(_day_name) :].strip()
+                    break
+
+            # Build clean label
+            _nivel_tag = (
+                f"{_recreo_nivel} R{_recreo_num}"
+                if _recreo_nivel
+                else f"R{_recreo_num}"
+            )
+            _label = f"📍 {_location} — {_nivel_tag}"
         else:
             _label = {
                 "ingreso": "Horario de Ingreso",
