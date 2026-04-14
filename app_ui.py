@@ -8,7 +8,8 @@ import tempfile
 import uuid
 import io
 import openpyxl
-from datetime import datetime as _dt
+from datetime import datetime as _dt, timedelta as _td
+import pytz
 from google import genai
 
 # PRIA Core Modules
@@ -1975,6 +1976,58 @@ st.markdown("---")
 # ZONA DIARIA — Dashboard del Día
 # ═════════════════════════════════════════════════════════════════════════════
 if zona == "🌅  Diario":
+    # ── Compute date variables for daily view ──────────────────────────────
+    _DIAS_HOY = {0: "lunes", 1: "martes", 2: "miercoles", 3: "jueves", 4: "viernes"}
+    _DIAS_LABEL = {
+        "lunes": "Lunes",
+        "martes": "Martes",
+        "miercoles": "Miércoles",
+        "jueves": "Jueves",
+        "viernes": "Viernes",
+    }
+    _MESES_LABEL = {
+        1: "enero",
+        2: "febrero",
+        3: "marzo",
+        4: "abril",
+        5: "mayo",
+        6: "junio",
+        7: "julio",
+        8: "agosto",
+        9: "septiembre",
+        10: "octubre",
+        11: "noviembre",
+        12: "diciembre",
+    }
+    bolivia_tz = pytz.timezone("America/La_Paz")
+    _hoy_local = _dt.now(bolivia_tz)
+    _hora_actual = _hoy_local.hour + _hoy_local.minute / 60.0
+    _is_primary = (
+        "primaria" in str(ss.get("nivel_grado", "")).lower()
+        or "primaria" in str(ss.get("nivel", "")).lower()
+    )
+    if (_is_primary and _hora_actual >= 13.0) or (
+        not _is_primary and _hora_actual >= 13.66
+    ):
+        _hoy_local += _td(days=1)
+        if _hoy_local.weekday() >= 5:
+            _hoy_local += _td(days=(7 - _hoy_local.weekday()))
+
+    _hoy = _hoy_local
+    _dow = _hoy.weekday()  # 0=lun … 6=dom
+    _fecha_iso = _hoy.strftime("%Y-%m-%d")
+    _nombre_hoja = ss.get("usuario_hoja", "")
+    _SCHOOL_START = _dt(2026, 2, 2).date()
+    _school_delta = max(0, (_hoy.date() - _SCHOOL_START).days)
+    _school_week = _school_delta // 7 + 1
+    _dia_escolar = min(66, _school_delta * 5 // 7 + 1)
+    if _dow < 5:
+        _dia_es = _DIAS_HOY[_dow]
+        _dia_label = f"{_DIAS_LABEL[_dia_es]}, {_hoy.day} de {_MESES_LABEL[_hoy.month]}"
+    else:
+        _dia_es = "lunes"
+        _dia_label = f"Fin de semana · {_hoy.day} de {_MESES_LABEL[_hoy.month]}"
+
     # ── Render Daily View (extracted to views/daily_view.py) ───────────────
     render_daily_view(
         ss=ss,
