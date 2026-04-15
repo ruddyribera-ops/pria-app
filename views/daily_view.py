@@ -221,6 +221,12 @@ def render_daily_view(
         _color = _BLOQUE_COLOR.get(_tipo, "#333")
         _icono = _BLOQUE_ICONO.get(_tipo, "📌")
         _bkey = f"{_b['dia_semana']}|{_hora_ini}|{_tipo}"
+        # Unique disambiguator for display elements — includes ubicacion to handle
+        # teachers with two blocks at the same time (e.g. SEC + PRIM columns)
+        _bdisambig = (
+            _b.get("ubicacion") or _b.get("materia") or _b.get("nivel_grado") or ""
+        )
+        _bkey_disp = f"{_bkey}|{_bdisambig}"
         _log = _logs_dia.get(_bkey, {})
         _done = bool(_log.get("completado", 0))
         _cerrado = bool(_log.get("cerrado", 0))
@@ -335,7 +341,7 @@ def render_daily_view(
                 # Only allow reopen on own schedule
                 if _is_own_schedule and st.button(
                     "Reabrir",
-                    key=f"reab_{_fecha_iso}_{_bkey.replace('|', '_')}",
+                    key=f"reab_{_fecha_iso}_{_bkey_disp.replace('|', '_')}",
                     use_container_width=True,
                 ):
                     reabrir_bloque(_fecha_iso, _nombre_hoja, _b)
@@ -375,7 +381,7 @@ def render_daily_view(
                     _new_done = st.checkbox(
                         "Completado" if _done else "Marcar como hecho",
                         value=_done,
-                        key=f"chk_{_fecha_iso}_{_bkey.replace('|', '_')}",
+                        key=f"chk_{_fecha_iso}_{_bkey_disp.replace('|', '_')}",
                     )
                     if _new_done != _done:
                         marcar_bloque_diario(_fecha_iso, _nombre_hoja, _b, _new_done)
@@ -384,7 +390,7 @@ def render_daily_view(
                     # Close button (only on own schedule)
                     if _tipo == "clase" and st.button(
                         "🔒 Cerrar bloque",
-                        key=f"cls_{_fecha_iso}_{_bkey.replace('|', '_')}",
+                        key=f"cls_{_fecha_iso}_{_bkey_disp.replace('|', '_')}",
                     ):
                         cerrar_bloque(_fecha_iso, _nombre_hoja, _b)
                         st.rerun()
