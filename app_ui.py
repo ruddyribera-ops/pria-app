@@ -13,7 +13,7 @@ import pytz
 from google import genai
 
 # PRIA Core Modules
-from PRIA import (
+from pria import (
     config,
     C,
     error_handled,
@@ -22,9 +22,9 @@ from PRIA import (
     get_motor_stats,
     render_motor_dashboard,
 )
-from PRIA.config import config as app_config
-from PRIA.errors import handle_error, PRIAError
-from PRIA.auth import Role, get_current_user, is_admin, is_teacher, check_permission
+from pria.config import config as app_config
+from pria.errors import handle_error, PRIAError
+from pria.auth import Role, get_current_user, is_admin, is_teacher, check_permission
 
 from exportar import (
     render_panel_exportacion,
