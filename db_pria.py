@@ -733,24 +733,43 @@ def get_horario_dia(nombre_hoja: str, dia_semana: str) -> list[dict]:
             nivel = "primaria" if has_primaria else "secundaria"
             recesos = RECESO_TIMES[nivel]
 
-            for r_ini, r_fin in recesos:
-                # Skip if already a block at this time
-                ocupado = any(
-                    _time_overlaps(
-                        r.get("hora_inicio"), r.get("hora_fin"), r_ini, r_fin
-                    )
-                    for r in rows
-                )
-                if ocupado:
-                    continue
+            # Parse all comma-separated locations
+            all_locations = [loc.strip() for loc in vigilancia_ubicacion.split(",")]
 
-                # Parse multiple locations (comma-separated)
-                locations = [loc.strip() for loc in vigilancia_ubicacion.split(",")]
-                for loc in locations:
-                    # ANGÉLICA special case: PARQUE → Primaria R1
-                    if _nh == "ANGÉLICA" and "PARQUE" in loc.upper():
-                        loc = "Patio Central"
-                    # Format: "recreo - [location]"
+            # Determine which locations match the current day
+            matched_locs = []
+            for loc in all_locations:
+                loc_up = _strip_accents(loc.upper())
+                # Skip SIN ASIGNAR entries
+                if "SIN ASIGNAR" in loc_up:
+                    continue
+                # ANGÉLICA special case: "PARQUE" → Primaria R1 only
+                if _nh == "ANGÉLICA" and "PARQUE" in loc.upper():
+                    loc = "Patio Central"
+                    matched_locs.append((loc, "1"))  # (location, recreo_num)
+                    continue
+                # Extract recreo number from location string (e.g., "PRIMARIA RECREO 1 LUNES ...")
+                recreo_num = None
+                for part in loc_up.split():
+                    if part.isdigit() and int(part) in (1, 2):
+                        recreo_num = part
+                        break
+                # Check if day matches
+                if norm_dia in loc_up:
+                    matched_locs.append((loc, recreo_num))
+
+            for r_ini, r_fin in recesos:
+                # Determine recreo number for this slot (R1 < 11:00, R2 >= 11:00)
+                recreo_num_slot = "1" if float(r_ini.replace(":", ".")) < 11.0 else "2"
+                # Find locations for this slot
+                slot_locs = [
+                    loc
+                    for loc, rn in matched_locs
+                    if rn is None or rn == recreo_num_slot
+                ]
+                if not slot_locs:
+                    continue
+                for loc in slot_locs:
                     rows.append(
                         {
                             "id": None,
