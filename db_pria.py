@@ -754,8 +754,8 @@ def get_horario_dia(nombre_hoja: str, dia_semana: str) -> list[dict]:
                     if part.isdigit() and int(part) in (1, 2):
                         recreo_num = part
                         break
-                # Check if day matches
-                if norm_dia in loc_up:
+                # Check if day matches (norm_dia is lowercase, loc_up is uppercase)
+                if norm_dia.upper() in loc_up:
                     matched_locs.append((loc, recreo_num))
 
             for r_ini, r_fin in recesos:
