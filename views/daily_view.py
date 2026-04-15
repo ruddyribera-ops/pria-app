@@ -221,12 +221,28 @@ def render_daily_view(
         _color = _BLOQUE_COLOR.get(_tipo, "#333")
         _icono = _BLOQUE_ICONO.get(_tipo, "📌")
         _bkey = f"{_b['dia_semana']}|{_hora_ini}|{_tipo}"
-        # Unique disambiguator for display elements — includes ubicacion to handle
-        # teachers with two blocks at the same time (e.g. SEC + PRIM columns)
-        _bdisambig = (
-            _b.get("ubicacion") or _b.get("materia") or _b.get("nivel_grado") or ""
-        )
-        _bkey_disp = f"{_bkey}|{_bdisambig}"
+        # Unique disambiguator for display elements.
+        # Prefer the DB row id when available — it is the only truly reliable
+        # way to tell apart two blocks that share the same time/materia/ubicacion.
+        # For in-memory blocks (e.g. injected vigilancias where id is None) fall
+        # back to a hash of the distinguishing fields.
+        _block_id = _b.get("id")
+        if _block_id is not None:
+            _bkey_disp = f"{_bkey}|id:{_block_id}"
+        else:
+            import hashlib
+
+            _sig = "|".join(
+                str(_b.get(f) or "")
+                for f in (
+                    "ubicacion",
+                    "materia",
+                    "nivel_grado",
+                    "seccion",
+                    "valor_original",
+                )
+            )
+            _bkey_disp = f"{_bkey}|{hashlib.md5(_sig.encode()).hexdigest()[:8]}"
         _log = _logs_dia.get(_bkey, {})
         _done = bool(_log.get("completado", 0))
         _cerrado = bool(_log.get("cerrado", 0))
