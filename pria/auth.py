@@ -2,6 +2,7 @@
 
 from pria_docs.auth import (
     Role,
+    ROLE_HIERARCHY,
     get_current_user,
     is_admin,
     is_teacher,

@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pria.config import AppConfig, Constants
+from pria_docs.config import AppConfig, Constants
 
 
 class TestAppConfig:

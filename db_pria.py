@@ -6,9 +6,21 @@ Auto-detects backend:
   - No DATABASE_URL              → SQLite     (local dev, unchanged)
 """
 
-import os, re, json, hashlib, sqlite3, secrets
+import os, re, json, hashlib, sqlite3, secrets, bcrypt
 from datetime import datetime, date, timedelta, timezone
 from contextlib import contextmanager
+
+try:
+    import sentry_sdk as _sentry
+    _SENTRY_AVAILABLE = True
+except ImportError:
+    _SENTRY_AVAILABLE = False
+
+
+def _capture_exception(exc: Exception) -> None:
+    """Send exception to Sentry if configured, otherwise silently ignore."""
+    if _SENTRY_AVAILABLE and os.environ.get("SENTRY_DSN"):
+        _sentry.capture_exception(exc)
 
 # ── Backend detection ─────────────────────────────────────────────────────────
 _PG_URL = os.environ.get("DATABASE_URL", "")
@@ -95,8 +107,9 @@ def _conn():
         try:
             yield _PGAdapter(con)
             con.commit()
-        except Exception:
+        except Exception as exc:
             con.rollback()
+            _capture_exception(exc)
             raise
         finally:
             con.close()
@@ -107,8 +120,9 @@ def _conn():
         try:
             yield con
             con.commit()
-        except Exception:
+        except Exception as exc:
             con.rollback()
+            _capture_exception(exc)
             raise
         finally:
             con.close()
@@ -468,10 +482,32 @@ def minutos_para_fin_clase(hora_fin_str: str) -> int | None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # USUARIOS / AUTH
 # ═══════════════════════════════════════════════════════════════════════════════
+# Password hashing uses bcrypt (work factor 12).
+# Legacy SHA256 hashes are auto-migrated to bcrypt on first successful login.
+# Auth roles are consolidated in pria_docs.auth (Role enum).
+
+from pria_docs.auth import Role
+
+_BCRYPT_ROUNDS = 12
 
 
 def _hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Hash a plaintext password with bcrypt. Returns a UTF-8 string."""
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=_BCRYPT_ROUNDS)).decode()
+
+
+def _verify_password(password: str, stored_hash: str) -> bool:
+    """Check password against stored hash. Supports both bcrypt and legacy SHA256."""
+    if stored_hash.startswith("$2b$") or stored_hash.startswith("$2a$"):
+        # bcrypt hash
+        return bcrypt.checkpw(password.encode(), stored_hash.encode())
+    else:
+        # Legacy SHA256 — accept and trigger migration
+        return stored_hash == hashlib.sha256(password.encode()).hexdigest()
+
+
+def _is_legacy_hash(stored_hash: str) -> bool:
+    return not (stored_hash.startswith("$2b$") or stored_hash.startswith("$2a$"))
 
 
 def _hash_token(token: str) -> str:
@@ -511,9 +547,23 @@ def verificar_login(email: str, password: str) -> dict | None:
             "SELECT * FROM usuarios WHERE email=? AND activo=1", (_em,)
         ).fetchone()
 
-    if row and row["password_hash"] == _hash_password(password):
-        return dict(row)
-    return None
+    if not row:
+        return None
+
+    stored_hash = row["password_hash"]
+    if not _verify_password(password, stored_hash):
+        return None
+
+    # Auto-migrate legacy SHA256 hash to bcrypt on successful login
+    if _is_legacy_hash(stored_hash):
+        new_hash = _hash_password(password)
+        with _conn() as con:
+            con.execute(
+                "UPDATE usuarios SET password_hash=? WHERE id=?",
+                (new_hash, row["id"]),
+            )
+
+    return dict(row)
 
 
 def crear_token_recordarme(usuario_id: int, dias: int = 30) -> str:

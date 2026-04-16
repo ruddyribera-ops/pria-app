@@ -89,3 +89,47 @@ class Constants:
     # UI
     SIDEBAR_WIDTH = 300
     THEME = "dark"
+
+    # School calendar
+    SCHOOL_START_YEAR = 2026
+    SCHOOL_START_MONTH = 2
+    SCHOOL_START_DAY = 2
+    SCHOOL_DAYS_YEAR = 66  # approximately 33 weeks * 5 days / 2
+
+    # School hours
+    NIVEL_PRIMARIA_RECESSOS = [("10:10", "10:30"), ("12:00", "12:15")]
+    NIVEL_SECUNDARIA_RECESSOS = [("09:25", "10:10"), ("11:15", "12:00")]
+
+    # Block types
+    BLOQUE_TYPES = {
+        "ingreso": "Horario de Ingreso",
+        "clase": "Clase",
+        "vigilancia_recreo": "Vigilancia Recreo",
+        "atencion_ppff": "Atención a PPFF",
+        "planificacion": "Planificación / API",
+        "recreo_libre": "Recreo Libre",
+    }
+
+    # Days
+    DAYS_ES = ["lunes", "martes", "miercoles", "jueves", "viernes"]
+    DAYS_LABEL = {
+        "lunes": "Lunes",
+        "martes": "Martes",
+        "miercoles": "Miércoles",
+        "jueves": "Jueves",
+        "viernes": "Viernes",
+    }
+    MESES_LABEL = {
+        1: "enero",
+        2: "febrero",
+        3: "marzo",
+        4: "abril",
+        5: "mayo",
+        6: "junio",
+        7: "julio",
+        8: "agosto",
+        9: "septiembre",
+        10: "octubre",
+        11: "noviembre",
+        12: "diciembre",
+    }
