@@ -19,13 +19,22 @@ def db(tmp_path, monkeypatch):
     Each test gets a fresh, empty database so tests are fully independent.
     The module-level _DB_PATH and _USE_PG are patched to avoid touching
     the real database or any DATABASE_URL env var.
+
+    Note: patching must target db._base (the actual source of truth), not
+    db_pria (which is a re-export wrapper). The db._base module must be
+    patched BEFORE importing db_pria, or the real DB will be initialized
+    before the patch takes effect.
     """
-    import db_pria
+    # Ensure db._base is imported first so we can patch it
+    import db._base
 
     test_db = str(tmp_path / "test_pria.db")
-    monkeypatch.setattr(db_pria, "_DB_PATH", test_db)
-    monkeypatch.setattr(db_pria, "_USE_PG", False)
+    monkeypatch.setattr(db._base, "_DB_PATH", test_db)
+    monkeypatch.setattr(db._base, "_USE_PG", False)
     monkeypatch.delenv("DATABASE_URL", raising=False)
+
+    # Now import db_pria — it will use the patched values from db._base
+    import db_pria
 
     db_pria.init_db()
     return db_pria

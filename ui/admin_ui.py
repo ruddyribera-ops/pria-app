@@ -28,7 +28,7 @@ from parser_archivos import (
     parse_cronograma,
     parse_comisiones,
 )
-from db_pria import (
+from db import (
     guardar_horario_docente,
     guardar_eventos_calendario,
     guardar_actividades_cronograma,

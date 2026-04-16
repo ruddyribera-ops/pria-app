@@ -43,7 +43,7 @@ from pria_docs.auth import (
 )
 
 # Database functions
-from db_pria import (
+from db import (
     init_db,
     crear_sesion,
     get_sesiones,

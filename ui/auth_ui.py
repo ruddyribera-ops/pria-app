@@ -29,7 +29,7 @@ def render_login():
         pwd = st.text_input("Contraseña:", type="password", key="login_pwd")
 
         # Import here to avoid circular imports
-        from db_pria import verificar_login
+        from db import verificar_login
         from ui.helpers import _log_event
 
         if st.button(

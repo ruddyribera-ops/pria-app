@@ -9,7 +9,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from db_pria import _conn, _USE_PG, _DB_PATH
+from db import _conn, _USE_PG, _DB_PATH
 
 
 def column_exists(table, col):

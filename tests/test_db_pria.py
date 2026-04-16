@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import db_pria as db
+import db as db
 
 
 class TestBcryptHashing:
