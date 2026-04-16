@@ -17,6 +17,7 @@ def render_daily_zone(
     get_actividades_fecha,
     get_logs_dia,
     get_vigilancias,
+    get_all_hojas,
     marcar_bloque_diario,
     cerrar_bloque,
     reabrir_bloque,

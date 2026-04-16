@@ -23,12 +23,12 @@ _SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
 if _SENTRY_DSN:
     sentry_sdk.init(
         dsn=_SENTRY_DSN,
-        traces_sample_rate=0.1,          # 10% of transactions for perf monitoring
-        profiles_sample_rate=0.0,        # disable profiling (reduces overhead)
+        traces_sample_rate=0.1,  # 10% of transactions for perf monitoring
+        profiles_sample_rate=0.0,  # disable profiling (reduces overhead)
         environment=os.environ.get("RAILWAY_ENVIRONMENT", "development"),
         release=f"pria@5.4",
         integrations=[LoggingIntegration(level=None, event_level="ERROR")],
-        send_default_pii=False,          # don't send user email/passwords to Sentry
+        send_default_pii=False,  # don't send user email/passwords to Sentry
     )
 
 # PRIA Core - import directly from pria_docs (not through pria/ wrapper)
@@ -182,6 +182,7 @@ if zona == "🌅  Diario":
         get_actividades_fecha=get_actividades_fecha,
         get_logs_dia=get_logs_dia,
         get_vigilancias=get_vigilancias,
+        get_all_hojas=get_all_hojas,
         marcar_bloque_diario=marcar_bloque_diario,
         cerrar_bloque=cerrar_bloque,
         reabrir_bloque=reabrir_bloque,

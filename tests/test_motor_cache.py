@@ -28,7 +28,9 @@ import hashlib as _hashlib
 def _motor_cache_key_pure(prompt_filename: str, variables: dict) -> str:
     """Mirror of helpers._motor_cache_key for testing without Streamlit."""
     payload = json.dumps(
-        {"motor": prompt_filename, "vars": variables}, sort_keys=True, ensure_ascii=False
+        {"motor": prompt_filename, "vars": variables},
+        sort_keys=True,
+        ensure_ascii=False,
     )
     return "motor_" + _hashlib.sha256(payload.encode()).hexdigest()
 
@@ -38,8 +40,12 @@ def _motor_cache_key_pure(prompt_filename: str, variables: dict) -> str:
 
 class TestMotorCacheKey:
     def test_same_inputs_produce_same_key(self):
-        k1 = _motor_cache_key_pure("Motor_M1a.txt", {"tema": "Los determinantes", "grado": "5to"})
-        k2 = _motor_cache_key_pure("Motor_M1a.txt", {"grado": "5to", "tema": "Los determinantes"})
+        k1 = _motor_cache_key_pure(
+            "Motor_M1a.txt", {"tema": "Los determinantes", "grado": "5to"}
+        )
+        k2 = _motor_cache_key_pure(
+            "Motor_M1a.txt", {"grado": "5to", "tema": "Los determinantes"}
+        )
         assert k1 == k2, "Key must be order-independent (sorted keys)"
 
     def test_different_motor_different_key(self):
@@ -69,31 +75,35 @@ def _h():
 
 class TestMotorCacheReadWrite:
     def test_cache_miss_returns_none(self, tmp_path, monkeypatch):
-        h = _h()
-        monkeypatch.setattr(h, "CACHE_DIR", str(tmp_path))
-        result = h._cargar_motor_cache("motor_nonexistent")
+        import ui.cache as _cache_mod
+
+        monkeypatch.setattr(_cache_mod, "CACHE_DIR", tmp_path)
+        result = _cache_mod._cargar_motor_cache("motor_nonexistent")
         assert result is None
 
     def test_cache_roundtrip_dict(self, tmp_path, monkeypatch):
-        h = _h()
-        monkeypatch.setattr(h, "CACHE_DIR", str(tmp_path))
+        import ui.cache as _cache_mod
+
+        monkeypatch.setattr(_cache_mod, "CACHE_DIR", tmp_path)
         data = {"plan": "some plan", "objetivos": [1, 2, 3]}
-        h._guardar_motor_cache("motor_abc123", data, "Motor_M1a.txt")
-        loaded = h._cargar_motor_cache("motor_abc123")
+        _cache_mod._guardar_motor_cache("motor_abc123", data, "Motor_M1a.txt")
+        loaded = _cache_mod._cargar_motor_cache("motor_abc123")
         assert loaded == data
 
     def test_cache_roundtrip_string(self, tmp_path, monkeypatch):
-        h = _h()
-        monkeypatch.setattr(h, "CACHE_DIR", str(tmp_path))
+        import ui.cache as _cache_mod
+
+        monkeypatch.setattr(_cache_mod, "CACHE_DIR", tmp_path)
         text = "Este es el plan de clase generado por PRIA."
-        h._guardar_motor_cache("motor_xyz", text, "Motor_PDC.txt")
-        loaded = h._cargar_motor_cache("motor_xyz")
+        _cache_mod._guardar_motor_cache("motor_xyz", text, "Motor_PDC.txt")
+        loaded = _cache_mod._cargar_motor_cache("motor_xyz")
         assert loaded == text
 
     def test_cache_file_has_motor_prefix(self, tmp_path, monkeypatch):
-        h = _h()
-        monkeypatch.setattr(h, "CACHE_DIR", str(tmp_path))
-        h._guardar_motor_cache("motor_test123", {"k": "v"}, "Motor_M2a.txt")
+        import ui.cache as _cache_mod
+
+        monkeypatch.setattr(_cache_mod, "CACHE_DIR", tmp_path)
+        _cache_mod._guardar_motor_cache("motor_test123", {"k": "v"}, "Motor_M2a.txt")
         files = list(tmp_path.glob("motor_*.json"))
         assert len(files) == 1
         assert files[0].name == "motor_test123.json"
@@ -101,39 +111,47 @@ class TestMotorCacheReadWrite:
 
 class TestMotorCacheTTL:
     def test_expired_cache_returns_none(self, tmp_path, monkeypatch):
-        h = _h()
-        monkeypatch.setattr(h, "CACHE_DIR", str(tmp_path))
-        monkeypatch.setattr(h, "_MOTOR_CACHE_TTL", 0)  # instant expiry
+        import ui.cache as _cache_mod
 
-        h._guardar_motor_cache("motor_expired", {"data": "old"}, "Motor_M1a.txt")
+        monkeypatch.setattr(_cache_mod, "CACHE_DIR", tmp_path)
+        monkeypatch.setattr(_cache_mod, "_MOTOR_CACHE_TTL", 0)  # instant expiry
+
+        _cache_mod._guardar_motor_cache(
+            "motor_expired", {"data": "old"}, "Motor_M1a.txt"
+        )
         time.sleep(0.01)  # ensure mtime < now - TTL=0
-        result = h._cargar_motor_cache("motor_expired")
+        result = _cache_mod._cargar_motor_cache("motor_expired")
         assert result is None
 
     def test_expired_file_is_deleted(self, tmp_path, monkeypatch):
-        h = _h()
-        monkeypatch.setattr(h, "CACHE_DIR", str(tmp_path))
-        monkeypatch.setattr(h, "_MOTOR_CACHE_TTL", 0)
+        import ui.cache as _cache_mod
 
-        h._guardar_motor_cache("motor_old", {"x": 1}, "Motor_M1a.txt")
+        monkeypatch.setattr(_cache_mod, "CACHE_DIR", tmp_path)
+        monkeypatch.setattr(_cache_mod, "_MOTOR_CACHE_TTL", 0)
+
+        _cache_mod._guardar_motor_cache("motor_old", {"x": 1}, "Motor_M1a.txt")
         time.sleep(0.01)
-        h._cargar_motor_cache("motor_old")
+        _cache_mod._cargar_motor_cache("motor_old")
         assert not (tmp_path / "motor_old.json").exists()
 
     def test_fresh_cache_is_returned(self, tmp_path, monkeypatch):
-        h = _h()
-        monkeypatch.setattr(h, "CACHE_DIR", str(tmp_path))
-        monkeypatch.setattr(h, "_MOTOR_CACHE_TTL", 86400)  # 1 day
+        import ui.cache as _cache_mod
 
-        h._guardar_motor_cache("motor_fresh", {"data": "current"}, "Motor_M1a.txt")
-        result = h._cargar_motor_cache("motor_fresh")
+        monkeypatch.setattr(_cache_mod, "CACHE_DIR", tmp_path)
+        monkeypatch.setattr(_cache_mod, "_MOTOR_CACHE_TTL", 86400)  # 1 day
+
+        _cache_mod._guardar_motor_cache(
+            "motor_fresh", {"data": "current"}, "Motor_M1a.txt"
+        )
+        result = _cache_mod._cargar_motor_cache("motor_fresh")
         assert result == {"data": "current"}
 
 
 class TestLimpiarMotorCache:
     def test_clears_only_motor_files(self, tmp_path, monkeypatch):
-        h = _h()
-        monkeypatch.setattr(h, "CACHE_DIR", str(tmp_path))
+        import ui.cache as _cache_mod
+
+        monkeypatch.setattr(_cache_mod, "CACHE_DIR", tmp_path)
 
         # Create motor cache files
         (tmp_path / "motor_aaa.json").write_text('{"r":1}')
@@ -141,7 +159,7 @@ class TestLimpiarMotorCache:
         # Create a PDF cache file (should NOT be deleted)
         (tmp_path / "diag_ccc.json").write_text('{"texto":"x"}')
 
-        h.limpiar_motor_cache()
+        _cache_mod.limpiar_motor_cache()
 
         remaining = [f.name for f in tmp_path.iterdir()]
         assert "motor_aaa.json" not in remaining
@@ -149,9 +167,10 @@ class TestLimpiarMotorCache:
         assert "diag_ccc.json" in remaining
 
     def test_clear_on_empty_cache_does_not_raise(self, tmp_path, monkeypatch):
-        h = _h()
-        monkeypatch.setattr(h, "CACHE_DIR", str(tmp_path))
-        h.limpiar_motor_cache()  # should not raise
+        import ui.cache as _cache_mod
+
+        monkeypatch.setattr(_cache_mod, "CACHE_DIR", tmp_path)
+        _cache_mod.limpiar_motor_cache()  # should not raise
 
 
 if __name__ == "__main__":

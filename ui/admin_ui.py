@@ -17,7 +17,7 @@ from ui.helpers import (
     GEMINI_MODEL,
     _get_keys,
     _rotate_key,
-    _log_event,
+    log_event,
     get_motor_stats,
     generar_pdc_trimestral,
     _leer_docx_texto,
