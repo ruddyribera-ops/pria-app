@@ -150,36 +150,6 @@ class TestTopicHash:
         assert all(c in "0123456789abcdef" for c in h)
 
 
-class TestHelpersConvenienceClass:
-    """The helpers object provides staticmethod access to helpers."""
-
-    def test_helpers_forzar_lista(self):
-        from ui.helpers import helpers
-
-        assert helpers.forzar_lista("a, b") == ["a", "b"]
-
-    def test_helpers_bytes_hash(self):
-        from ui.helpers import helpers
-
-        h = helpers.bytes_hash(b"test")
-        assert len(h) == 64
-
-    def test_helpers_topic_hash(self):
-        from ui.helpers import helpers
-
-        h = helpers.topic_hash("Tema")
-        assert h == helpers.topic_hash("tema")
-
-    def test_helpers_is_instance(self):
-        from ui.helpers import helpers
-        from ui.helpers import Helpers
-
-        # helpers is an instance of the Helpers class
-        assert isinstance(helpers, Helpers)
-        assert hasattr(helpers, "forzar_lista")
-        assert hasattr(helpers, "log_event")
-
-
 class TestGeminiModuleExports:
     """Verify ui.gemini exposes expected functions."""
 

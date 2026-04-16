@@ -7,7 +7,7 @@ Weekly tabs: Plan de Clase, Diapositivas, Ficha, Pop Quiz, Exportar.
 import streamlit as st
 from datetime import datetime as _dt
 
-from ui.helpers import generar_con_gemini, forzar_lista, helpers as h
+from ui.helpers import generar_con_gemini, forzar_lista, _topic_hash
 from exportar import (
     render_panel_exportacion,
     generar_html_plan_clase,
@@ -40,7 +40,7 @@ def render_weekly_zone(
             )
             tema_final = st.selectbox("📍 Tema:", tema_opts, key="sel_tema_m1")
 
-            tema_hash_nuevo = h.topic_hash(tema_final)
+            tema_hash_nuevo = _topic_hash(tema_final)
             if tema_hash_nuevo != ss.tema_hash:
                 ss.res_m1a_prev = ss.res_m1a
                 ss.res_m1a = None

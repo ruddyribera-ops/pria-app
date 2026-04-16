@@ -105,10 +105,25 @@ SESSION_DEFAULTS = {
 
 
 def init_session_state():
-    """Initialize session state with defaults if not present."""
-    for key, val in SESSION_DEFAULTS.items():
-        if key not in st.session_state:
-            st.session_state[key] = val
+    """Initialize session state with defaults if not present.
+
+    Uses SessionData Pydantic model fields to populate defaults.
+    """
+    from pria_docs.session_schema import SessionData
+
+    for field_name, field_info in SessionData.model_fields.items():
+        if field_name not in st.session_state:
+            # Get default value from Pydantic field
+            default = field_info.default
+            if default is not None:
+                st.session_state[field_name] = default
+            elif (
+                hasattr(field_info, "default_factory")
+                and field_info.default_factory is not None
+            ):
+                st.session_state[field_name] = field_info.default_factory()
+            else:
+                st.session_state[field_name] = None
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -174,19 +189,12 @@ from ui.cache import (
     _cargar_cache_hash,
     _guardar_cache_hash,
     get_session_temp_dir,
-    cleanup_old_sessions,
-    cleanup_old_cache,
     log_event,
     get_motor_stats,
     CACHE_DIR,
     LOG_DIR,
     _MOTOR_CACHE_TTL,
 )
-
-# Run cache cleanup on import
-cleanup_old_sessions()
-cleanup_old_cache()
-
 
 # ── Gemini (from ui.gemini) ──────────────────────────────────────────────────
 
@@ -292,23 +300,3 @@ def generar_pdc_trimestral(
         },
         expect_json=False,
     )
-
-
-# ── Convenience class ────────────────────────────────────────────────────────
-
-
-class Helpers:
-    """Convenience class grouping helper functions."""
-
-    forzar_lista = staticmethod(forzar_lista)
-    bytes_hash = staticmethod(_bytes_hash)
-    get_keys = staticmethod(_get_keys)
-    rotate_key = staticmethod(_rotate_key)
-    topic_hash = staticmethod(_topic_hash)
-    log_event = staticmethod(log_event)
-    session_temp_dir = staticmethod(get_session_temp_dir)
-    cargar_cache = staticmethod(_cargar_cache_hash)
-    guardar_cache = staticmethod(_guardar_cache_hash)
-
-
-helpers = Helpers()

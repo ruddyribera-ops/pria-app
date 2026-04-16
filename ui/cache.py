@@ -13,6 +13,7 @@ import time
 import uuid
 import tempfile
 from pathlib import Path
+from typing import Optional, Any
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -20,11 +21,11 @@ from pathlib import Path
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def _get_base_dir():
+def _get_base_dir() -> str:
     return os.path.dirname(os.path.abspath(__file__))
 
 
-def _secret(key: str, default=None):
+def _secret(key: str, default: Optional[str] = None) -> Optional[str]:
     """Get secret from Streamlit secrets or environment."""
     import os as _os
 
@@ -64,7 +65,7 @@ def _motor_cache_key(prompt_filename: str, variables: dict) -> str:
     return "motor_" + hashlib.sha256(payload.encode()).hexdigest()
 
 
-def _cargar_motor_cache(key: str):
+def _cargar_motor_cache(key: str) -> Optional[Any]:
     """Return cached motor result or None if missing/expired."""
     path = CACHE_DIR / f"{key}.json"
     if not path.exists():
@@ -80,7 +81,7 @@ def _cargar_motor_cache(key: str):
         return None
 
 
-def _guardar_motor_cache(key: str, result, motor: str):
+def _guardar_motor_cache(key: str, result: Any, motor: str) -> None:
     """Persist a motor result to disk cache."""
     path = CACHE_DIR / f"{key}.json"
     try:
@@ -95,7 +96,7 @@ def _guardar_motor_cache(key: str, result, motor: str):
         pass
 
 
-def limpiar_motor_cache():
+def limpiar_motor_cache() -> None:
     """Delete all motor_*.json cache files. Called from sidebar clear button."""
     try:
         for nombre in CACHE_DIR.iterdir():
@@ -114,7 +115,7 @@ def _bytes_hash(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def _cargar_cache_hash(h: str) -> dict | None:
+def _cargar_cache_hash(h: str) -> Optional[dict]:
     """Load generic cache entry by hash key."""
     path = CACHE_DIR / f"{h}.json"
     if not path.exists():
@@ -126,7 +127,7 @@ def _cargar_cache_hash(h: str) -> dict | None:
         return None
 
 
-def _guardar_cache_hash(h: str, data: dict):
+def _guardar_cache_hash(h: str, data: dict) -> None:
     """Save generic cache entry by hash key."""
     path = CACHE_DIR / f"{h}.json"
     try:
@@ -157,7 +158,7 @@ def get_session_temp_dir() -> str:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def cleanup_old_sessions(max_age_seconds: int = 86400):
+def cleanup_old_sessions(max_age_seconds: int = 86400) -> None:
     """Delete session directories older than max_age_seconds."""
     try:
         ahora = time.time()
@@ -168,7 +169,7 @@ def cleanup_old_sessions(max_age_seconds: int = 86400):
         pass
 
 
-def cleanup_old_cache(max_age_seconds: int = 86400 * 30):
+def cleanup_old_cache(max_age_seconds: int = 86400 * 30) -> None:
     """Delete cache files older than max_age_seconds (but not motor cache)."""
     try:
         ahora = time.time()
@@ -180,17 +181,12 @@ def cleanup_old_cache(max_age_seconds: int = 86400 * 30):
         pass
 
 
-# Run cleanup on import
-cleanup_old_sessions()
-cleanup_old_cache()
-
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGGING
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def log_event(action: str, success: bool, error_msg: str = ""):
+def log_event(action: str, success: bool, error_msg: str = "") -> None:
     """Write an event to the pilot log."""
     import datetime
     import streamlit as st

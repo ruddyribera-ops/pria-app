@@ -9,7 +9,7 @@
 # - weekly_ui.py : Weekly plan tabs (clase, diap, ficha, quiz, export)
 # - trimester_ui.py : Trimester plan tabs (unidad ABP, PDC)
 
-from ui.helpers import CSS, init_session_state, helpers
+from ui.helpers import CSS, init_session_state
 from ui.auth_ui import render_login
 from ui.sidebar import render_sidebar
 from ui.admin_ui import render_admin_panel
@@ -20,7 +20,6 @@ from ui.trimester_ui import render_trimester_zone
 __all__ = [
     "CSS",
     "init_session_state",
-    "helpers",
     "render_login",
     "render_sidebar",
     "render_admin_panel",

@@ -10,7 +10,6 @@ import os
 from ui.helpers import (
     CACHE_DIR,
     GEMINI_MODEL,
-    helpers as h,
     analizar_pdf_ocr,
     leer_diagnosticos,
     generar_con_gemini,

@@ -88,7 +88,8 @@ from db_pria import (
 )
 
 # UI Modules
-from ui.helpers import CSS, init_session_state, forzar_lista, helpers
+from ui.helpers import CSS, init_session_state, forzar_lista
+from ui.cache import cleanup_old_sessions, cleanup_old_cache
 from ui.auth_ui import render_login
 from ui.sidebar import render_sidebar
 from ui.admin_ui import render_admin_panel
@@ -124,6 +125,10 @@ st.markdown(CSS, unsafe_allow_html=True)
 # ═══════════════════════════════════════════════════════════════════════════════
 # INIT
 # ═══════════════════════════════════════════════════════════════════════════════
+# Run cache cleanup once at startup (not at import time)
+cleanup_old_sessions()
+cleanup_old_cache()
+
 init_db()
 init_session_state()
 

@@ -10,6 +10,7 @@ import json
 import hashlib
 import time
 from pathlib import Path
+from typing import Optional, Any
 
 import streamlit as st
 from google import genai
@@ -35,7 +36,7 @@ PROMPTS_DIR = os.path.join(BASE_DIR, "prompts_maestros")
 GEMINI_MODEL = "gemini-2.5-flash"
 
 
-def _secret(key: str, default=None):
+def _secret(key: str, default: Optional[str] = None) -> Optional[str]:
     try:
         v = st.secrets.get(key, None)
         if v is not None:
@@ -70,7 +71,7 @@ def _get_keys() -> list:
     return [raw_s] if raw_s and raw_s != "[]" else []
 
 
-def _rotate_key():
+def _rotate_key() -> None:
     keys = _get_keys()
     if keys:
         st.session_state.key_index = (st.session_state.key_index + 1) % len(keys)
@@ -262,7 +263,7 @@ Además del índice, examina el cuerpo de cada tema y extrae:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def load_motor_prompt(motor_name: str) -> str | None:
+def load_motor_prompt(motor_name: str) -> Optional[str]:
     ruta = os.path.join(PROMPTS_DIR, f"{motor_name}.txt")
     if os.path.exists(ruta):
         with open(ruta, "r", encoding="utf-8") as f:
@@ -279,9 +280,9 @@ def generar_con_gemini(
     prompt_filename: str,
     variables: dict,
     expect_json: bool = False,
-    required_fields: list | None = None,
+    required_fields: Optional[list] = None,
     use_cache: bool = True,
-):
+) -> Optional[Any]:
     st.session_state.last_generar_fn = prompt_filename
     st.session_state.last_generar_vars = variables
     st.session_state.last_generar_json = expect_json
