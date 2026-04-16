@@ -1,13 +1,13 @@
 """
 db/__init__.py — PRIA Database Access Objects
 =============================================
-Re-exports everything from the original db_pria.py for backward compatibility,
-and provides structured access via submodules.
+Provides structured access via submodules and re-exports all functions
+for convenience.
 
-Usage (backward compatible):
+Usage:
     from db import crear_usuario, get_sesion
 
-Usage (new structured):
+Usage (structured):
     from db import usuarios, sesiones
     db.usuarios.crear_usuario(...)
 """
@@ -147,8 +147,8 @@ _PG_URL = _base._PG_URL
 _DB_PATH = _base._DB_PATH
 
 # ── Init on import ───────────────────────────────────────────────────────────
-# NOTE: init_db() is called by db_pria.py on import.
-# Tests use the `db` fixture which patches db_pria._DB_PATH before calling init_db().
+# NOTE: init_db() is NOT called automatically here.
+# Tests use the `db` fixture which patches db._base._DB_PATH before calling init_db().
 # Do NOT call init_db() here automatically — it would pollute the real DB before patching.
 
 __all__ = [

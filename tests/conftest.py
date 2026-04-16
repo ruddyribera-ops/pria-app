@@ -14,16 +14,15 @@ sys.path.insert(0, str(project_root))
 @pytest.fixture
 def db(tmp_path, monkeypatch):
     """
-    Provide db_pria module pointed at an isolated SQLite file.
+    Provide db module pointed at an isolated SQLite file.
 
     Each test gets a fresh, empty database so tests are fully independent.
     The module-level _DB_PATH and _USE_PG are patched to avoid touching
     the real database or any DATABASE_URL env var.
 
-    Note: patching must target db._base (the actual source of truth), not
-    db_pria (which is a re-export wrapper). The db._base module must be
-    patched BEFORE importing db_pria, or the real DB will be initialized
-    before the patch takes effect.
+    Note: patching must target db._base (the actual source of truth).
+    The db._base module must be patched BEFORE importing db,
+    or the real DB will be initialized before the patch takes effect.
     """
     # Ensure db._base is imported first so we can patch it
     import db._base
@@ -33,11 +32,11 @@ def db(tmp_path, monkeypatch):
     monkeypatch.setattr(db._base, "_USE_PG", False)
     monkeypatch.delenv("DATABASE_URL", raising=False)
 
-    # Now import db_pria — it will use the patched values from db._base
-    import db_pria
+    # Now import db — it will use the patched values from db._base
+    import db
 
-    db_pria.init_db()
-    return db_pria
+    db.init_db()
+    return db
 
 
 @pytest.fixture
