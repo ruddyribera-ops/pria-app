@@ -108,22 +108,22 @@ def init_session_state():
     """Initialize session state with defaults if not present.
 
     Uses SessionData Pydantic model fields to populate defaults.
+
+    IMPORTANT: we use FieldInfo.get_default(call_default_factory=True) instead
+    of inspecting .default directly. When a field is declared with
+    default_factory=..., field_info.default is the PydanticUndefined sentinel
+    (NOT None) — so a naive `if default is not None` branch would assign the
+    sentinel to session_state and poison every downstream consumer. The
+    official Pydantic helper does the right thing: calls the factory when set,
+    returns the default when set, returns None when neither is set.
     """
     from pria_docs.session_schema import SessionData
 
     for field_name, field_info in SessionData.model_fields.items():
         if field_name not in st.session_state:
-            # Get default value from Pydantic field
-            default = field_info.default
-            if default is not None:
-                st.session_state[field_name] = default
-            elif (
-                hasattr(field_info, "default_factory")
-                and field_info.default_factory is not None
-            ):
-                st.session_state[field_name] = field_info.default_factory()
-            else:
-                st.session_state[field_name] = None
+            st.session_state[field_name] = field_info.get_default(
+                call_default_factory=True
+            )
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
