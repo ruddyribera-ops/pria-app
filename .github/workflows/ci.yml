@@ -83,3 +83,27 @@ jobs:
           done
           echo "Health check failed after 8 attempts"
           exit 1
+
+  e2e:
+    needs: [deploy, health-check]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Install Playwright browsers
+        run: python -m playwright install chromium --with-deps
+
+      - name: Run e2e tests
+        env:
+          RAILWAY_APP_URL: https://priav5-production.up.railway.app
+        run: pytest tests/test_e2e.py -v
