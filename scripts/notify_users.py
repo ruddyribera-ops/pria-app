@@ -1,36 +1,35 @@
 """
 scripts/notify_users.py — Notificar a usuarios sus credenciales temporales
-===========================================================
-Genera emails/cartas de notificación para nuevos usuarios del piloto PRIA.
+==========================================================================
+Genera cartas de notificación para nuevos usuarios del piloto PRIA.
 
-Uso:
-    python scripts/notify_users.py            # genera output a pantalla
-    python scripts/notify_users.py --enviar  # intenta enviar por SMTP (si está configurado)
-    python scripts/notify_users.py --dry-run # preview sin enviar
+Uso (local con Railway):
+    railway run --service PRIAv5 python scripts/notify_users.py --dry-run
+    railway run --service PRIAv5 python scripts/notify_users.py --enviar
 
-Requiere variables de entorno para enviar:
+Uso (directo con DATABASE_URL en entorno):
+    set DATABASE_URL=postgresql://...
+    python scripts/notify_users.py --dry-run
+
+Requiere variables de entorno para enviar emails:
     SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
 """
 
-import os
-import sys
-import argparse
-import csv
+import os, sys, argparse
 from pathlib import Path
 from datetime import date
 
-# Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 TEMPLATE = """\
 Colegio Las Palmas — Sistema PRIA
-================================
+=================================
 
 Estimado/a {nombre},
 
 Te informamos que se ha creado tu cuenta en el sistema PRIA
-(Planificación Neuro-Inclusiva Asistida), la herramienta de
-planificación docente que estamos usando este año en Las Palmas.
+(Planificacion Neuro-Inclusiva Asistida), la herramienta de
+planificacion docente que usamos este ano en Las Palmas.
 
 === TUS DATOS DE ACCESO ===
 
@@ -41,14 +40,15 @@ planificación docente que estamos usando este año en Las Palmas.
 === PASOS PARA COMENZAR ===
 
 1. Abre el sistema en tu navegador
-2. Haz clic en "Iniciar Sesión"
+2. Haz clic en "Iniciar Sesion"
 3. Ingresa tu email y password
-4. **IMPORTANTE**: Cambia tu password inmediatamente después del primer login
-   (menú → perfil → cambiar password)
+4. IMPORTANTE: El sistema te pedira cambiar tu password
+   la primera vez que ingreses. Usa una contrasena que
+   recuerdes bien (minimo 10 caracteres).
 
-=== ¿QUÉ ES PRIA? ===
+=== QUE ES PRIA? ===
 
-PRIA es tu asistente de planificación. Con él puedes:
+PRIA es tu asistente de planificacion. Con el puedes:
 - Planificar clases diarias, semanales y trimestrales
 - Generar planes con ayuda de inteligencia artificial (Gemini)
 - Exportar tus planeaciones a Word y PowerPoint
@@ -59,20 +59,19 @@ PRIA es tu asistente de planificación. Con él puedes:
 Si tienes problemas para acceder o dudas sobre el uso,
 contacta a Ruddy Ribera: ruddy@laspalmas.edu.bo
 
-¡Bienvenido/a al sistema!
+!Bienvenido/a al sistema!
 
 Atentamente,
-Equipo PRIA — Las Palmas School
+Equipo PRIA - Las Palmas School
 Fecha: {fecha}
 """
 
 
-def cargar_usuarios():
-    """Carga usuarios a notificar desde la DB de producción."""
+def get_usuarios_notificar() -> list[dict]:
+    """Carga usuarios a notificar desde la DB (prod o local segun DATABASE_URL)."""
     from db import get_all_usuarios
 
     usuarios = get_all_usuarios()
-    # Filter to only users that need notification
     notify_emails = {
         "missadela@laspalmas.edu.bo",
         "misssusi@laspalmas.edu.bo",
@@ -82,7 +81,7 @@ def cargar_usuarios():
 
 
 def generar_notificacion(usuario: dict, password: str) -> str:
-    """Genera el texto de notificación para un usuario."""
+    """Genera el texto de notificacion para un usuario."""
     return TEMPLATE.format(
         nombre=usuario.get("nombre", usuario.get("nombre_hoja", "Docente")),
         email=usuario.get("email", ""),
@@ -92,17 +91,16 @@ def generar_notificacion(usuario: dict, password: str) -> str:
 
 
 def enviar_email(texto: str, destinatario: str, smtp_config: dict) -> bool:
-    """Envía email usando SMTP. Retorna True si éxito."""
+    """Envía email via SMTP. Retorna True si exito, False si falla."""
     import smtplib
     from email.message import EmailMessage
 
     try:
         msg = EmailMessage()
-        msg["Subject"] = "Tu cuenta PRIA — Colegio Las Palmas"
+        msg["Subject"] = "Tu cuenta PRIA - Colegio Las Palmas"
         msg["From"] = smtp_config["from"]
         msg["To"] = destinatario
         msg.set_content(texto)
-
         with smtplib.SMTP(smtp_config["host"], smtp_config["port"]) as server:
             server.starttls()
             server.login(smtp_config["user"], smtp_config["pass"])
@@ -115,16 +113,28 @@ def enviar_email(texto: str, destinatario: str, smtp_config: dict) -> bool:
 
 def main():
     parser = argparse.ArgumentParser(description="Notificar usuarios PRIA")
-    parser.add_argument("--dry-run", action="store_true", help="Solo preview, no envía")
-    parser.add_argument("--enviar", action="store_true", help="Enviar emails por SMTP")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview los mensajes sin enviar",
+    )
+    parser.add_argument(
+        "--enviar",
+        action="store_true",
+        help="Enviar emails por SMTP (requiere SMTP_* vars)",
+    )
     args = parser.parse_args()
 
-    print("=== Notificación de cuentas PRIA — Colegio Las Palmas ===\n")
+    print("=== Notificacion de cuentas PRIA - Colegio Las Palmas ===\n")
 
-    usuarios = cargar_usuarios()
+    usuarios = get_usuarios_notificar()
 
     if not usuarios:
-        print("No hay usuarios pendientes de notificar.")
+        print(
+            "No hay usuarios pendientes de notificar.\n"
+            "Solo se notifican: missadela, misssusi, missgalia\n"
+            "Verifica que esten creados en la DB."
+        )
         return
 
     smtp_config = {
@@ -134,16 +144,16 @@ def main():
         "pass": os.environ.get("SMTP_PASS", ""),
         "from": os.environ.get("SMTP_FROM", "noreply@laspalmas.edu.bo"),
     }
-
     tiene_smtp = bool(smtp_config["host"] and smtp_config["user"])
 
     if args.enviar and not tiene_smtp:
         print(
-            "ERROR: SMTP no configurado. Define SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM"
+            "ERROR: SMTP no configurado.\n"
+            "  Define: SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM\n"
+            "  O usa --dry-run para solo previsualizar.\n"
         )
-        print("      O usa --dry-run para ver el contenido sin enviar.\n")
+        return
 
-    # Password temporal (la que se creó en _prod_data_fixes.py)
     PASSWORD_TEMPORAL = "CAMBIAR_Piloto2026!"
 
     for usuario in usuarios:
@@ -156,17 +166,17 @@ def main():
 
         if args.enviar and tiene_smtp:
             if enviar_email(texto, email, smtp_config):
-                print(f"  ✓ Enviado a {email}")
+                print(f"  OK enviado a {email}")
             else:
-                print(f"  ✗ Falló envío a {email}")
-        elif args.enviar:
-            print(f"  ⚠ SMTP no disponible — email no enviado")
+                print(f"  FALLO envio a {email}")
 
     print(f"\nTotal: {len(usuarios)} usuario(s) procesados.")
 
-    if args.dry_run or not args.enviar:
-        print("\nPara enviar: python scripts/notify_users.py --enviar")
-        print("Para solo ver: python scripts/notify_users.py --dry-run (default)")
+    if not args.enviar:
+        print(
+            "\nPara enviar: railway run --service PRIAv5 python scripts/notify_users.py --enviar"
+        )
+        print("Para previsualizar: python scripts/notify_users.py --dry-run")
 
 
 if __name__ == "__main__":
