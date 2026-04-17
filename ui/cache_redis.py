@@ -1,12 +1,15 @@
 """
-ui/cache.py - Caching Logic with Redis Fallback
-================================================
-Disk-based caching for PDF analysis, motor outputs, and diagnostics.
-Uses Redis as primary cache with automatic fallback to disk when Redis
-is unavailable.
+ui/cache_redis.py - Redis-Backed Cache
+=====================================
+Redis-based caching layer with disk fallback.
+Provides all the same functions as ui/cache.py but backed by Redis
+with automatic fallback to disk cache if Redis is unavailable.
 
-This module re-exports the Redis-backed implementations when Redis is
-available, and falls back to disk-only implementations when it's not.
+Features:
+- Motor output cache with TTL
+- Generic hash-based cache
+- Graceful degradation when Redis is unavailable
+- Session temp directory management (still on filesystem)
 """
 
 import os
@@ -21,9 +24,7 @@ import logging
 from pathlib import Path
 from typing import Optional, Any
 
-logger = logging.getLogger(__name__)
-
-# Try to import Redis
+# Optional Redis import - will fallback gracefully if not available
 try:
     import redis
 
@@ -32,9 +33,11 @@ except ImportError:
     REDIS_AVAILABLE = False
     redis = None
 
+logger = logging.getLogger(__name__)
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PATHS
+# PATHS & CONFIG
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -119,7 +122,7 @@ def _get_redis():
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# MOTOR OUTPUT CACHE (7-day TTL)
+# MOTOR OUTPUT CACHE (Redis-backed, 7-day TTL)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 _MOTOR_CACHE_TTL = 86400 * 7  # 7 days
@@ -137,13 +140,14 @@ def _motor_cache_key(prompt_filename: str, variables: dict) -> str:
 
 
 def _cargar_motor_cache(key: str) -> Optional[Any]:
-    """Return cached motor result or None if missing/expired."""
+    """Return cached motor result from Redis, fallback to disk."""
     r = _get_redis()
     if r is not None:
         try:
             data = r.get(f"{_MOTOR_KEY_PREFIX}{key}")
             if data:
                 entry = json.loads(data)
+                # Check TTL via Redis
                 ttl = r.ttl(f"{_MOTOR_KEY_PREFIX}{key}")
                 if ttl > 0:
                     return entry.get("result")
@@ -151,6 +155,11 @@ def _cargar_motor_cache(key: str) -> Optional[Any]:
             logger.warning(f"Redis motor cache read failed: {e}")
 
     # Fallback to disk cache
+    return _disk_cargar_motor_cache(key)
+
+
+def _disk_cargar_motor_cache(key: str) -> Optional[Any]:
+    """Fallback disk-based motor cache reader."""
     path = CACHE_DIR / f"{key}.json"
     if not path.exists():
         return None
@@ -166,7 +175,7 @@ def _cargar_motor_cache(key: str) -> Optional[Any]:
 
 
 def _guardar_motor_cache(key: str, result: Any, motor: str) -> None:
-    """Persist a motor result to Redis (primary) with disk fallback."""
+    """Persist motor result to Redis (primary) with disk fallback."""
     entry = json.dumps(
         {"motor": motor, "result": result, "ts": time.time()},
         ensure_ascii=False,
@@ -174,13 +183,21 @@ def _guardar_motor_cache(key: str, result: Any, motor: str) -> None:
     )
 
     r = _get_redis()
+    saved_to_redis = False
+
     if r is not None:
         try:
             r.setex(f"{_MOTOR_KEY_PREFIX}{key}", _MOTOR_CACHE_TTL, entry)
+            saved_to_redis = True
         except Exception as e:
             logger.warning(f"Redis motor cache write failed: {e}")
 
     # Always also save to disk as backup
+    _disk_guardar_motor_cache(key, result, motor)
+
+
+def _disk_guardar_motor_cache(key: str, result: Any, motor: str) -> None:
+    """Fallback disk-based motor cache writer."""
     path = CACHE_DIR / f"{key}.json"
     try:
         with open(path, "w", encoding="utf-8") as fh:
@@ -195,11 +212,12 @@ def _guardar_motor_cache(key: str, result: Any, motor: str) -> None:
 
 
 def limpiar_motor_cache() -> None:
-    """Delete all motor_*.json cache files and Redis keys."""
+    """Delete all motor cache entries from Redis and disk."""
     r = _get_redis()
 
     if r is not None:
         try:
+            # Delete motor keys from Redis
             cursor = 0
             while True:
                 cursor, keys = r.scan(cursor, match=f"{_MOTOR_KEY_PREFIX}*", count=100)
@@ -220,7 +238,7 @@ def limpiar_motor_cache() -> None:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# GENERAL DISK CACHE (PDF analysis, diagnostics)
+# GENERAL DISK CACHE (PDF analysis, diagnostics) - Redis-backed with hash keys
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -232,7 +250,7 @@ _CACHE_KEY_PREFIX = "cache:"
 
 
 def _cargar_cache_hash(h: str) -> Optional[dict]:
-    """Load generic cache entry by hash key."""
+    """Load generic cache entry by hash key from Redis, fallback to disk."""
     r = _get_redis()
 
     if r is not None:
@@ -244,6 +262,11 @@ def _cargar_cache_hash(h: str) -> Optional[dict]:
             logger.warning(f"Redis cache hash read failed: {e}")
 
     # Fallback to disk
+    return _disk_cargar_cache_hash(h)
+
+
+def _disk_cargar_cache_hash(h: str) -> Optional[dict]:
+    """Fallback disk-based cache hash reader."""
     path = CACHE_DIR / f"{h}.json"
     if not path.exists():
         return None
@@ -255,7 +278,7 @@ def _cargar_cache_hash(h: str) -> Optional[dict]:
 
 
 def _guardar_cache_hash(h: str, data: dict) -> None:
-    """Save generic cache entry by hash key."""
+    """Save generic cache entry by hash key to Redis (primary) with disk fallback."""
     r = _get_redis()
 
     if r is not None:
@@ -269,6 +292,11 @@ def _guardar_cache_hash(h: str, data: dict) -> None:
             logger.warning(f"Redis cache hash write failed: {e}")
 
     # Always also save to disk
+    _disk_guardar_cache_hash(h, data)
+
+
+def _disk_guardar_cache_hash(h: str, data: dict) -> None:
+    """Fallback disk-based cache hash writer."""
     path = CACHE_DIR / f"{h}.json"
     try:
         with open(path, "w", encoding="utf-8") as fh:
@@ -278,7 +306,7 @@ def _guardar_cache_hash(h: str, data: dict) -> None:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# SESSION TEMP FILES
+# SESSION TEMP FILES (still on filesystem)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -322,7 +350,7 @@ def cleanup_old_cache(max_age_seconds: int = 86400 * 30) -> None:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# LOGGING
+# LOGGING (still file-based for reliability)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -347,7 +375,7 @@ def log_event(action: str, success: bool, error_msg: str = "") -> None:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# MOTOR STATS (Redis hash for counters with disk fallback)
+# MOTOR STATS (Redis hash for counters)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 _MOTOR_STATS_KEY = "pria:motor_stats"
@@ -379,3 +407,10 @@ def get_motor_stats() -> dict:
         "avg_duration": 0.0,
         "motors": [],
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAIN CACHE MODULE FALLBACK
+# ═══════════════════════════════════════════════════════════════════════════════
+# This module can be used as a drop-in replacement for ui/cache.py
+# All functions maintain the same signatures.

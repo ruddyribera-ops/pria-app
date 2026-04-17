@@ -6,15 +6,18 @@ for all PRIA motors.
 """
 
 import streamlit as st
-from pria.motors.registry import MotorRegistry
-from pria.config import config
+from ui.cache import get_motor_stats
+from ui.helpers import GEMINI_MODEL
+
+APP_VERSION = "5.6"
 
 
-def render():
-    """Render the motor dashboard."""
+def render(ss):
+    """Render the motor dashboard.
 
-    st.set_page_config(page_title="PRIA Analytics", page_icon="📊", layout="wide")
-
+    Args:
+        ss: Streamlit session_state object
+    """
     # Custom CSS
     st.markdown(
         """
@@ -39,12 +42,12 @@ def render():
     )
 
     st.title("📊 PRIA Motor Analytics")
-    st.markdown(f"**Version:** {config.app_version} | **Model:** {config.gemini_model}")
+    st.markdown(f"**Version:** {APP_VERSION} | **Model:** {GEMINI_MODEL}")
 
     st.markdown("---")
 
     # Get stats
-    stats = MotorRegistry.get_stats()
+    stats = get_motor_stats()
 
     # Overview metrics
     st.subheader("📈 Overview")
@@ -122,25 +125,36 @@ def render():
         selected_motor = st.selectbox("Select Motor", motor_names)
 
         if selected_motor:
-            motor = MotorRegistry.get(selected_motor)
+            # Find the motor data from stats
+            motor_data = None
+            for m in motors_list:
+                if m.get("name") == selected_motor:
+                    motor_data = m
+                    break
 
-            if motor:
+            if motor_data:
                 col1, col2 = st.columns(2)
 
                 with col1:
                     st.markdown("### Info")
-                    st.markdown(f"**Version:** {motor.version}")
-                    st.markdown(f"**Status:** {motor.status.value}")
-                    st.markdown(f"**Description:** {motor.description}")
-                    st.markdown(f"**Tags:** {', '.join(motor.tags)}")
+                    st.markdown(f"**Version:** {motor_data.get('version', 'N/A')}")
+                    st.markdown(f"**Status:** {motor_data.get('status', 'active')}")
+                    st.markdown(
+                        f"**Description:** {motor_data.get('description', 'N/A')}"
+                    )
+                    st.markdown(f"**Tags:** {', '.join(motor_data.get('tags', []))}")
 
                 with col2:
                     st.markdown("### Performance")
-                    st.metric("Total Uses", motor.uses)
-                    st.metric("Successes", motor.successes)
-                    st.metric("Failures", motor.failures)
-                    st.metric("Success Rate", f"{motor.success_rate:.1f}%")
-                    st.metric("Avg Duration", f"{motor.avg_duration:.2f}s")
+                    st.metric("Total Uses", motor_data.get("uses", 0))
+                    st.metric("Successes", motor_data.get("successes", 0))
+                    st.metric("Failures", motor_data.get("failures", 0))
+                    st.metric(
+                        "Success Rate", f"{motor_data.get('success_rate', 0):.1f}%"
+                    )
+                    st.metric(
+                        "Avg Duration", f"{motor_data.get('avg_duration', 0):.2f}s"
+                    )
 
     st.markdown("---")
 
@@ -153,7 +167,7 @@ def render():
         if st.button("Export Stats to JSON"):
             import json
 
-            data = MotorRegistry.export_metadata()
+            data = get_motor_stats()
             st.download_button(
                 label="Download JSON",
                 data=json.dumps(data, indent=2),
@@ -168,4 +182,8 @@ def render():
 
 
 if __name__ == "__main__":
-    render()
+    # For testing without Streamlit
+    class MockSS:
+        pass
+
+    render(MockSS())

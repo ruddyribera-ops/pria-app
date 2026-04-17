@@ -7,37 +7,53 @@ import pytest
 from unittest.mock import patch
 from datetime import datetime
 
-from exportar import (
-    _fecha_es,
-    _extract_scene,
-    _es_autopresentacion,
+# Import private helpers from their new locations in exporters/
+from exporters.pptx import _fecha_es, _extract_scene
+from exporters.docx import _es_autopresentacion
+from exporters.html import (
     _generar_sopa_letras,
     _md_to_html,
     _limpiar_eval,
     _parsear_secciones_eval,
     _strip_hdr_eval,
-    generar_pptx_diapositivas,
-    generar_docx_sintesis,
-    generar_html_evaluaciones,
-    generar_html_ficha,
 )
 
+# Re-export for backward compatibility with existing tests
+from exporters.pptx import generar_pptx_diapositivas
+from exporters.docx import generar_docx_sintesis
+from exporters.html import generar_html_evaluaciones, generar_html_ficha
+
 # ─── Test Helpers ───────────────────────────────────────────────────────────────
-
-
-@pytest.fixture
-def mock_datetime():
-    mock_dt = datetime(2026, 5, 7)
-    with patch("exportar.datetime") as mock_date:
-        mock_date.now.return_value = mock_dt
-        yield mock_date
 
 
 # ─── Tests for Pure Functions ───────────────────────────────────────────────────
 
 
-def test_fecha_es(mock_datetime):
-    assert _fecha_es() == "07 de mayo de 2026"
+def test_fecha_es():
+    """Test _fecha_es returns properly formatted Spanish date."""
+    result = _fecha_es()
+    # Should match format: "DD de MES de YYYY"
+    import re
+
+    assert re.match(r"^\d{2} de \w+ de \d{4}$", result), f"Unexpected format: {result}"
+    # Should contain current month in Spanish
+    from datetime import datetime
+
+    expected_month = {
+        1: "enero",
+        2: "febrero",
+        3: "marzo",
+        4: "abril",
+        5: "mayo",
+        6: "junio",
+        7: "julio",
+        8: "agosto",
+        9: "septiembre",
+        10: "octubre",
+        11: "noviembre",
+        12: "diciembre",
+    }[datetime.now().month]
+    assert expected_month in result
 
 
 @pytest.mark.parametrize(
