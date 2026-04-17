@@ -14,21 +14,39 @@ Esta guía cubre lo mínimo necesario para poner PRIA en producción con los ~17
 
 ## 1. Backups
 
-Corre localmente en crontab o en Windows Task Scheduler:
-
+**SQLite (local dev):**
 ```bash
 python scripts/backup_db.py --retention 30 --dest backups
 ```
 
-Usa la API `sqlite3.backup()` (segura durante writes). Guarda fechados en `backups/pria_estado_YYYYMMDD_HHMMSS.db` y borra los que tengan más de N días.
+**PostgreSQL (producción — Railway):**
+```bash
+railway run --service PRIAv5 python scripts/backup_pg.py
+```
 
-**En Railway** (SQLite vive en el contenedor): los backups se pierden cuando se redeploya. Opciones:
+Genera `backups/pria_pg_YYYYMMDD_HHMMSS.sql.gz` (~114KB).
+Retiene los últimos 30 días automáticamente.
 
-- **Opción A (pragmática):** cada viernes bajar manualmente el DB con `railway run sqlite3 pria_estado.db .dump > weekly.sql`.
-- **Opción B (robusta):** migrar a Railway Postgres (`DATABASE_URL` ya detectado por `db/_base.py`). Recomendado para piloto largo.
-- **Opción C (barata):** cron job que sube backup a Google Cloud Storage (pendiente si el piloto crece).
+**Restore:**
+```bash
+# Ver contenido sin restaurar
+python scripts/_verify_backup_content.py
 
-Para empezar: **Opción A** está bien. Si en 2 semanas va fluido, migrar a B.
+# Restaurar a otro DB (PRUEBA ESTO PRIMERO en local)
+set DATABASE_URL=postgresql://...  # nueva DB de test
+python scripts/restore_pg.py backups/pria_pg_YYYYMMDD_HHMMSS.sql.gz
+```
+
+**Windows Task Scheduler (semanal):**
+1. Abrir `taskschd.msc`
+2. Create Basic Task -> Name: `PRIA weekly backup`
+3. Trigger: Weekly, Friday 20:00
+4. Action: Start a program
+5. Program: `C:\Users\Windows\AppData\Roaming\npm\railway.cmd`
+6. Args: `run --service PRIAv5 python scripts/backup_pg.py`
+7. Start in: `C:\Users\Windows\Desktop\02_Proyectos\PRIA\PRIA DEPLOY`
+
+Backup verificado: 17 usuarios, 586 sesiones, 2366 micro_objetivos, 710 filas de horario. ✅
 
 ## 2. Provisioning de usuarios
 
