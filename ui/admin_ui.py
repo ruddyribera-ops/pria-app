@@ -42,6 +42,7 @@ from db import (
     get_all_usuarios,
     toggle_usuario_activo,
     eliminar_usuario,
+    actualizar_usuario_admin,
     reset_dia_docente,
 )
 
@@ -366,22 +367,121 @@ def render_admin_panel():
         st.markdown("#### Usuarios registrados")
         usuarios = get_all_usuarios()
         if usuarios:
+            # ── Batch actions header ──────────────────────────────────────
+            ba_col1, ba_col2 = st.columns(2)
+            with ba_col1:
+                st.caption(f"{len(usuarios)} usuario(s) total")
+            with ba_col2:
+                if st.button("🔄 Refrescar lista", key="btn_refresh_users"):
+                    st.rerun()
+
+            # ── Per-user rows ───────────────────────────────────────────────
             for u in usuarios:
-                u_col1, u_col2, u_col3 = st.columns([3, 1, 1])
-                with u_col1:
+                is_expanded = st.session_state.get(f"expand_user_{u['id']}", False)
+
+                with st.container(border=True):
+                    # ── Row header ─────────────────────────────────────────
+                    u_col1, u_col2, u_col3, u_col4 = st.columns([3, 1, 1, 1])
                     estado = "✅" if u["activo"] else "⛔"
-                    st.markdown(
-                        f"{estado} **{u['nombre']}** — {u['email']} · `{u['nombre_hoja']}` · _{u['rol']}_"
-                    )
-                with u_col2:
-                    lbl = "Desactivar" if u["activo"] else "Activar"
-                    if st.button(lbl, key=f"toggle_{u['id']}"):
-                        toggle_usuario_activo(u["id"], not u["activo"])
-                        st.rerun()
-                with u_col3:
-                    if st.button("Eliminar", key=f"del_{u['id']}"):
-                        eliminar_usuario(u["id"])
-                        st.rerun()
+                    pwd_flag = " 🔑" if u.get("must_change_password") else ""
+                    with u_col1:
+                        st.markdown(
+                            f"{estado} **{u['nombre']}**{pwd_flag}  \n"
+                            f"`{u['email']}` · `{u['nombre_hoja']}` · _{u['rol']}_"
+                        )
+                    with u_col2:
+                        lbl = "Desactivar" if u["activo"] else "Activar"
+                        if st.button(lbl, key=f"toggle_{u['id']}"):
+                            toggle_usuario_activo(u["id"], not u["activo"])
+                            st.rerun()
+                    with u_col3:
+                        if st.button("Editar", key=f"edit_{u['id']}"):
+                            st.session_state[f"expand_user_{u['id']}"] = not is_expanded
+                            st.rerun()
+                    with u_col4:
+                        if st.button("🗑 Eliminar", key=f"del_{u['id']}"):
+                            eliminar_usuario(u["id"])
+                            st.rerun()
+
+                    # ── Edit form (expanded) ─────────────────────────────────
+                    if is_expanded:
+                        st.markdown("---")
+                        st.caption(
+                            "Editar usuario (los campos vacíos no se actualizan)"
+                        )
+                        e_col1, e_col2, e_col3 = st.columns(3)
+                        with e_col1:
+                            e_nombre = st.text_input(
+                                "Nombre completo",
+                                value=u.get("nombre", ""),
+                                key=f"e_nombre_{u['id']}",
+                            )
+                            e_email = st.text_input(
+                                "Correo electrónico",
+                                value=u.get("email", ""),
+                                key=f"e_email_{u['id']}",
+                            )
+                        with e_col2:
+                            e_hoja = st.text_input(
+                                "Nombre hoja",
+                                value=u.get("nombre_hoja", ""),
+                                key=f"e_hoja_{u['id']}",
+                            )
+                            e_rol = st.selectbox(
+                                "Rol",
+                                ["docente", "admin"],
+                                index=0 if u.get("rol") == "docente" else 1,
+                                key=f"e_rol_{u['id']}",
+                            )
+                        with e_col3:
+                            e_pwd = st.text_input(
+                                "Nueva contraseña (dejar vacío para no cambiar)",
+                                type="password",
+                                key=f"e_pwd_{u['id']}",
+                                placeholder="Mínimo 8 caracteres",
+                            )
+                            e_forzar_pwd = st.checkbox(
+                                "Forzar cambio de password",
+                                value=bool(u.get("must_change_password")),
+                                key=f"e_forzar_{u['id']}",
+                            )
+
+                        save_clicked = st.button(
+                            "💾 Guardar cambios",
+                            type="primary",
+                            key=f"save_{u['id']}",
+                        )
+                        if save_clicked:
+                            ok, msg = actualizar_usuario_admin(
+                                usuario_id=int(u["id"]),
+                                nuevo_email=e_email.strip() or None,
+                                nuevo_nombre=e_nombre.strip() or None,
+                                nueva_password=e_pwd.strip() or None,
+                            )
+                            if ok:
+                                # Also update must_change_password flag if changed
+                                if e_forzar_pwd != bool(u.get("must_change_password")):
+                                    from db._base import _conn, _USE_PG
+
+                                    with _conn() as c:
+                                        flag_val = (
+                                            "TRUE"
+                                            if e_forzar_pwd
+                                            else "FALSE"
+                                            if _USE_PG
+                                            else "0"
+                                        )
+                                        c.execute(
+                                            f"UPDATE usuarios SET must_change_password = {flag_val} WHERE id = %s"
+                                            if _USE_PG
+                                            else f"UPDATE usuarios SET must_change_password = {flag_val} WHERE id = ?",
+                                            (int(u["id"]),),
+                                        )
+                                st.success(f"✅ Usuario actualizado: {msg}")
+                                st.session_state[f"expand_user_{u['id']}"] = False
+                                st.rerun()
+                            else:
+                                st.error(f"❌ {msg}")
         else:
             st.info("No hay usuarios registrados aún.")
 
