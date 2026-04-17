@@ -83,7 +83,10 @@ def _rotate_key() -> None:
 
 
 def leer_diagnosticos(archivos_subidos: list) -> tuple:
-    if not archivos_subidos or not isinstance(archivos_subidos, list):
+    # Defensive: PydanticUndefinedType is truthy-but-not-a-list — guard separately
+    if not isinstance(archivos_subidos, list):
+        return None, []
+    if not archivos_subidos:
         return None, []
     textos_raw = []
     keys = _get_keys()
