@@ -83,7 +83,7 @@ def _rotate_key() -> None:
 
 
 def leer_diagnosticos(archivos_subidos: list) -> tuple:
-    if not archivos_subidos:
+    if not archivos_subidos or not isinstance(archivos_subidos, list):
         return None, []
     textos_raw = []
     keys = _get_keys()
