@@ -27,6 +27,7 @@ from parser_archivos import (
     parse_calendario,
     parse_cronograma,
     parse_comisiones,
+    parse_vigilancia_pdf,
 )
 from db import (
     guardar_horario_docente,
@@ -131,51 +132,38 @@ def render_admin_panel():
                         st.error(f"Error: {_e}")
 
             st.markdown("**👁️ Roles de Vigilancia Recreos (.pdf)**")
+            st.caption(
+                "Parsea automáticamente las grillas de PRIMARIA y SECUNDARIA del PDF."
+            )
             f_vig = st.file_uploader(
                 "Vigilancias", type=["pdf"], key="adm_vig", label_visibility="collapsed"
             )
-            if f_vig and st.button(
-                "Extraer ubicaciones (AI Gemini)", key="btn_imp_vig"
-            ):
-                with st.spinner("Extrayendo Inteligencia…"):
+            if f_vig and st.button("Importar desde PDF", key="btn_imp_vig"):
+                with st.spinner("Parseando grillas de vigilancia..."):
                     try:
-                        keys = _get_keys()
-                        if not keys:
-                            st.error("No hay clave Gemini configurada.")
-                            st.stop()
-                        client = genai.Client(api_key=keys[0])
-                        with tempfile.NamedTemporaryFile(
-                            delete=False, suffix=".pdf"
-                        ) as tmp:
-                            tmp.write(f_vig.read())
-                            tmp_path = tmp.name
-                        gfile = client.files.upload(file=tmp_path)
-                        prompt = """Analiza el documento de vigilancias de recreo y extrae EXACTAMENTE esta estructura para CADA docente:
-{"nombre_hoja": "NOMBRE_EXACTO_EN_MAYUSCULA", "ubicacion": "DETALLE_COMPLETO"}
-Ejemplo: "PRIMARIA RECREO 1 LUNES PATIO CENTRAL" / "SECUNDARIA RECREO 2 MARTES ESCALERAS B"
-Usa nombres EXACTOS de la hoja (VANESA, RUDDY, SUSI). Incluye número de recreo, día, y ubicación."""
-                        resp = client.models.generate_content(
-                            model=GEMINI_MODEL, contents=[prompt, gfile]
+                        from db.horario import (
+                            guardar_vigilancia_asignaciones,
+                            get_vigilancia_asignaciones,
                         )
-                        os.remove(tmp_path)
-                        clean = (
-                            resp.text.replace("```json", "").replace("```", "").strip()
+
+                        registros = parse_vigilancia_pdf(f_vig.read())
+                        guardar_vigilancia_asignaciones(registros)
+                        # Show summary
+                        existentes = get_vigilancia_asignaciones()
+                        resumen = {}
+                        for r in existentes:
+                            key = r["nombre_hoja"]
+                            resumen[key] = resumen.get(key, 0) + 1
+                        top = sorted(resumen.items(), key=lambda x: -x[1])[:8]
+                        st.success(
+                            f"✅ {len(registros)} asignaciones importadas "
+                            f"({len(existentes)} total). "
+                            + " | ".join(f"{k}: {v}" for k, v in top)
                         )
-                        data = json.loads(clean)
-                        if isinstance(data, dict):
-                            data = data.get("vigilancias", [data])
-                        for entry in data:
-                            n = (
-                                entry.get("nombre_hoja", "")
-                                .upper()
-                                .replace(",", "")
-                                .replace(".", "")
-                            )
-                            entry["nombre_hoja"] = n.split()[0] if n else "UNKNOWN"
-                        guardar_vigilancias(data)
-                        st.success(f"✅ {len(data)} asignaciones importadas.")
+                    except ImportError:
+                        st.error("Instala pdfplumber: pip install pdfplumber")
                     except Exception as _e:
-                        st.error(f"Error AI: {_e}")
+                        st.error(f"Error: {_e}")
 
         # PLAN SEMANAL DOCENTE
         st.divider()
