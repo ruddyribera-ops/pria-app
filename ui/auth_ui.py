@@ -30,7 +30,7 @@ def render_login():
 
         # Import here to avoid circular imports
         from db import verificar_login
-        from ui.helpers import _log_event
+        from ui.cache import log_event
 
         if st.button(
             "Ingresar", type="primary", use_container_width=True, key="btn_login"
@@ -43,10 +43,10 @@ def render_login():
                 st.session_state.usuario_hoja = usuario["nombre_hoja"]
                 st.session_state.usuario_rol = usuario["rol"]
                 st.session_state.teacher_name = usuario["nombre"]
-                _log_event("login", True)
+                log_event("login", True)
                 st.rerun()
             else:
-                _log_event("login_failed", False, "wrong credentials")
+                log_event("login_failed", False, "wrong credentials")
                 st.error("❌ Correo o contraseña incorrectos.")
     st.stop()
     return False

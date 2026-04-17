@@ -98,7 +98,7 @@ SESSION_DEFAULTS = {
     "res_m2a": None,
     "res_m2b": None,
     "mostrar_adaptaciones_prev": False,
-    "_pptx_cache": None,
+    "pptx_cache": None,
     "teacher_name": "",
     "school_name": "",
 }

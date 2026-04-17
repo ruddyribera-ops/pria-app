@@ -63,7 +63,7 @@ class SessionData(BaseModel):
 
     # UI state
     mostrar_adaptaciones_prev: bool = Field(default=False)
-    _pptx_cache: Optional[Any] = Field(default=None)
+    pptx_cache: Optional[Any] = Field(default=None)
 
     # User info
     teacher_name: str = Field(default="")
