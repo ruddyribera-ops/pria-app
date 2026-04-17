@@ -527,15 +527,27 @@ def parse_vigilancia_pdf(pdf_bytes: bytes) -> list[dict]:
     """
     Parse 'ROL DE VIGILANCIA _ RECREOS 2026.pdf' — page 2 recreational vigilances.
 
-    Grid structure:
-        Columns: LUNES, MARTES, MIERCOLES, JUEVES, VIERNES
-        Rows: PRIMARIA R1 (10:10-10:30), PRIMARIA R2 (12:00-12:15),
-              SECUNDARIA R1 (09:25-09:40), SECUNDARIA R2 (11:10-11:25)
-        Cell content: "Angélica - Yamile" or "Sebastian (10:25)" or "OCUPADO"
+    Actual table structure (confirmed by inspection):
+        Row  0: section banner "RECREOS - NIVEL PRIMARIA" (col2+)
+        Row  1: spacer
+        Row  2: sub-header "RECREOS | ZONA O SECTOR"
+        Row  3: column headers — ['DIAS', 'RECREO 1', 'PARQUE', None,
+                                   'ESCALERAS B E...', 'COLISEO', 'KIOSCO',
+                                   'PATIO CENTRAL', 'BIBLIOTECA', ...]
+        Rows  4-8: R1 data — [LUNES, 10:10-10:30, teacher, '', teacher, ...]
+        Row  9: RECREO 2 section header
+        Rows 10-14: R2 data — [LUNES, 12:00-12:15, teacher, '', teacher, ...]
+        Row 15: spacer
+        Row 16: section banner "RECREOS - NIVEL SECUNDARIA"
+        Rows 17-18: sub-headers
+        Row 19: column headers (SEC has 7 zones, col3=ESCALERAS A)
+        Rows 20-24: SEC R1 data
+        Row 25: RECREO 2 header
+        Rows 26-30: SEC R2 data
 
     Returns list of dicts:
         nombre_hoja, nivel, dia_semana, recreo_num, zona,
-        hora_inicio, hora_fin, nota (source)
+        hora_inicio, hora_fin, nota
     """
     try:
         import pdfplumber
@@ -544,143 +556,111 @@ def parse_vigilancia_pdf(pdf_bytes: bytes) -> list[dict]:
             "pdfplumber is required for PDF parsing. Install with: pip install pdfplumber"
         )
 
-    records = []
-    zonas_primaria = [
-        "PARQUE",
-        "ESCALERAS B E INGRESO AL COLISEO",
-        "COLISEO",
-        "KIOSCO",
-        "PATIO CENTRAL",
-        "BIBLIOTECA",
-    ]
-    zonas_secundaria = zonas_primaria + ["ESCALERAS A"]
+    def _norm(s):
+        return " ".join(str(s or "").upper().split()) if s else ""
 
-    RECESO_SLOTS = {
-        "primaria_r1": ("10:10", "10:30"),
-        "primaria_r2": ("12:00", "12:15"),
-        "secundaria_r1": ("09:25", "09:40"),
-        "secundaria_r2": ("11:10", "11:25"),
+    def _pad(t):
+        parts = t.split(":")
+        return f"{int(parts[0]):02d}:{parts[1]}"
+
+    def _parse_time(s):
+        s = _norm(s)
+        m = re.search(r"(\d+:\d+)\s*[-–]\s*(\d+:\d+)", s)
+        if m:
+            return _pad(m.group(1)), _pad(m.group(2))
+        return None, None
+
+    DAYS = {
+        "LUNES": "lunes",
+        "MARTES": "martes",
+        "MIÉRCOLES": "miércoles",
+        "MIERCOLES": "miércoles",
+        "JUEVES": "jueves",
+        "VIERNES": "viernes",
     }
+
+    # Fixed column indices per section (confirmed from PDF inspection)
+    PRIM_ZONES = {
+        2: "PARQUE",
+        4: "ESCALERAS B E INGRESO AL COLISEO",
+        5: "COLISEO",
+        6: "KIOSCO",
+        7: "PATIO CENTRAL",
+        8: "BIBLIOTECA",
+    }
+    SEC_ZONES = {
+        2: "PARQUE",
+        3: "ESCALERAS A",
+        4: "ESCALERAS B E INGRESO AL COLISEO",
+        5: "COLISEO",
+        6: "KIOSCO",
+        7: "PATIO CENTRAL",
+        8: "BIBLIOTECA",
+    }
+
+    # Row index ranges (inclusive) for each section
+    SECTION_ROWS = {
+        "primaria_r1": (4, 9),
+        "primaria_r2": (10, 15),
+        "secundaria_r1": (20, 25),
+        "secundaria_r2": (26, 31),
+    }
+
+    records = []
 
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         if len(pdf.pages) < 2:
             raise ValueError(f"PDF has {len(pdf.pages)} pages, expected at least 2")
+        tbl = pdf.pages[1].extract_tables()[0]
 
-        page = pdf.pages[1]  # page 2 (0-indexed)
-        tables = page.extract_tables()
-
-    if not tables:
-        raise ValueError("No tables found in page 2 of the PDF")
-
-    # Identify which table is PRIMARIA and which is SECUNDARIA
-    primaria_table = None
-    sec_table = None
-
-    for tbl in tables:
-        if not tbl or len(tbl) < 3:
+    for r_idx, row in enumerate(tbl):
+        # Determine section from row position
+        section_key = None
+        zones = None
+        for key, (start, end) in SECTION_ROWS.items():
+            if start <= r_idx < end:
+                section_key = key
+                zones = PRIM_ZONES if key.startswith("primaria") else SEC_ZONES
+                break
+        if section_key is None:
             continue
-        header = [str(c or "").strip().upper() for c in tbl[0]]
-        first_col = header[0] if header else ""
-        if any(z in first_col for z in zonas_primaria):
-            primaria_table = tbl
+
+        nivel = "primaria" if section_key.startswith("primaria") else "secundaria"
+        recreo_num = "1" if section_key.endswith("r1") else "2"
+
+        col0, col1 = _norm(row[0]), _norm(row[1])
+        if col0 not in DAYS:
             continue
-        if (
-            first_col.startswith("LUNES")
-            or first_col.startswith("DIA")
-            or any(z in " ".join(header) for z in zonas_secundaria)
-        ):
-            if "PARQUE" in " ".join(header) or "SECUNDARIA" in " ".join(header):
-                sec_table = tbl
 
-    # Fallback: first table = primaria, second = sec
-    if primaria_table is None and len(tables) >= 1:
-        primaria_table = tables[0]
-    if sec_table is None and len(tables) >= 2:
-        sec_table = tables[1]
+        h_ini, h_fin = _parse_time(col1)
+        if h_ini is None:
+            continue
 
-    def _parse_grid(table, nivel, slots):
-        """Parse a vigilancia grid table into records."""
-        if table is None:
-            return
-        if len(table) < 2:
-            return
+        dia = DAYS[col0]
 
-        headers = [str(c or "").strip().upper() for c in table[0]]
-        # Map column index → day name
-        dias_map = {}
-        for c_idx, h in enumerate(headers):
-            h_clean = h.replace("PRIMARIA", "").replace("SECUNDARIA", "").strip()
-            for d in ["LUNES", "MARTES", "MIÉRCOLES", "MIERCOLES", "JUEVES", "VIERNES"]:
-                if d in h_clean:
-                    dias_map[c_idx] = d.lower()
-                    break
-
-        # Rows: [slot_label, zone1_teacher, zone2_teacher, ...]
-        for row in table[1:]:
-            if not row or len(row) < 2:
+        for c_idx, zona in zones.items():
+            if c_idx >= len(row):
                 continue
-            slot_label = str(row[0] or "").strip()
-            if not slot_label:
+            cell_text = str(row[c_idx] or "").strip()
+            if not cell_text or cell_text.upper() == "OCUPADO":
                 continue
 
-            slot_upper = slot_label.upper()
-            slot_key = None
-            if "R1" in slot_upper and "PRIM" in slot_upper:
-                slot_key = "primaria_r1"
-            elif "R2" in slot_upper and "PRIM" in slot_upper:
-                slot_key = "primaria_r2"
-            elif "R1" in slot_upper and "SEC" in slot_upper:
-                slot_key = "secundaria_r1"
-            elif "R2" in slot_upper and "SEC" in slot_upper:
-                slot_key = "secundaria_r2"
+            # Time override in cell like "Melani (12:10)"
+            override = re.search(r"\((\d{2}:\d{2})\)", cell_text)
+            cell_h_ini = override.group(1) if override else h_ini
 
-            h_ini, h_fin = None, None
-            if slot_key and slot_key in RECESO_SLOTS:
-                h_ini, h_fin = RECESO_SLOTS[slot_key]
-
-            # Time override like (10:25)
-            override_match = re.search(r"\((\d{2}:\d{2})\)", slot_label)
-            if override_match:
-                h_ini = override_match.group(1)
-
-            if h_ini is None:
-                continue
-
-            # Zone names from header columns
-            zone_names = headers[1:] if len(headers) > 1 else []
-            recreo_num = "1" if "R1" in slot_upper else "2"
-
-            for c_idx in range(1, len(row)):
-                if c_idx >= len(row):
-                    break
-                cell_text = str(row[c_idx] or "").strip()
-                if not cell_text or cell_text.upper() == "OCUPADO":
-                    continue
-
-                zona = zone_names[c_idx - 1] if c_idx - 1 < len(zone_names) else ""
-                dia = dias_map.get(c_idx, None)
-                if dia is None:
-                    continue
-
-                teachers = _split_teachers(cell_text)
-                if not teachers:
-                    continue
-
-                for teacher in teachers:
-                    records.append(
-                        {
-                            "nombre_hoja": _normalize_teacher_name(teacher),
-                            "nivel": nivel,
-                            "dia_semana": dia,
-                            "recreo_num": recreo_num,
-                            "zona": zona,
-                            "hora_inicio": h_ini,
-                            "hora_fin": h_fin,
-                            "nota": f"pdf:{slot_label.strip()}",
-                        }
-                    )
-
-    _parse_grid(primaria_table, "primaria", RECESO_SLOTS)
-    _parse_grid(sec_table, "secundaria", RECESO_SLOTS)
+            for teacher in _split_teachers(cell_text):
+                records.append(
+                    {
+                        "nombre_hoja": _normalize_teacher_name(teacher),
+                        "nivel": nivel,
+                        "dia_semana": dia,
+                        "recreo_num": recreo_num,
+                        "zona": zona,
+                        "hora_inicio": cell_h_ini,
+                        "hora_fin": h_fin,
+                        "nota": f"pdf:row{r_idx}",
+                    }
+                )
 
     return records
