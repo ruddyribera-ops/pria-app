@@ -141,22 +141,19 @@ def parse_horarios(wb_bytes: bytes) -> list[dict]:
         if header_row_idx is None or lunes_col_idx is None:
             continue
 
-        # Detect dual time columns: check cell immediately left of LUNES
-        # If it contains "PRIM" or "PRIMARIA" text, it's the PRIM time column header
-        # → meaning SEC time column is one more to the left
+        # Detect dual time columns: check cell immediately left of LUNES.
+        # If it contains "PRIM" or "PRIMARIA" text, it's the PRIM time column
+        # → SEC time column is one further left.
+        # Note: openpyxl ws.cell() is 1-indexed; iter_rows gives 0-based idx.
         time_col_prim = None
-        if lunes_col_idx > 0:
-            left_header = str(
+        time_col_sec = None
+        if lunes_col_idx >= 1:
+            hdr_left = str(
                 ws.cell(header_row_idx + 1, lunes_col_idx).value or ""
             ).upper()
-            # Actually check the header row itself (header_row_idx)
-            hdr_left = str(
-                ws.cell(header_row_idx, lunes_col_idx - 1).value or ""
-            ).upper()
-            if "PRIM" in hdr_left or "PRIMARIA" in hdr_left:
+            if ("PRIM" in hdr_left or "PRIMARIA" in hdr_left) and lunes_col_idx >= 2:
                 has_dual_time = True
                 time_col_prim = lunes_col_idx - 1
-                # SEC time column is one further left
                 time_col_sec = lunes_col_idx - 2
             else:
                 time_col_sec = lunes_col_idx - 1
@@ -187,22 +184,28 @@ def parse_horarios(wb_bytes: bytes) -> list[dict]:
                                 row_level = m.group(1)
                                 break
 
-                # Use PRIM time if row_level is PRIM (3P, 5P, PRIM keywords)
-                if row_level and (
-                    "P" in row_level.upper()
-                    or "PRIM" in str(row.get(lunes_col_idx) or "").upper()
-                ):
-                    if time_col_prim is not None:
-                        tiempo_raw = (
-                            row[time_col_prim] if time_col_prim < len(row) else None
-                        )
+                # Use PRIM time if row_level indicates primaria (ends with P, or PRIM keyword)
+                first_day_val = (
+                    str(row[lunes_col_idx]).upper()
+                    if lunes_col_idx < len(row) and row[lunes_col_idx]
+                    else ""
+                )
+                is_prim = (row_level and row_level.endswith("P")) or "PRIM" in first_day_val
+                if is_prim and time_col_prim is not None:
+                    tiempo_raw = (
+                        row[time_col_prim] if time_col_prim < len(row) else None
+                    )
                 else:
-                    # Use SEC time (default to SEC for ambiguous rows)
-                    tiempo_raw = row[time_col_sec] if time_col_sec < len(row) else None
+                    # Use SEC time (default for ambiguous rows)
+                    tiempo_raw = (
+                        row[time_col_sec]
+                        if time_col_sec is not None and time_col_sec < len(row)
+                        else None
+                    )
             else:
                 # Single time column
-                time_col = lunes_col_idx - 1
-                tiempo_raw = row[time_col] if time_col < len(row) else None
+                if time_col_sec is not None and time_col_sec < len(row):
+                    tiempo_raw = row[time_col_sec]
 
             if not tiempo_raw:
                 continue
