@@ -103,8 +103,9 @@ def test_app_loads_no_errors(page):
     _out(f"[TEST] Opening {APP_URL}")
     page.goto(APP_URL, wait_until="networkidle", timeout=30_000)
 
-    # Give Streamlit a moment to fully render
-    page.wait_for_timeout(3_000)
+    # Wait explicitly for a login input to render — cold starts on Railway
+    # can take longer than a fixed timeout, making the test flaky.
+    page.wait_for_selector("[data-testid='stTextInput'] input", timeout=30_000)
 
     assert_no_console_errors(page)
 
@@ -127,7 +128,7 @@ def test_login_form_elements(page):
     The submit button is a regular <button> element.
     """
     page.goto(APP_URL, wait_until="networkidle", timeout=30_000)
-    page.wait_for_timeout(2_000)
+    page.wait_for_selector("[data-testid='stTextInput'] input", timeout=30_000)
 
     # Streamlit text_input for email — look for input with placeholder text
     email_input = page.locator(
@@ -159,7 +160,7 @@ def test_login_with_bad_credentials(page):
     Attempt to log in with invalid credentials and verify an error message appears.
     """
     page.goto(APP_URL, wait_until="networkidle", timeout=30_000)
-    page.wait_for_timeout(2_000)
+    page.wait_for_selector("[data-testid='stTextInput'] input", timeout=30_000)
 
     # Use flexible Streamlit-compatible selectors for email and password
     email_input = page.locator(
