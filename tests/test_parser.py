@@ -7,6 +7,8 @@ from parser_archivos import (
     _parse_time_range,
     _classify_block,
     _classify_evento,
+    _normalize_teacher_name,
+    _split_teachers,
 )
 
 
@@ -107,3 +109,50 @@ def test_classify_block(valor, expected_type):
 )
 def test_classify_evento(nombre, expected):
     assert _classify_evento(nombre) == expected
+
+
+# ─── _normalize_teacher_name tests ───────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "name, expected",
+    [
+        ("Angélica", "ANGELICA"),
+        ("Yamile", "YAMILE"),
+        ("Sebastián", "SEBASTIAN"),
+        ("José", "JOSE"),
+        ("Ruddy", "RUDDY"),
+        ("  Ruddy   Ribera  ", "RUDDY RIBERA"),
+        ("MELANI", "MELANI"),
+    ],
+)
+def test_normalize_teacher_name(name, expected):
+    assert _normalize_teacher_name(name) == expected
+
+
+# ─── _split_teachers tests ────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "cell_text, expected",
+    [
+        # Basic multi-teacher
+        ("Angélica - Yamile - Melani", ["Angélica", "Yamile", "Melani"]),
+        # Plus sign
+        ("SEBASTIAN + ANTONIO", ["SEBASTIAN", "ANTONIO"]),
+        # Single teacher
+        ("Sebastian", ["Sebastian"]),
+        # Time override
+        ("Glen (10:25)", ["Glen"]),
+        # Slash separator
+        ("Yamile / Katherine", ["Yamile", "Katherine"]),
+        # OCUPADO skipped
+        ("OCUPADO", []),
+        ("", []),
+        ("   ", []),
+        # Mixed time override
+        ("Angélica (10:10) - Yamile", ["Angélica", "Yamile"]),
+    ],
+)
+def test_split_teachers(cell_text, expected):
+    assert _split_teachers(cell_text) == expected
