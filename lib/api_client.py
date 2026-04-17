@@ -204,8 +204,8 @@ class APIClient:
         prompt_filename: str,
         variables: dict,
         expect_json: bool = False,
-        poll_interval: float = 1.0,
-        timeout: float = 120.0,
+        poll_interval: float = 0.5,
+        timeout: float = 180.0,
     ) -> dict:
         """
         Generate content using Gemini.
@@ -217,8 +217,8 @@ class APIClient:
             prompt_filename: Name of the prompt file
             variables: Dict of template variables
             expect_json: Whether to expect JSON output
-            poll_interval: Seconds between status polls (async mode)
-            timeout: Max seconds to wait for job completion
+            poll_interval: Seconds between status polls (async mode, default 0.5s)
+            timeout: Max seconds to wait for job completion (default 180s)
 
         Returns:
             Dict with result or status info
@@ -245,16 +245,17 @@ class APIClient:
         if not use_celery:
             return data  # sync mode, should already be done
 
-        # Poll for async result
+        # Poll for async result with exponential backoff
         job_id = data.get("job_id")
         if not job_id:
             return data
 
         poll_url = f"/gemini/status/{job_id}"
         start = time.time()
+        current_interval = poll_interval
 
         while time.time() - start < timeout:
-            time.sleep(poll_interval)
+            time.sleep(current_interval)
             r = self._client.get(poll_url, headers=self._headers())
             r.raise_for_status()
             status_data = r.json()
@@ -268,6 +269,8 @@ class APIClient:
                     )
 
             if status_data.get("status") in ("pending", "running"):
+                # Cap backoff at 3 seconds
+                current_interval = min(current_interval * 1.5, 3.0)
                 continue
 
         raise APIClientError(f"Generation timed out after {timeout}s")
