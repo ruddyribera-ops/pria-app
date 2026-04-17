@@ -21,112 +21,78 @@ def guardar_horario_docente(registros: list[dict]):
 
 
 def get_horario_dia(nombre_hoja: str, dia_semana: str) -> list[dict]:
+    """
+    Get blocks for a teacher on a given day, with vigilancias injected
+    from the normalized vigilancia_asignacion table (Phase 5 simplification).
+    Falls back to fuzzy name matching if exact name lookup returns nothing.
+    """
     _nh = str(nombre_hoja or "").upper().strip()
     _dia = str(dia_semana or "").lower().strip()
 
-    # Official recess times
     RECESO_TIMES = {
         "primaria": [("10:10", "10:30"), ("12:00", "12:15")],
         "secundaria": [("09:25", "10:10"), ("11:15", "12:00")],
     }
 
-    def _strip_accents(s: str) -> str:
-        return "".join(
-            c
-            for c in unicodedata.normalize("NFD", s)
-            if unicodedata.category(c) != "Mn"
-        )
-
-    def _norm_dia(d: str) -> str:
-        return _strip_accents(d.lower().strip())
-
-    def _time_overlaps(h_ini, h_fin, r_ini, r_fin):
-        if not h_ini or not r_ini:
-            return False
-        return h_ini <= r_fin and r_ini <= (h_fin or h_ini)
-
     with _conn() as con:
+        # Core blocks from horario_docente
         rows = [
             dict(r)
             for r in con.execute(
                 """SELECT * FROM horario_docente
-               WHERE nombre_hoja=? AND dia_semana=?
-               ORDER BY COALESCE(orden, 99999) ASC, hora_inicio ASC, id ASC""",
+                   WHERE nombre_hoja=? AND dia_semana=?
+                   ORDER BY COALESCE(orden, 99999) ASC, hora_inicio ASC, id ASC""",
                 (_nh, _dia),
             ).fetchall()
         ]
 
-        # Dynamically inject vigilancia blocks from vigilancias_recreo table
-        norm_dia = _norm_dia(_dia)
-        vigilancias = {
-            r["nombre_hoja"].upper(): r["ubicacion"]
-            for r in con.execute(
-                "SELECT nombre_hoja, ubicacion FROM vigilancias_recreo"
-            ).fetchall()
-        }
-        vigilancia_ubicacion = vigilancias.get(_nh)
+        # Inject vigilancias from normalized table (Phase 5 — replaces old regex logic)
+        vig_rows = con.execute(
+            """SELECT * FROM vigilancia_asignacion
+               WHERE UPPER(nombre_hoja)=? AND LOWER(dia_semana)=?""",
+            (_nh, _dia),
+        ).fetchall()
 
-        if vigilancia_ubicacion and rows:
-            # Determine nivel from existing blocks (Primaria starts 07:xx, Secundaria 08:xx+)
+        if rows and vig_rows:
+            # Determine nivel from schedule (Primaria starts < 08:30)
             has_primaria = any(
                 r["hora_inicio"] and r["hora_inicio"] < "08:30" for r in rows
             )
             nivel = "primaria" if has_primaria else "secundaria"
-            recesos = RECESO_TIMES[nivel]
 
-            # Parse all comma-separated locations
-            all_locations = [loc.strip() for loc in vigilancia_ubicacion.split(",")]
-
-            # Determine which locations match the current day
-            matched_locs = []
-            for loc in all_locations:
-                loc_up = _strip_accents(loc.upper())
-                # Skip SIN ASIGNAR entries
-                if "SIN ASIGNAR" in loc_up:
+            for vr in vig_rows:
+                if vr["nivel"].lower() != nivel:
                     continue
-                # ANGÉLICA special case: "PARQUE" → Primaria R1 only
-                if _nh == "ANGÉLICA" and "PARQUE" in loc.upper():
-                    loc = "Patio Central"
-                    matched_locs.append((loc, "1"))  # (location, recreo_num)
-                    continue
-                # Extract recreo number from location string (e.g., "PRIMARIA RECREO 1 LUNES ...")
-                recreo_num = None
-                for part in loc_up.split():
-                    if part.isdigit() and int(part) in (1, 2):
-                        recreo_num = part
-                        break
-                # Check if day matches (norm_dia is lowercase, loc_up is uppercase)
-                if norm_dia.upper() in loc_up:
-                    matched_locs.append((loc, recreo_num))
-
-            for r_ini, r_fin in recesos:
-                # Determine recreo number for this slot (R1 < 11:00, R2 >= 11:00)
-                recreo_num_slot = "1" if float(r_ini.replace(":", ".")) < 11.0 else "2"
-                # Find locations for this slot
-                slot_locs = [
-                    loc
-                    for loc, rn in matched_locs
-                    if rn is None or rn == recreo_num_slot
-                ]
-                if not slot_locs:
-                    continue
-                for loc in slot_locs:
+                recreo_num = str(vr["recreo_num"] or "1")
+                # Match to correct time slot
+                for r_ini, r_fin in RECESO_TIMES[nivel]:
+                    slot_num = "1" if float(r_ini.replace(":", ".")) < 11.0 else "2"
+                    if slot_num != recreo_num:
+                        continue
+                    # Only inject if not already in rows (avoid duplicates)
+                    already = any(
+                        r.get("tipo_bloque") == "vigilancia_recreo"
+                        and r.get("ubicacion") == vr["zona"]
+                        and r.get("hora_inicio") == vr["hora_inicio"]
+                        for r in rows
+                    )
+                    if already:
+                        continue
                     rows.append(
                         {
                             "id": None,
                             "nombre_hoja": _nh,
                             "dia_semana": _dia,
-                            "hora_inicio": r_ini,
-                            "hora_fin": r_fin,
+                            "hora_inicio": vr["hora_inicio"] or r_ini,
+                            "hora_fin": vr["hora_fin"] or r_fin,
                             "tipo_bloque": "vigilancia_recreo",
                             "materia": None,
                             "nivel_grado": nivel.title(),
-                            "ubicacion": loc,
-                            "valor_original": f"recreo - {loc}",
+                            "ubicacion": vr["zona"],
+                            "valor_original": f"recreo - {vr['zona']}",
                             "orden": 0,
                         }
                     )
-            # Re-sort by hora_inicio
             rows.sort(key=lambda r: r.get("hora_inicio") or "")
 
         if rows:
@@ -311,6 +277,51 @@ def guardar_bloque_horario_manual(
 def eliminar_bloque_horario_manual(bloque_id: int):
     with _conn() as con:
         con.execute("DELETE FROM horario_docente WHERE id=?", (int(bloque_id),))
+
+
+def guardar_vigilancia_asignaciones(asignaciones: list[dict]):
+    """
+    Replace all vigilancia_asignacion records with a new set from parsed PDF.
+    Each dict: nombre_hoja, nivel, dia_semana, recreo_num, zona, hora_inicio, hora_fin, nota
+    """
+    with _conn() as con:
+        con.execute("DELETE FROM vigilancia_asignacion")
+        for a in asignaciones:
+            con.execute(
+                """INSERT OR REPLACE INTO vigilancia_asignacion
+                   (nombre_hoja, nivel, dia_semana, recreo_num, zona,
+                    hora_inicio, hora_fin, nota, fuente)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    str(a.get("nombre_hoja") or "").upper().strip(),
+                    str(a.get("nivel") or "").lower().strip(),
+                    str(a.get("dia_semana") or "").lower().strip(),
+                    str(a.get("recreo_num") or "1").strip(),
+                    str(a.get("zona") or "").strip(),
+                    str(a.get("hora_inicio") or "").strip(),
+                    str(a.get("hora_fin") or "").strip(),
+                    str(a.get("nota") or "").strip(),
+                    "pdf",
+                ),
+            )
+
+
+def get_vigilancia_asignaciones(nombre_hoja: str = None) -> list[dict]:
+    """
+    Get vigilancia_asignacion records, optionally filtered by teacher.
+    Returns normalized records ready for daily view injection.
+    """
+    with _conn() as con:
+        if nombre_hoja:
+            nh = str(nombre_hoja or "").upper().strip()
+            rows = con.execute(
+                """SELECT * FROM vigilancia_asignacion
+                   WHERE UPPER(nombre_hoja)=?""",
+                (nh,),
+            ).fetchall()
+        else:
+            rows = con.execute("SELECT * FROM vigilancia_asignacion").fetchall()
+        return [dict(r) for r in rows]
 
 
 def guardar_vigilancia_manual(nombre_hoja: str, ubicacion: str):

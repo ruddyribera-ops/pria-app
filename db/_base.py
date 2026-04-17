@@ -208,6 +208,19 @@ def init_db():
             nombre_hoja   TEXT NOT NULL,
             ubicacion     TEXT NOT NULL
         )""",
+        f"""CREATE TABLE IF NOT EXISTS vigilancia_asignacion (
+            id            {pk},
+            nombre_hoja   TEXT NOT NULL,
+            nivel         TEXT NOT NULL,
+            dia_semana    TEXT NOT NULL,
+            recreo_num    TEXT NOT NULL,
+            zona          TEXT NOT NULL,
+            hora_inicio   TEXT,
+            hora_fin      TEXT,
+            nota          TEXT,
+            fuente        TEXT DEFAULT 'pdf',
+            UNIQUE(nombre_hoja, nivel, dia_semana, recreo_num, zona)
+        )""",
         f"""CREATE TABLE IF NOT EXISTS bloques_diario_log (
             id            {pk},
             fecha         TEXT NOT NULL,
