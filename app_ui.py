@@ -65,6 +65,8 @@ from db import (
     toggle_usuario_activo,
     eliminar_usuario,
     get_usuario_by_email,
+    cambiar_password,
+    get_usuario_by_id,
     guardar_horario_docente,
     get_horario_dia,
     get_all_hojas,

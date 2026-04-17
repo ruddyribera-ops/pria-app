@@ -20,18 +20,24 @@ from ._internals import (
 
 
 def crear_usuario(
-    email: str, password: str, nombre: str, nombre_hoja: str, rol: str = "docente"
+    email: str,
+    password: str,
+    nombre: str,
+    nombre_hoja: str,
+    rol: str = "docente",
+    must_change_password: bool = True,
 ) -> bool:
     try:
         with _conn() as con:
             con.execute(
-                "INSERT INTO usuarios (email, password_hash, nombre, nombre_hoja, rol) VALUES (?,?,?,?,?)",
+                "INSERT INTO usuarios (email, password_hash, nombre, nombre_hoja, rol, must_change_password) VALUES (?,?,?,?,?,?)",
                 (
                     email.lower().strip(),
                     _hash_password(password),
                     nombre,
                     nombre_hoja.upper().strip(),
                     rol,
+                    1 if must_change_password else 0,
                 ),
             )
         return True
@@ -68,7 +74,10 @@ def verificar_login(email: str, password: str) -> dict | None:
                 (new_hash, row["id"]),
             )
 
-    return dict(row)
+    result = dict(row)
+    # Ensure must_change_password is in the result (default to 1 for safety)
+    result.setdefault("must_change_password", 1)
+    return result
 
 
 def crear_token_recordarme(usuario_id: int, dias: int = 30) -> str:
@@ -141,7 +150,11 @@ def get_usuario_by_email(email: str) -> dict | None:
         row = con.execute(
             "SELECT * FROM usuarios WHERE email=?", (email.lower().strip(),)
         ).fetchone()
-    return dict(row) if row else None
+    if not row:
+        return None
+    result = dict(row)
+    result.setdefault("must_change_password", 1)
+    return result
 
 
 def get_all_usuarios() -> list[dict]:
@@ -164,6 +177,44 @@ def actualizar_password(email: str, nueva_password: str):
     u = get_usuario_by_email(email)
     if u:
         revocar_tokens_usuario(int(u["id"]))
+
+
+def cambiar_password(user_id: int, new_password: str) -> bool:
+    """
+    Change password for a user and reset the must_change_password flag.
+    Used when forcing a user to change their password on first login.
+
+    Returns True on success. Raises ValueError if new_password is the same as old.
+    """
+    # Get current hash to validate new != old
+    with _conn() as con:
+        row = con.execute(
+            "SELECT password_hash FROM usuarios WHERE id=?", (int(user_id),)
+        ).fetchone()
+
+    if not row:
+        return False
+
+    if _verify_password(new_password, row["password_hash"]):
+        raise ValueError("New password must be different from the current password")
+
+    # Update hash and flip flag
+    with _conn() as con:
+        con.execute(
+            "UPDATE usuarios SET password_hash=?, must_change_password=0 WHERE id=?",
+            (_hash_password(new_password), int(user_id)),
+        )
+
+    return True
+
+
+def get_usuario_by_id(user_id: int) -> dict | None:
+    """Get user by ID (used by cambiar_password)."""
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM usuarios WHERE id=?", (int(user_id),)
+        ).fetchone()
+    return dict(row) if row else None
 
 
 def actualizar_usuario_admin(

@@ -271,6 +271,12 @@ def init_db():
     # Migrations — add columns that may not exist in older DBs
     _migration_col("bloques_diario_log", "cerrado", "INTEGER DEFAULT 0")
     _migration_col("horario_docente", "orden", "INTEGER")
+    # Password change enforcement (Task 2 — force password change on first login)
+    _migration_col(
+        "usuarios",
+        "must_change_password",
+        "INTEGER DEFAULT 1" if not _USE_PG else "BOOLEAN DEFAULT TRUE",
+    )
 
 
 def _migration_col(table: str, col: str, col_def: str):
