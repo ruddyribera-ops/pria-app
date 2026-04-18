@@ -34,9 +34,9 @@ class SessionData(BaseModel):
     sb_extracted: Optional[Any] = Field(default=None)
 
     # Diagnostics
-    uploaded_diag_files: list = Field(default_factory=list)
+    uploaded_diag_files: list = Field(default=[])
     diagnosticos_texto: Optional[str] = Field(default=None)
-    diagnosticos_tabla: list = Field(default_factory=list)
+    diagnosticos_tabla: list = Field(default=[])
 
     # Results M0 (Unidad/ABP)
     res_m0a: Optional[str] = Field(default=None)
@@ -47,8 +47,8 @@ class SessionData(BaseModel):
     tema_activo: str = Field(default="")
     tema_hash: str = Field(default="")
     leccion_index: int = Field(default=0)
-    conceptos_activos: list = Field(default_factory=list)
-    palabras_clave_activas: list = Field(default_factory=list)
+    conceptos_activos: list = Field(default=[])
+    palabras_clave_activas: list = Field(default=[])
     contenido_tema_activo: str = Field(default="")
 
     # Results M1 (Plan Clase / Diapositivas / Ficha)
