@@ -44,13 +44,16 @@ from db import (
     eliminar_usuario,
     actualizar_usuario_admin,
     reset_dia_docente,
+    get_horario_docente_completo,
+    guardar_bloque_horario_manual,
+    eliminar_bloque_horario_manual,
 )
 
 
 def render_admin_panel():
     """Render admin panel tabs. Call from app_ui.py when usuario_rol == admin."""
-    adm_tab_arch, adm_tab_users, adm_tab_tracker = st.tabs(
-        ["📂 Archivos Fuente", "👥 Gestión de Usuarios", "🌅 Reset Diario"]
+    adm_tab_arch, adm_tab_users, adm_tab_tracker, adm_tab_bloques = st.tabs(
+        ["📂 Archivos Fuente", "👥 Gestión de Usuarios", "🌅 Reset Diario", "✏️ Editar Bloques"]
     )
 
     # ═══════════════════════════════════════════════════════════════
@@ -502,3 +505,134 @@ def render_admin_panel():
                 st.success(f"Día {admin_rst_date} reiniciado para {admin_rst_hoja}.")
             else:
                 st.error("Selecciona un docente válido.")
+
+    # ═══════════════════════════════════════════════════════════════
+    # TAB 4: EDITAR BLOQUES
+    # ═══════════════════════════════════════════════════════════════
+    with adm_tab_bloques:
+        st.markdown("#### ✏️ Editar Bloques del Horario")
+        st.caption("Edita, elimina o agrega bloques del horario de un docente.")
+
+        # Teacher selector
+        hojas = get_all_hojas()
+        edit_hoja = st.selectbox(
+            "Docente",
+            options=hojas if hojas else ["— sin horarios —"],
+            key="edit_bloque_hoja",
+        )
+
+        if edit_hoja and edit_hoja != "— sin horarios —":
+            bloques = get_horario_docente_completo(edit_hoja)
+
+            # Group by day
+            dias_orden = ["lunes", "martes", "miercoles", "jueves", "viernes"]
+            bloques_por_dia = {d: [] for d in dias_orden}
+            for b in bloques:
+                dia = (b.get("dia_semana") or "").lower()
+                if dia in bloques_por_dia:
+                    bloques_por_dia[dia].append(b)
+
+            st.markdown("---")
+            st.markdown(f"**Total de bloques:** {len(bloques)}")
+
+            for dia in dias_orden:
+                bloques_dia = bloques_por_dia[dia]
+                if not bloques_dia:
+                    continue
+
+                with st.expander(f"**📅 {dia.upper()}** ({len(bloques_dia)} bloques)", expanded=True):
+                    for blk in bloques_dia:
+                        col1, col2, col3 = st.columns([3, 1, 1])
+                        with col1:
+                            tipo_icon = {"clase": "📚", "ingreso": "🚪", "vigilancia_recreo": "👁️", "recreo_libre": "☕", "planificacion": "📝", "atencion_ppff": "💬"}.get(blk.get("tipo_bloque", ""), "📌")
+                            st.markdown(
+                                f"**{tipo_icon} {blk.get('hora_inicio', '')} - {blk.get('hora_fin', '')}** "
+                                f"| {blk.get('tipo_bloque', '')} | {blk.get('materia', '—')} | {blk.get('nivel_grado', '—')} | {blk.get('ubicacion', '—')}"
+                            )
+                        with col2:
+                            if st.button("✏️", key=f"edit_btn_{blk['id']}"):
+                                st.session_state[f"edit_bloque_{blk['id']}"] = not st.session_state.get(f"edit_bloque_{blk['id']}", False)
+                        with col3:
+                            if st.button("🗑️", key=f"del_btn_{blk['id']}"):
+                                eliminar_bloque_horario_manual(int(blk["id"]))
+                                st.success(f"Bloque eliminado.")
+                                st.rerun()
+
+                        # Edit form
+                        if st.session_state.get(f"edit_bloque_{blk['id']}", False):
+                            with st.form(key=f"edit_form_{blk['id']}"):
+                                st.markdown("**Editar bloque:**")
+                                e_hora_inicio = st.text_input("Hora inicio (HH:MM)", value=blk.get("hora_inicio", ""), key=f"e_hi_{blk['id']}")
+                                e_hora_fin = st.text_input("Hora fin (HH:MM)", value=blk.get("hora_fin", ""), key=f"e_hf_{blk['id']}")
+                                e_tipo = st.selectbox(
+                                    "Tipo",
+                                    ["clase", "ingreso", "vigilancia_recreo", "recreo_libre", "planificacion", "atencion_ppff"],
+                                    index=["clase", "ingreso", "vigilancia_recreo", "recreo_libre", "planificacion", "atencion_ppff"].index(blk.get("tipo_bloque", "clase")) if blk.get("tipo_bloque") in ["clase", "ingreso", "vigilancia_recreo", "recreo_libre", "planificacion", "atencion_ppff"] else 0,
+                                    key=f"e_tipo_{blk['id']}"
+                                )
+                                e_materia = st.text_input("Materia", value=blk.get("materia") or "", key=f"e_mat_{blk['id']}")
+                                e_nivel = st.text_input("Nivel/Grado", value=blk.get("nivel_grado") or "", key=f"e_niv_{blk['id']}")
+                                e_ubicacion = st.text_input("Ubicación", value=blk.get("ubicacion") or "", key=f"e_ub_{blk['id']}")
+                                e_orden = st.number_input("Orden", value=blk.get("orden") or 0, key=f"e_ord_{blk['id']}")
+
+                                col_save, col_cancel = st.columns(2)
+                                with col_save:
+                                    if st.form_submit_button("💾 Guardar"):
+                                        guardar_bloque_horario_manual(
+                                            nombre_hoja=edit_hoja,
+                                            dia_semana=dia,
+                                            hora_inicio=e_hora_inicio,
+                                            hora_fin=e_hora_fin,
+                                            tipo_bloque=e_tipo,
+                                            materia=e_materia if e_materia else None,
+                                            nivel_grado=e_nivel if e_nivel else None,
+                                            ubicacion=e_ubicacion if e_ubicacion else None,
+                                            orden=int(e_orden) if e_orden else None,
+                                            bloque_id=int(blk["id"]),
+                                        )
+                                        st.success("Bloque actualizado.")
+                                        st.session_state[f"edit_bloque_{blk['id']}"] = False
+                                        st.rerun()
+                                with col_cancel:
+                                    if st.form_submit_button("Cancelar"):
+                                        st.session_state[f"edit_bloque_{blk['id']}"] = False
+                                        st.rerun()
+                            st.markdown("---")
+
+            # Add new block
+            st.markdown("---")
+            st.markdown("#### ➕ Agregar Nuevo Bloque")
+            with st.expander("Agregar bloque", expanded=False):
+                with st.form(key="add_new_bloque_form"):
+                    add_dia = st.selectbox(
+                        "Día",
+                        dias_orden,
+                        key="add_bloque_dia"
+                    )
+                    add_hi = st.text_input("Hora inicio (HH:MM)", placeholder="07:30", key="add_bloque_hi")
+                    add_hf = st.text_input("Hora fin (HH:MM)", placeholder="08:30", key="add_bloque_hf")
+                    add_tipo = st.selectbox(
+                        "Tipo",
+                        ["clase", "ingreso", "vigilancia_recreo", "recreo_libre", "planificacion", "atencion_ppff"],
+                        key="add_bloque_tipo"
+                    )
+                    add_mat = st.text_input("Materia (opcional)", key="add_bloque_mat")
+                    add_niv = st.text_input("Nivel/Grado (opcional)", key="add_bloque_niv")
+                    add_ub = st.text_input("Ubicación (opcional)", key="add_bloque_ub")
+
+                    if st.form_submit_button("➕ Agregar Bloque", type="primary"):
+                        if add_hi and add_hf:
+                            guardar_bloque_horario_manual(
+                                nombre_hoja=edit_hoja,
+                                dia_semana=add_dia,
+                                hora_inicio=add_hi,
+                                hora_fin=add_hf,
+                                tipo_bloque=add_tipo,
+                                materia=add_mat if add_mat else None,
+                                nivel_grado=add_niv if add_niv else None,
+                                ubicacion=add_ub if add_ub else None,
+                            )
+                            st.success("Bloque agregado.")
+                            st.rerun()
+                        else:
+                            st.error("Hora inicio y fin son requeridas.")
