@@ -133,14 +133,21 @@ cleanup_old_cache()
 
 init_db()
 
-# Seed default users if DB is empty (runs once per deployment)
-from db import get_all_usuarios
-if not get_all_usuarios():
-    SEED_USERS = [
-        ("admin", "2b0n2b!123", "Administrador", "ADMIN", "admin"),
-        ("misterruddy@laspalmas.edu.bo", "2b0n2b!123", "Ruddy Ribera", "RUDDY", "docente"),
-    ]
-    for email, password, nombre, hoja, rol in SEED_USERS:
+# Seed default users - create or update password if user exists
+from db import get_usuario_by_email, crear_usuario, actualizar_password
+SEED_USERS = [
+    ("admin", "2b0n2b!123", "Administrador", "ADMIN", "admin"),
+    ("misterruddy@laspalmas.edu.bo", "2b0n2b!123", "Ruddy Ribera", "RUDDY", "docente"),
+]
+for email, password, nombre, hoja, rol in SEED_USERS:
+    existing = get_usuario_by_email(email)
+    if existing:
+        # Reset password to ensure correct hash
+        try:
+            actualizar_password(email, password)
+        except ValueError:
+            pass  # Already correct
+    else:
         crear_usuario(email, password, nombre, hoja, rol)
 
 init_session_state()
