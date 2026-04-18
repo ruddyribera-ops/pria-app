@@ -38,5 +38,4 @@ echo "=== Starting Streamlit on :$PORT ==="
 exec streamlit run app_ui.py \
     --server.port "$PORT" \
     --server.address 0.0.0.0 \
-    --server.headless true \
-    --server.sessionLifetimeMinutes 10080
+    --server.headless true
