@@ -277,6 +277,15 @@ def init_db():
         "must_change_password",
         "INTEGER DEFAULT 1" if not _USE_PG else "BOOLEAN DEFAULT TRUE",
     )
+    # Fix must_change_password type in PostgreSQL (INTEGER -> BOOLEAN)
+    if _USE_PG:
+        try:
+            with _conn() as con:
+                con.execute(
+                    "ALTER TABLE usuarios ALTER COLUMN must_change_password TYPE BOOLEAN USING must_change_password::boolean"
+                )
+        except Exception:
+            pass  # Already correct type
 
 
 def _migration_col(table: str, col: str, col_def: str):

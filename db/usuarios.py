@@ -7,7 +7,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from pria_docs.auth import Role
 
-from ._base import _conn
+from ._base import _conn, _USE_PG
 from ._internals import (
     _hash_password,
     _verify_password,
@@ -27,6 +27,9 @@ def crear_usuario(
     rol: str = "docente",
     must_change_password: bool = True,
 ) -> bool:
+    # For PG: use TRUE/FALSE; for SQLite: use 1/0
+    flag_val = "TRUE" if _USE_PG else "1"
+    not_flag_val = "FALSE" if _USE_PG else "0"
     try:
         with _conn() as con:
             con.execute(
@@ -37,7 +40,7 @@ def crear_usuario(
                     nombre,
                     nombre_hoja.upper().strip(),
                     rol,
-                    1 if must_change_password else 0,
+                    flag_val if must_change_password else not_flag_val,
                 ),
             )
         return True
@@ -199,9 +202,11 @@ def cambiar_password(user_id: int, new_password: str) -> bool:
         raise ValueError("New password must be different from the current password")
 
     # Update hash and flip flag
+    # For PG: use FALSE; for SQLite: use 0
+    flag_val = "FALSE" if _USE_PG else "0"
     with _conn() as con:
         con.execute(
-            "UPDATE usuarios SET password_hash=?, must_change_password=0 WHERE id=?",
+            f"UPDATE usuarios SET password_hash=?, must_change_password={flag_val} WHERE id=?",
             (_hash_password(new_password), int(user_id)),
         )
 
