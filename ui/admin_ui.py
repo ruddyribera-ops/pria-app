@@ -340,7 +340,7 @@ def render_admin_panel():
         with cu_col2:
             cu_hoja = st.selectbox(
                 "Hoja de horario",
-                opciones=hojas_disponibles
+                options=hojas_disponibles
                 if hojas_disponibles
                 else ["— sin horario cargado —"],
                 key="cu_hoja",
