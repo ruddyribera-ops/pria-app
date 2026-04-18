@@ -132,6 +132,17 @@ cleanup_old_sessions()
 cleanup_old_cache()
 
 init_db()
+
+# Seed default users if DB is empty (runs once per deployment)
+from db import get_all_usuarios
+if not get_all_usuarios():
+    SEED_USERS = [
+        ("admin", "2b0n2b!123", "Administrador", "ADMIN", "admin"),
+        ("misterruddy@laspalmas.edu.bo", "2b0n2b!123", "Ruddy Ribera", "RUDDY", "docente"),
+    ]
+    for email, password, nombre, hoja, rol in SEED_USERS:
+        crear_usuario(email, password, nombre, hoja, rol)
+
 init_session_state()
 
 
