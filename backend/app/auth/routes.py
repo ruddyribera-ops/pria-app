@@ -21,10 +21,10 @@ from app.auth.utils import (
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
 
-@router.get("/test")
-async def test_endpoint():
-    """Simple test endpoint"""
-    return {"status": "OK", "message": "Auth routes are working"}
+@router.get("/ping")
+async def ping():
+    """Simple ping endpoint"""
+    return {"pong": True}
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -95,57 +95,44 @@ async def register(
     user_data: UserRegister,
     db: Session = Depends(get_db)
 ):
-    """
-    Register a new user
-    """
-    try:
-        # Check if user exists
-        existing_user = db.query(User).filter(User.email == user_data.email).first()
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
-            )
-
-        # Create new user
-        new_user = User(
-            email=user_data.email,
-            full_name=user_data.full_name,
-            password_hash=hash_password(user_data.password),
-            school_id=user_data.school_id,
-        )
-
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-
-        # Create access token
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data={"sub": new_user.email},
-            expires_delta=access_token_expires
-        )
-
-        return {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "user": {
-                "id": new_user.id,
-                "email": new_user.email,
-                "full_name": new_user.full_name,
-                "is_active": new_user.is_active,
-            }
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"[ERROR] Registration failed: {type(e).__name__}: {str(e)}")
-        import traceback
-        traceback.print_exc()
+    """Register a new user"""
+    # Check if user exists
+    existing_user = db.query(User).filter(User.email == user_data.email).first()
+    if existing_user:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Registration failed: {str(e)}"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
         )
+
+    # Create new user
+    new_user = User(
+        email=user_data.email,
+        full_name=user_data.full_name,
+        password_hash=hash_password(user_data.password),
+        school_id=user_data.school_id,
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    # Create access token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": new_user.email},
+        expires_delta=access_token_expires
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": new_user.id,
+            "email": new_user.email,
+            "full_name": new_user.full_name,
+            "is_active": new_user.is_active,
+        }
+    }
 
 @router.get("/me")
 async def get_me(current_user: User = Depends(get_current_user)):
