@@ -58,14 +58,14 @@ jobs:
 
       - name: Run migrations
         env:
-          DATABASE_URL: postgresql://pria:pria_test@localhost:5432/pria_test
+          DATABASE_URL: postgresql+asyncpg://pria:pria_test@localhost:5432/pria_test
         run: |
           cd backend
           python -m alembic upgrade head
 
       - name: Run backend tests
         env:
-          DATABASE_URL: postgresql://pria:pria_test@localhost:5432/pria_test
+          DATABASE_URL: postgresql+asyncpg://pria:pria_test@localhost:5432/pria_test
           REDIS_URL: redis://localhost:6379/0
         run: |
           cd backend

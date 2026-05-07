@@ -1,7 +1,7 @@
-"""
-Playwright E2E tests for authentication
-Full workflow: register → login → protected routes → logout
-"""
+/**
+ * Playwright E2E tests for authentication
+ * Full workflow: register -> login -> protected routes -> logout
+ */
 import { test, expect } from '@playwright/test'
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000'

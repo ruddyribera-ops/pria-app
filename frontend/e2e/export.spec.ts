@@ -1,7 +1,7 @@
-"""
-Playwright E2E tests for export workflow
-Full workflow: select format → start export → monitor progress → download
-"""
+/**
+ * Playwright E2E tests for export workflow
+ * Full workflow: select format -> start export -> monitor progress -> download
+ */
 import { test, expect } from '@playwright/test'
 import * as fs from 'fs'
 import * as path from 'path'

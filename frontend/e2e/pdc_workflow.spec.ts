@@ -1,7 +1,7 @@
-"""
-Playwright E2E tests for PDC workflow
-Full workflow: create PDC → add MESCP row → save → reload → verify
-"""
+/**
+ * Playwright E2E tests for PDC workflow
+ * Full workflow: create PDC -> add MESCP row -> save -> reload -> verify
+ */
 import { test, expect } from '@playwright/test'
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000'

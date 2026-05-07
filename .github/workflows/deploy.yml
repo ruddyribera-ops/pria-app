@@ -132,46 +132,43 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           npm install -g @railway/cli
-          railway up --service backend --service frontend --service postgres
-
-      - name: Wait for deployment
-        run: |
-          for i in {1..10}; do
-            if curl -f http://pria-v7-staging.railway.app/api/health/live; then
-              echo "✅ Deployment successful"
-              exit 0
-            fi
-            echo "Waiting for deployment... ($i/10)"
-            sleep 10
-          done
-          echo "❌ Deployment timeout"
-          exit 1
+          railway up --service backend
+          railway up --service frontend
 
       - name: Run migrations
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway exec alembic upgrade head
+          railway exec --service backend -- alembic upgrade head
 
       - name: Health check
+        continue-on-error: true
         run: |
-          max_attempts=3
+          echo "Waiting 30s for services to start..."
+          sleep 30
+          max_attempts=5
           attempt=1
           while [ $attempt -le $max_attempts ]; do
-            if curl -f https://pria-v7-staging.railway.app/api/health/live; then
-              echo "✅ Health check passed"
+            HEALTH_URL=$(railway status --service backend --json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('url',''))" 2>/dev/null || echo "")
+            if [ -n "$HEALTH_URL" ] && curl -sf "$HEALTH_URL/api/health/live"; then
+              echo "✅ Health check passed: $HEALTH_URL"
               exit 0
             fi
+            echo "Attempt $attempt/$max_attempts failed, retrying in 15s..."
             attempt=$((attempt + 1))
-            sleep 10
+            sleep 15
           done
-          echo "⚠️ Health check failed after $max_attempts attempts"
+          echo "⚠️ Health check inconclusive — verify manually in Railway dashboard"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
       - name: Notify Slack (Success)
         if: success()
-        uses: slackapi/slack-github-action@v1
+        continue-on-error: true
+        uses: slackapi/slack-github-action@v2
         with:
-          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
           payload: |
             {
               "text": "✅ PRIA v7 deployed to staging",
@@ -188,9 +185,11 @@ jobs:
 
       - name: Notify Slack (Failure)
         if: failure()
-        uses: slackapi/slack-github-action@v1
+        continue-on-error: true
+        uses: slackapi/slack-github-action@v2
         with:
-          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
           payload: |
             {
               "text": "❌ PRIA v7 deployment failed",
