@@ -1,0 +1,269 @@
+/**
+ * MicroObjetivosList Styles
+ */
+
+.micro-objetivos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  background-color: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.micro-objetivos-list.empty {
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  color: #999999;
+  text-align: center;
+}
+
+.micro-objetivos-list.empty p {
+  margin: 0;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.list-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #333333;
+  margin: 0;
+}
+
+.count-badge {
+  display: inline-block;
+  background-color: #0066cc;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Objectives Container */
+.objetivos-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.objetivo-item {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.objetivo-item:hover {
+  background-color: #f0f6ff;
+  border-color: #0066cc;
+}
+
+.objetivo-item.completed {
+  opacity: 0.7;
+  background-color: #f0f0f0;
+}
+
+.objetivo-item.completed .objetivo-texto {
+  text-decoration: line-through;
+  color: #999999;
+}
+
+/* Checkbox */
+.objetivo-checkbox {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 0.25rem;
+}
+
+.objetivo-checkbox input {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+  accent-color: #0066cc;
+}
+
+/* Content */
+.objetivo-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.objetivo-header {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.objetivo-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+  text-align: left;
+  flex-grow: 1;
+}
+
+.objetivo-toggle:hover .objetivo-texto {
+  color: #0066cc;
+}
+
+.toggle-icon {
+  display: inline-block;
+  width: 1rem;
+  font-size: 0.8rem;
+  text-align: center;
+  color: #666666;
+  flex-shrink: 0;
+}
+
+.objetivo-texto {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #333333;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* Metadata */
+.objetivo-metadata {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+}
+
+.priority-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.priority-low {
+  background-color: #e8f5e9;
+  color: #388e3c;
+}
+
+.priority-normal {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+.priority-high {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.dependency-indicator {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background-color: #e3f2fd;
+  color: #0066cc;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+/* Details */
+.objetivo-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: white;
+  border-radius: 4px;
+  border-left: 3px solid #0066cc;
+  margin-top: 0.5rem;
+}
+
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detail-section h4 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #333333;
+  margin: 0;
+}
+
+.detail-section p {
+  font-size: 0.9rem;
+  color: #666666;
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.detail-section.meta {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: #999999;
+  border-top: 1px solid #e0e0e0;
+  padding-top: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.detail-section.meta span {
+  display: block;
+}
+
+/* Dependency List */
+.dependency-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dependency-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #666666;
+}
+
+.dependency-list li:before {
+  content: '→';
+  color: #0066cc;
+  font-weight: 700;
+}
+
+.dependency-list code {
+  background-color: #f0f0f0;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: #333333;
+}

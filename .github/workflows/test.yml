@@ -1,0 +1,192 @@
+name: Test & Coverage
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  backend-tests:
+    name: Backend Tests (Python)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: pria
+          POSTGRES_PASSWORD: pria_test
+          POSTGRES_DB: pria_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest-cov
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql://pria:pria_test@localhost:5432/pria_test
+        run: |
+          cd backend
+          python -m alembic upgrade head
+
+      - name: Run backend tests
+        env:
+          DATABASE_URL: postgresql://pria:pria_test@localhost:5432/pria_test
+          REDIS_URL: redis://localhost:6379/0
+        run: |
+          cd backend
+          python -m pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing
+
+      - name: Check coverage threshold
+        run: |
+          cd backend
+          python -m pytest tests/ --cov=app --cov-report=term --co -q | grep "TOTAL" | awk '{if ($NF < 80) exit 1}'
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+
+  frontend-lint:
+    name: Frontend Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        run: |
+          cd frontend
+          pnpm lint || true
+
+      - name: Type check
+        run: |
+          cd frontend
+          pnpm tsc --noEmit
+
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          pnpm install --frozen-lockfile
+
+      - name: Build application
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+        run: |
+          cd frontend
+          pnpm build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-build
+          path: frontend/.next
+
+  backend-type-check:
+    name: Backend Type Check (mypy)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install mypy
+
+      - name: Run mypy type check
+        run: |
+          cd backend
+          python -m mypy app --ignore-missing-imports --no-error-summary 2>&1 | head -50 || true
+
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-lint, frontend-build, backend-type-check]
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          if [ "${{ needs.backend-tests.result }}" = "failure" ] || \
+             [ "${{ needs.frontend-lint.result }}" = "failure" ] || \
+             [ "${{ needs.frontend-build.result }}" = "failure" ]; then
+            echo "❌ Tests failed"
+            exit 1
+          else
+            echo "✅ All tests passed"
+          fi

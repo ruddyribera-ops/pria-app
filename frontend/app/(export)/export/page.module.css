@@ -1,0 +1,273 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 40px 20px;
+}
+
+.pageHeader {
+  max-width: 1400px;
+  margin: 0 auto 40px;
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 16px;
+  color: #6b7280;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.errorBanner {
+  max-width: 1400px;
+  margin: 0 auto 20px;
+  padding: 16px;
+  background-color: #fee2e2;
+  border-left: 4px solid #dc2626;
+  border-radius: 6px;
+  color: #991b1b;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.errorBanner p {
+  margin: 0;
+  flex: 1;
+}
+
+.dismissBtn {
+  background: none;
+  border: none;
+  color: #991b1b;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 12px;
+  transition: opacity 0.2s;
+}
+
+.dismissBtn:hover {
+  opacity: 0.7;
+}
+
+.content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+}
+
+.leftPanel,
+.centerPanel,
+.rightPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.centerPanel {
+  grid-column: 2;
+}
+
+/* Action Card */
+.actionCard {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 320px;
+}
+
+.actionIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.actionTitle {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+
+.actionDescription {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.exportBtn {
+  padding: 12px 32px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-bottom: 16px;
+}
+
+.exportBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 12px rgba(102, 126, 234, 0.4);
+}
+
+.exportBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.helpText {
+  margin: 0;
+  font-size: 12px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+/* Stats Card */
+.statsCard {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: #f9fafb;
+}
+
+.statValue {
+  font-size: 28px;
+  font-weight: 700;
+  color: #3b82f6;
+}
+
+.statLabel {
+  font-size: 11px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.25px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+
+  .centerPanel {
+    grid-column: auto;
+  }
+
+  .actionCard {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 24px 16px;
+  }
+
+  .pageHeader {
+    margin-bottom: 24px;
+  }
+
+  .title {
+    font-size: 28px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+  }
+
+  .content {
+    gap: 16px;
+  }
+
+  .actionCard {
+    padding: 24px;
+  }
+
+  .actionTitle {
+    font-size: 20px;
+  }
+
+  .actionIcon {
+    font-size: 36px;
+  }
+
+  .statsCard {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 16px 12px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .actionCard {
+    padding: 20px;
+    min-height: auto;
+  }
+
+  .actionDescription {
+    font-size: 13px;
+  }
+
+  .exportBtn {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .statsCard {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .statItem {
+    padding: 8px;
+  }
+
+  .statValue {
+    font-size: 24px;
+  }
+}

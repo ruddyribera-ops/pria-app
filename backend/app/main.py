@@ -16,6 +16,8 @@ from app.auth.routes import router as auth_router
 from app.pdc.routes import router as pdc_router
 from app.planning.routes import router as planning_router
 from app.health.routes import router as health_router
+from app.routes.accessibility import router as accessibility_router
+from app.routes.export import router as export_router
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -42,6 +44,8 @@ app.include_router(health_router, prefix="/api/health", tags=["health"])
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(pdc_router, prefix="/api/pdc", tags=["pdc"])
 app.include_router(planning_router, prefix="/api/planning", tags=["planning"])
+app.include_router(accessibility_router, prefix="/api/accessibility", tags=["accessibility"])
+app.include_router(export_router)  # Export router already has /api/export prefix
 
 # Root endpoint
 @app.get("/")

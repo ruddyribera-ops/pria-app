@@ -1,0 +1,215 @@
+/**
+ * Dyscalculia Theme CSS
+ * Monospace numbers, color-coded by magnitude
+ * Uses tens-frames, base-10 visual manipulation, concrete language
+ */
+
+body.theme-dyscalculia {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  font-size: 12pt;
+  line-height: 1.6;
+  color: #000;
+  background: #FFF;
+}
+
+/* Monospace for all numbers */
+body.theme-dyscalculia .number,
+body.theme-dyscalculia [data-type="number"],
+body.theme-dyscalculia .digit,
+body.theme-dyscalculia .quantity {
+  font-family: 'Courier New', 'Courier', monospace;
+  font-weight: bold;
+  font-size: 14pt;
+}
+
+/* Color-code by magnitude */
+body.theme-dyscalculia .number.single,
+body.theme-dyscalculia [data-magnitude="single"],
+body.theme-dyscalculia [data-range="1-9"] {
+  color: #0066FF;
+}
+
+body.theme-dyscalculia .number.double,
+body.theme-dyscalculia [data-magnitude="double"],
+body.theme-dyscalculia [data-range="10-99"] {
+  color: #FF6600;
+}
+
+body.theme-dyscalculia .number.triple,
+body.theme-dyscalculia [data-magnitude="triple"],
+body.theme-dyscalculia [data-range="100-999"] {
+  color: #DD0000;
+}
+
+/* Tens Frame Layout */
+body.theme-dyscalculia .tens-frame,
+body.theme-dyscalculia [data-frame="tens"],
+body.theme-dyscalculia .ten-frame {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+  padding: 8px;
+  border: 2px solid #000;
+  background: #FFF;
+  margin: 12px 0;
+}
+
+body.theme-dyscalculia .tens-frame .cell,
+body.theme-dyscalculia [data-frame="tens"] > div,
+body.theme-dyscalculia .frame-cell {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  cursor: pointer;
+  background: #FFF;
+  transition: none;
+}
+
+body.theme-dyscalculia .tens-frame .cell.filled,
+body.theme-dyscalculia [data-frame="tens"] > div.filled,
+body.theme-dyscalculia .frame-cell.filled {
+  background: #0066FF;
+  color: #FFF;
+  border-color: #0066FF;
+}
+
+body.theme-dyscalculia .tens-frame .cell:hover {
+  background: #E8F0FF;
+  border-color: #0066FF;
+}
+
+/* Base-10 blocks */
+body.theme-dyscalculia .ten-block {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  background: #0066FF;
+  border: 2px solid #000;
+  margin: 2px;
+  vertical-align: middle;
+}
+
+body.theme-dyscalculia .hundred-block {
+  display: inline-block;
+  width: 100px;
+  height: 100px;
+  background: #FF6600;
+  border: 2px solid #000;
+  margin: 2px;
+}
+
+body.theme-dyscalculia .one-block {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background: #FFC000;
+  border: 1px solid #000;
+  margin: 1px;
+}
+
+/* Concrete language support */
+body.theme-dyscalculia .concrete-label {
+  font-weight: bold;
+  color: #000;
+  margin-right: 8px;
+}
+
+body.theme-dyscalculia .concrete-example {
+  font-style: italic;
+  color: #666;
+}
+
+/* Number input fields */
+body.theme-dyscalculia input[type="text"],
+body.theme-dyscalculia input[type="number"] {
+  font-family: 'Courier New', monospace;
+  font-size: 14pt;
+  text-align: center;
+  padding: 8px;
+  border: 2px solid #000;
+  width: 80px;
+}
+
+body.theme-dyscalculia input[type="number"] {
+  font-weight: bold;
+}
+
+/* Pre-filled grid for number input */
+body.theme-dyscalculia .number-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  margin: 12px 0;
+}
+
+body.theme-dyscalculia .number-grid .cell {
+  width: 50px;
+  height: 50px;
+  border: 2px solid #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14pt;
+  font-weight: bold;
+  cursor: pointer;
+  background: #FFF;
+}
+
+body.theme-dyscalculia .number-grid .cell:hover {
+  background: #F0F0FF;
+}
+
+body.theme-dyscalculia .number-grid .cell.selected {
+  background: #0066FF;
+  color: #FFF;
+}
+
+/* Dot manipulative */
+body.theme-dyscalculia .dot {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #FF6600;
+  border: 1px solid #000;
+  margin: 2px;
+}
+
+body.theme-dyscalculia .dot-container {
+  margin: 12px 0;
+}
+
+/* Button and link styles */
+body.theme-dyscalculia button,
+body.theme-dyscalculia [role="button"] {
+  padding: 12px 24px;
+  border: 2px solid #000;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+body.theme-dyscalculia :focus {
+  outline: 3px solid #0066FF !important;
+  outline-offset: 2px;
+}
+
+body.theme-dyscalculia table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+body.theme-dyscalculia td,
+body.theme-dyscalculia th {
+  border: 1px solid #000;
+  padding: 8px;
+  text-align: center;
+}
+
+body.theme-dyscalculia th {
+  background: #D0D0D0;
+  font-weight: bold;
+}

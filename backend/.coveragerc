@@ -1,0 +1,31 @@
+[run]
+source = app/
+omit =
+    */tests/*
+    */migrations/*
+    */venv/*
+    */__pycache__/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+    @abc.abstractmethod
+    pass
+    except ImportError:
+    except ModuleNotFoundError:
+
+precision = 2
+skip_covered = False
+show_missing = True
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml

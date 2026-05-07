@@ -1,0 +1,103 @@
+/**
+ * Dyslexia Theme CSS
+ * Font: OpenDyslexic or Dyslexie
+ * Size: 14pt, Line-height: 2.0, Warm background, No italics
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=OpenDyslexic:wght@400;700&display=swap');
+
+body.theme-dislexia {
+  font-family: OpenDyslexic, 'Comic Sans MS', 'Arial', sans-serif;
+  font-size: 14pt;
+  line-height: 2.0;
+  background-color: #FAF7F2;
+  color: #000;
+  letter-spacing: 0.15em;
+}
+
+body.theme-dislexia * {
+  font-style: normal !important;
+  transition: none !important;
+}
+
+body.theme-dislexia p {
+  text-align: left;
+  margin: 16px 0;
+}
+
+body.theme-dislexia h1,
+body.theme-dislexia h2,
+body.theme-dislexia h3,
+body.theme-dislexia h4,
+body.theme-dislexia h5,
+body.theme-dislexia h6 {
+  font-style: normal;
+  margin: 24px 0 12px;
+  line-height: 2.0;
+}
+
+body.theme-dislexia button,
+body.theme-dislexia a.button,
+body.theme-dislexia [role="button"] {
+  outline: 2px solid #000;
+  padding: 0.75em 1.5em;
+  font-size: 14pt;
+  font-weight: bold;
+}
+
+body.theme-dislexia button:hover,
+body.theme-dislexia a.button:hover,
+body.theme-dislexia [role="button"]:hover {
+  background-color: #FFF;
+  outline: 3px solid #000;
+}
+
+body.theme-dislexia :focus {
+  outline: 3px solid #000 !important;
+  outline-offset: 2px;
+}
+
+body.theme-dislexia a {
+  color: #0066FF;
+  text-decoration: underline;
+}
+
+body.theme-dislexia a:visited {
+  color: #6600CC;
+}
+
+body.theme-dislexia li {
+  margin: 12px 0;
+}
+
+body.theme-dislexia table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 16px 0;
+}
+
+body.theme-dislexia td,
+body.theme-dislexia th {
+  border: 2px solid #000;
+  padding: 12px;
+  text-align: left;
+  font-style: normal;
+}
+
+body.theme-dislexia th {
+  background-color: #E8E0D0;
+  font-weight: bold;
+}
+
+body.theme-dislexia input,
+body.theme-dislexia textarea,
+body.theme-dislexia select {
+  font-family: OpenDyslexic, sans-serif;
+  font-size: 14pt;
+  padding: 8px;
+  border: 2px solid #000;
+}
+
+body.theme-dislexia textarea {
+  line-height: 2.0;
+}

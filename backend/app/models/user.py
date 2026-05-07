@@ -24,6 +24,8 @@ class User(Base):
     # Relationships
     school = relationship("School", back_populates="users")
     pdcs = relationship("PDC", back_populates="user")
+    export_jobs = relationship("ExportJob", back_populates="user", cascade="all, delete-orphan")
+    accessibility_profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User {self.email}>"
