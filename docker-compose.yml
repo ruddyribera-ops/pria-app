@@ -1,0 +1,66 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: pria_postgres
+    environment:
+      POSTGRES_USER: pria_dev
+      POSTGRES_PASSWORD: pria_dev_password_123
+      POSTGRES_DB: pria_v7
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pria_dev -d pria_v7"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pria_network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: pria_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pria_network
+
+  # FastAPI Backend (will run locally with `uvicorn`)
+  # Uncomment below to run backend in container
+  # backend:
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #   container_name: pria_backend
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     DATABASE_URL: postgresql://pria_dev:pria_dev_password_123@postgres:5432/pria_v7
+  #     REDIS_URL: redis://redis:6379
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   networks:
+  #     - pria_network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  pria_network:
+    driver: bridge
