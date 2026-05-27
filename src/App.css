@@ -1,0 +1,140 @@
+/* ============================================
+   PRIA v5.4 — Codecademy-Inspired Design System
+   ============================================ */
+
+:root {
+  --sidebar-bg: #1c1e24;
+  --sidebar-hover: #2e2f3e;
+  --sidebar-active: #3a3b4e;
+  --sidebar-text: #b3b3cc;
+  --sidebar-text-active: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --accent-green: #3A9E5E;
+  --accent-green-hover: #2d7a48;
+  --accent-purple: #5c6ac4;
+  --main-bg: #ffffff;
+  --text-primary: #1e1e2f;
+  --text-secondary: #6b6b80;
+  --border-light: #e6e6eb;
+  --input-bg: #f8f8ff;
+  --input-border: #d4d4e0;
+  --card-radius: 8px;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --sidebar-width: 260px;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--main-bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+input,
+select,
+button,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Focus styles */
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent-green) !important;
+  box-shadow: 0 0 0 3px rgba(58, 158, 94, 0.12) !important;
+}
+
+/* Table hover */
+tbody tr:hover td {
+  background: #f8f8ff;
+}
+
+/* Scrollbar */
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .plan-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* Toast slide-in animation */
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Loading skeleton pulse animation */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 60px !important;
+  }
+  .sidebar .sidebar-brand span,
+  .sidebar .sidebar-user .role,
+  .sidebar .sidebar-user .user-info,
+  .sidebar .nav-item span,
+  .sidebar .nav-section,
+  .sidebar .sidebar-footer .nav-item span,
+  .sidebar-nivel,
+  .sidebar-estado,
+  .profile-dropdown {
+    display: none !important;
+  }
+  .main-content {
+    margin-left: 60px !important;
+    padding: 1rem !important;
+  }
+  .motor-grid,
+  [class*="motor-grid"],
+  [class*="MotorGrid"],
+  .motor-list {
+    grid-template-columns: 1fr !important;
+    flex-direction: column !important;
+  }
+}

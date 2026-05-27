@@ -1,0 +1,52 @@
+{
+  "name": "react_frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "postinstall": "cd server && npm install",
+    "dev": "vite",
+    "dev:clean": "taskkill /F /IM node.exe /T 2>nul; Start-Sleep 1; vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit --project tsconfig.app.json",
+    "typecheck:strict": "tsc -b",
+    "start": "NODE_ENV=production tsx server.js",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "preview": "vite preview",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
+  },
+  "dependencies": {
+    "axios": "^1.16.1",
+    "express": "^4.21.0",
+    "http-proxy-middleware": "^3.0.0",
+    "tsx": "^4.19.2",
+    "mammoth": "^1.12.0",
+    "pdfjs-dist": "^5.7.284",
+    "pptxgenjs": "^4.0.1",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-router-dom": "^7.15.0",
+    "tesseract.js": "^7.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.60.0",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^24.12.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.59.2",
+    "vite": "^5.4.21",
+    "vite-plugin-pwa": "^1.3.0",
+    "vitest": "^4.1.7"
+  }
+}
