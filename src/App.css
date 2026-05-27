@@ -138,3 +138,8 @@ tbody tr:hover td {
     flex-direction: column !important;
   }
 }
+
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

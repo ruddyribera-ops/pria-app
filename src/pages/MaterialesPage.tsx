@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { TOKEN_KEY } from '../constants';
 import Header from '../components/Layout/Header';
 import { useToast } from '../components/UI/Toast';
@@ -27,6 +27,20 @@ import MotorSection_Micro from '../components/Motores/MotorSection_Micro';
 import MotorSection_Export from '../components/Motores/MotorSection_Export';
 import MotorButtonRow from '../components/Motores/MotorButtonRow';
 
+const SimulatedBanner = () => (
+  <div style={{
+    margin: '0 1rem 1rem',
+    padding: '0.5rem 1rem',
+    background: '#FFF3CD',
+    border: '1px solid #FFC107',
+    borderRadius: '6px',
+    fontSize: '0.75rem',
+    color: '#856404',
+  }}>
+    ⚠️ IA no disponible — contenido simulado con fines ilustrativos.
+  </div>
+);
+
 export default function MaterialesPage() {
   const { showToast } = useToast();
   const synthesis = useMotorGenerator<SynthesisOutput>('synthesis', showToast as (msg: string, type?: string) => void);
@@ -53,7 +67,6 @@ export default function MaterialesPage() {
   const onExportPlan = () => { try { exportContentToPPTX('Plan', plan.result!, { title: 'Plan de Clase', subtitle: '5to Primaria' }); showToast('PPTX plan descargado.', 'success'); } catch { showToast('Error al exportar.', 'error'); } };
   const onExportQuiz = () => { try { exportContentToPPTX('Quiz', quiz.result!, { title: 'Pop Quiz', subtitle: '5to Primaria' }); showToast('PPTX quiz descargado.', 'success'); } catch { showToast('Error al exportar.', 'error'); } };
   const onExportAll = async () => {
-    // Check if any results exist
     const hasResults = [synthesis.result, abp.result, assessment.result, plan.result, slides.result, ficha.result, quiz.result, tutor.result, pdc.result, recalibrate.result, micro.result].some(v => v !== null);
     if (!hasResults) {
       showToast('Genera al menos un contenido antes de exportar.', 'warning');
@@ -102,7 +115,6 @@ export default function MaterialesPage() {
 
   useEffect(() => {
     loadMaterials();
-    // Load student book from API
     const token = localStorage.getItem(TOKEN_KEY);
     if (token) {
       fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
@@ -133,11 +145,9 @@ export default function MaterialesPage() {
     setCurriculumPreview(null);
 
     try {
-      // 1. Upload to backend
       await uploadMaterial(file, 'textbook');
       await loadMaterials();
     } catch {
-      // mock add
       const newMaterial: Material = {
         id: Date.now(),
         filename: file.name,
@@ -147,21 +157,12 @@ export default function MaterialesPage() {
       setMaterials((prev) => [...prev, newMaterial]);
     }
 
-    // 2. Ingest and extract curriculum preview (client-side, browser-only)
     try {
       const ingestResult: IngestResult = await ingestDocument(file);
-      console.log('Ingest result:', {
-        ok: ingestResult.ok,
-        fullTextLen: ingestResult.fullText.length,
-        pageCount: ingestResult.metadata.pageCount,
-        warnings: ingestResult.warnings,
-        textSample: ingestResult.fullText.slice(0, 500),
-      });
       setRawText(ingestResult.fullText);
       showToast('Texto extraído. Analizando con IA...', 'info');
       const curriculum = await extractCurriculumWithAI(ingestResult);
       setCurriculumPreview(curriculum);
-      // Save to API (replaces localStorage)
       try { await saveCurriculum(curriculum); } catch { /* ignore */ }
       if (curriculum.temas.length > 0) {
         showToast('Material procesado. Revisa la vista previa abajo.', 'success');
@@ -188,11 +189,9 @@ export default function MaterialesPage() {
     }
   };
 
-  // Handlers extracted to useMotorGenerator hook
-
   return (
     <div>
-      <Header title="📥 Materiales" subtitle="Gestión de libros de texto y materiales didácticos" />
+      <Header title="📚 Materiales" subtitle="Gestión de libros de texto y materiales didácticos" />
 
       {/* Upload Area */}
       <UploadZone onUpload={handleUpload} ingesting={ingesting} />
@@ -202,7 +201,7 @@ export default function MaterialesPage() {
         display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem',
         background: '#fff', border: '1px solid #e6e6eb', borderRadius: '8px', padding: '0.75rem 1rem',
       }}>
-        <span style={{ fontSize: '0.8125rem', fontWeight: 500, color: '#1e1e2f' }}>📘 ¿Usa Student Book?</span>
+        <span style={{ fontSize: '0.8125rem', fontWeight: 500, color: '#1e1e2f' }}>¿Usa Student Book?</span>
         <button
           onClick={toggleStudentBook}
           style={{
@@ -222,7 +221,8 @@ export default function MaterialesPage() {
 
       {/* File List */}
       <FileList materials={materials} loading={loading} onDelete={handleDelete} />
-    {/* Loading / Processing indicator */}
+
+      {/* Loading / Processing indicator */}
       {ingesting && (
         <div style={{
           padding: '1rem', textAlign: 'center', color: '#6b6b80', fontSize: '0.8125rem',
@@ -237,9 +237,12 @@ export default function MaterialesPage() {
         <CurriculumPreview
           curriculumPreview={curriculumPreview}
           rawText={rawText}
-            generatingSynthesis={synthesis.loading}
+          generatingSynthesis={synthesis.loading}
           synthesisStreamText={synthesisStreamText}
-          onGenerateSynthesis={() => { if (!curriculumPreview || curriculumPreview.temas.length === 0) { showToast('Primero extrae los temas del PDF.', 'warning'); return; } synthesis.generate({ grado_nivel: '5to Primaria', unidad_real: curriculumPreview.unidad_real, unidad: curriculumPreview.unidad_real, temas: curriculumPreview.temas, diagnosticos: '' }, (t) => setSynthesisStreamText(t.slice(0, 500))); }}
+          onGenerateSynthesis={() => {
+            if (!curriculumPreview || curriculumPreview.temas.length === 0) { showToast('Primero extrae los temas del PDF.', 'warning'); return; }
+            synthesis.generate({ grado_nivel: '5to Primaria', unidad_real: curriculumPreview.unidad_real, unidad: curriculumPreview.unidad_real, temas: curriculumPreview.temas, diagnosticos: '' }, (t) => setSynthesisStreamText(t.slice(0, 500)));
+          }}
         />
       )}
 
@@ -247,90 +250,141 @@ export default function MaterialesPage() {
       <MotorSection_Synthesis
         result={synthesis.result}
         curriculumPreview={curriculumPreview}
-        loading={abp.loading}
-        onGenerate={() => abp.generate({ grado_nivel: '5to Primaria', unidad_json: JSON.stringify(synthesis.result), diagnosticos: '', recursos_aula: ['pizarra', 'libro de texto', 'materiales de arte'] })}
+        loading={synthesis.loading}
+        onGenerate={() => {
+          abp.generate({ grado_nivel: '5to Primaria', unidad_json: JSON.stringify(synthesis.result), diagnosticos: '', recursos_aula: ['pizarra', 'libro de texto', 'materiales de arte'] });
+        }}
         showToast={showToast}
       />
+      {synthesis.simulated && synthesis.result && <SimulatedBanner />}
+
       <MotorSection_ABP result={abp.result} />
+      {abp.simulated && abp.result && <SimulatedBanner />}
+
       {abp.result && (
         <MotorButton
           label="📊 Generar Rúbrica y Evaluación"
           loadingLabel="📊 Generando evaluación..."
           color="#9333EA"
-          onClick={() => { if (!abp.result) { showToast('Primero genera el proyecto ABP.', 'warning'); return; } assessment.generate({ grado_nivel: '5to Primaria', proyecto_pbl: abp.result?.proyecto?.titulo || 'Proyecto', unidad_json: JSON.stringify(synthesis.result), diagnosticos: '' }); }}
+          onClick={() => {
+            if (!abp.result) { showToast('Primero genera el proyecto ABP.', 'warning'); return; }
+            assessment.generate({ grado_nivel: '5to Primaria', proyecto_pbl: abp.result?.proyecto?.titulo || 'Proyecto', unidad_json: JSON.stringify(synthesis.result), diagnosticos: '' });
+          }}
           loading={assessment.loading}
         />
       )}
       <MotorSection_Assessment result={assessment.result} />
+      {assessment.simulated && assessment.result && <SimulatedBanner />}
+
       {curriculumPreview && curriculumPreview.temas.length > 0 && (
         <MotorButton
           label="📋 Generar Plan de Clase (45 min)"
           loadingLabel="📋 Generando plan..."
           color="#D97706"
-          onClick={() => { if (!curriculumPreview || curriculumPreview.temas.length === 0) { showToast('Primero extrae los temas.', 'warning'); return; } plan.generate({ grado_nivel: '5to Primaria', tema_clase: curriculumPreview.temas[0], conceptos_clave: curriculumPreview.temas.slice(0, 3), palabras_clave: curriculumPreview.temas, diagnosticos: '', objetivo_general: 'Comprender los conceptos fundamentales de ' + curriculumPreview.temas[0] }); }}
+          onClick={() => {
+            if (!curriculumPreview || curriculumPreview.temas.length === 0) { showToast('Primero extrae los temas.', 'warning'); return; }
+            plan.generate({ grado_nivel: '5to Primaria', tema_clase: curriculumPreview.temas[0], conceptos_clave: curriculumPreview.temas.slice(0, 3), palabras_clave: curriculumPreview.temas, diagnosticos: '', objetivo_general: 'Comprender los conceptos fundamentales de ' + curriculumPreview.temas[0] });
+          }}
           loading={plan.loading}
         />
       )}
       <MotorSection_Plan result={plan.result} />
+      {plan.simulated && plan.result && <SimulatedBanner />}
+
       <MotorButtonRow
         curriculumPreview={curriculumPreview}
-        onGenerateSlides={() => { if (!curriculumPreview || curriculumPreview.temas.length === 0) return; slides.generate({ grado_nivel: '5to Primaria', tema_clase: curriculumPreview.temas[0], palabras_clave: curriculumPreview.temas }); }}
+        onGenerateSlides={() => {
+          if (!curriculumPreview || curriculumPreview.temas.length === 0) return;
+          slides.generate({ grado_nivel: '5to Primaria', tema_clase: curriculumPreview.temas[0], palabras_clave: curriculumPreview.temas });
+        }}
         slidesLoading={slides.loading}
-        onGenerateFicha={() => { if (!curriculumPreview || curriculumPreview.temas.length === 0) return; ficha.generate({ grado_nivel: '5to Primaria', tema: curriculumPreview.temas[0], conceptos_clave: curriculumPreview.temas.slice(0, 3) }); }}
+        onGenerateFicha={() => {
+          if (!curriculumPreview || curriculumPreview.temas.length === 0) return;
+          ficha.generate({ grado_nivel: '5to Primaria', tema: curriculumPreview.temas[0], conceptos_clave: curriculumPreview.temas.slice(0, 3) });
+        }}
         fichaLoading={ficha.loading}
       />
       <MotorSection_Slides result={slides.result} />
+      {slides.simulated && slides.result && <SimulatedBanner />}
+
       <MotorSection_Ficha result={ficha.result} />
+      {ficha.simulated && ficha.result && <SimulatedBanner />}
+
       {curriculumPreview && curriculumPreview.temas.length > 0 && (
         <MotorButton
-          label="📝 Generar Pop Quiz (5 min)"
-          loadingLabel="📝 Generando quiz..."
+          label="❓ Generar Pop Quiz (5 min)"
+          loadingLabel="❓ Generando quiz..."
           color="#7C3AED"
-          onClick={() => { if (!curriculumPreview || curriculumPreview.temas.length === 0) return; quiz.generate({ grado_nivel: '5to Primaria', palabras_clave: curriculumPreview.temas, tema_clase: curriculumPreview.temas[0] }); }}
+          onClick={() => {
+            if (!curriculumPreview || curriculumPreview.temas.length === 0) return;
+            quiz.generate({ grado_nivel: '5to Primaria', palabras_clave: curriculumPreview.temas, tema_clase: curriculumPreview.temas[0] });
+          }}
           loading={quiz.loading}
         />
       )}
       <MotorSection_Quiz result={quiz.result} />
+      {quiz.simulated && quiz.result && <SimulatedBanner />}
+
       {synthesis.result && (
         <MotorButton
-          label="🎓 Generar Panel del Tutor"
-          loadingLabel="🎓 Generando..."
+          label="👩‍🏫 Generar Panel del Tutor"
+          loadingLabel="👩‍🏫 Generando..."
           color="#0891B2"
-          onClick={() => { if (!synthesis.result) { showToast('Primero genera la síntesis.', 'warning'); return; } tutor.generate({ grado_nivel: '5to Primaria', unidad_json: JSON.stringify(synthesis.result), diagnosticos: '', temas: curriculumPreview?.temas || [] }); }}
+          onClick={() => {
+            if (!synthesis.result) { showToast('Primero genera la síntesis.', 'warning'); return; }
+            tutor.generate({ grado_nivel: '5to Primaria', unidad_json: JSON.stringify(synthesis.result), diagnosticos: '', temas: curriculumPreview?.temas || [] });
+          }}
           loading={tutor.loading}
         />
       )}
       <MotorSection_Tutor result={tutor.result} />
+      {tutor.simulated && tutor.result && <SimulatedBanner />}
+
       {plan.result && (
         <MotorButton
-          label="📆 Generar PDC Trimestral"
-          loadingLabel="📆 Generando..."
+          label="📅 Generar PDC Trimestral"
+          loadingLabel="📅 Generando..."
           color="#6D28D9"
-          onClick={() => { if (!plan.result) { showToast('Primero genera el plan de clase.', 'warning'); return; } pdc.generate({ grado_nivel: '5to Primaria', nivel: 'Primaria', grado: '5to', materia: curriculumPreview?.temas?.[0] || 'Ciencias Sociales', unidad_real: curriculumPreview?.unidad_real || 'Unidad 1', temas: curriculumPreview?.temas || [], plan_json: JSON.stringify(plan.result), diagnosticos: '' }); }}
+          onClick={() => {
+            if (!plan.result) { showToast('Primero genera el plan de clase.', 'warning'); return; }
+            pdc.generate({ grado_nivel: '5to Primaria', nivel: 'Primaria', grado: '5to', materia: curriculumPreview?.temas?.[0] || 'Ciencias Sociales', unidad_real: curriculumPreview?.unidad_real || 'Unidad 1', temas: curriculumPreview?.temas || [], plan_json: JSON.stringify(plan.result), diagnosticos: '' });
+          }}
           loading={pdc.loading}
         />
       )}
       <MotorSection_PDC result={pdc.result} />
+      {pdc.simulated && pdc.result && <SimulatedBanner />}
+
       {assessment.result && (
         <MotorButton
           label="🔄 Generar Recalibración Adaptativa"
           loadingLabel="🔄 Generando..."
           color="#EA580C"
-          onClick={() => { if (!assessment.result) { showToast('Primero genera la evaluación.', 'warning'); return; } recalibrate.generate({ grado_nivel: '5to Primaria', evaluacion_json: JSON.stringify(assessment.result), unidad_json: JSON.stringify(synthesis.result), diagnosticos: '' }); }}
+          onClick={() => {
+            if (!assessment.result) { showToast('Primero genera la evaluación.', 'warning'); return; }
+            recalibrate.generate({ grado_nivel: '5to Primaria', evaluacion_json: JSON.stringify(assessment.result), unidad_json: JSON.stringify(synthesis.result), diagnosticos: '' });
+          }}
           loading={recalibrate.loading}
         />
       )}
       <MotorSection_Recalibrate result={recalibrate.result} />
+      {recalibrate.simulated && recalibrate.result && <SimulatedBanner />}
+
       {plan.result && (
         <MotorButton
           label="🎯 Generar Micro-Objetivos Diarios"
           loadingLabel="🎯 Generando..."
           color="#DB2777"
-          onClick={() => { if (!plan.result) { showToast('Primero genera el plan de clase.', 'warning'); return; } micro.generate({ grado_nivel: '5to Primaria', unidad_real: curriculumPreview?.unidad_real || 'Unidad 1', plan_json: JSON.stringify(plan.result), temas: curriculumPreview?.temas || [], diagnosticos: '' }); }}
+          onClick={() => {
+            if (!plan.result) { showToast('Primero genera el plan de clase.', 'warning'); return; }
+            micro.generate({ grado_nivel: '5to Primaria', unidad_real: curriculumPreview?.unidad_real || 'Unidad 1', plan_json: JSON.stringify(plan.result), temas: curriculumPreview?.temas || [], diagnosticos: '' });
+          }}
           loading={micro.loading}
         />
       )}
       <MotorSection_Micro result={micro.result} />
+      {micro.simulated && micro.result && <SimulatedBanner />}
+
       <MotorSection_Export
         hasSlides={!!slides.result}
         hasSynthesis={!!synthesis.result}

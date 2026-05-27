@@ -52,6 +52,7 @@ export async function initDB(): Promise<void> {
       motor_type TEXT NOT NULL,
       result_json TEXT NOT NULL,
       status TEXT DEFAULT 'done',
+      simulated BOOLEAN DEFAULT FALSE,
       error_message TEXT,
       created_at TEXT DEFAULT NOW()
     );

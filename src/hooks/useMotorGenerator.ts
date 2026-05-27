@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+﻿import { useState, useCallback } from 'react';
 import { executePrompt } from '../lib/pptx/promptRunner';
 import { executePromptStreaming } from '../lib/pptx/streaming';
 
@@ -9,6 +9,7 @@ export function useMotorGenerator<T = unknown>(
   const [result, setResult] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [simulated, setSimulated] = useState(false);
 
   const generate = useCallback(async (
     params: Record<string, unknown>,
@@ -17,6 +18,7 @@ export function useMotorGenerator<T = unknown>(
     setLoading(true);
     setError(null);
     setResult(null);
+    setSimulated(false);
 
     try {
       const context = {
@@ -36,6 +38,7 @@ export function useMotorGenerator<T = unknown>(
       }
       if (res.structuredOutput) {
         setResult(res.structuredOutput as T);
+        setSimulated(res.simulated ?? false);
         showToast('¡Generado!');
       }
     } catch (err) {
@@ -46,5 +49,5 @@ export function useMotorGenerator<T = unknown>(
     }
   }, [motorType, showToast]);
 
-  return { result, loading, error, generate } as const;
+  return { result, loading, error, simulated, generate } as const;
 }

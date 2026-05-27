@@ -30,8 +30,19 @@ export default function MotorButton({
         border: 'none', borderRadius: '6px', fontSize: '0.8125rem', fontWeight: 600,
         cursor: loading ? 'not-allowed' : 'pointer',
         opacity: loading ? 0.6 : 1,
+        display: 'flex', alignItems: 'center', gap: '0.5rem',
       }}
     >
+      {loading && (
+        <span style={{
+          display: 'inline-block', width: '12px', height: '12px',
+          border: '2px solid rgba(255,255,255,0.4)',
+          borderTopColor: '#fff',
+          borderRadius: '50%',
+          animation: 'spin 0.7s linear infinite',
+          flexShrink: 0,
+        }} />
+      )}
       {loading ? loadingLabel : label}
     </button>
   );

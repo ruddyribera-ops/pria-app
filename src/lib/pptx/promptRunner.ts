@@ -65,6 +65,7 @@ export interface PromptResult {
   rawOutput?: string;
   structuredOutput?: unknown;
   error?: string;
+  simulated?: boolean;
 }
 
 // ──────────────────────────────────────────────────
@@ -652,10 +653,25 @@ export async function executePrompt(
       });
 
       if (!result.ok) {
-        console.warn('MiniMax API failed:', result.error, '— falling back to MOCK');
+        console.warn('MiniMax API failed:', result.error, '�?" falling back to MOCK');
         return {
           mode: 'FULL_AI',
           error: result.error,
+          simulated: true,
+          structuredOutput: generateMockOutput(context),
+        };
+      }
+
+      // Parse JSON response
+      try {
+        const parsed = JSON.parse(result.text);
+        return { mode: 'FULL_AI', rawOutput: result.text, simulated: result.simulated, structuredOutput: parsed };
+      } catch {
+        return {
+          mode: 'FULL_AI',
+          error: 'Failed to parse AI response as JSON',
+          rawOutput: result.text,
+          simulated: true,
           structuredOutput: generateMockOutput(context),
         };
       }
@@ -676,10 +692,11 @@ export async function executePrompt(
       return {
         mode: 'FULL_AI',
         error: String(err),
+        simulated: true,
         structuredOutput: generateMockOutput(context),
       };
     }
-}
+  }
 
   return { mode: 'SKIP', structuredOutput: {} };
 }

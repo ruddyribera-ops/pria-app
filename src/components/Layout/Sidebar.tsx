@@ -181,8 +181,12 @@ export default function Sidebar({ nivel, grado, onNivelChange, onGradoChange }: 
           📦 Recursos
         </div>
         <NavLink to="/materiales" style={({ isActive }) => navLinkStyle(isActive)}>
-          <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center', flexShrink: 0 }}>📥</span>
+          <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center', flexShrink: 0 }}>📚</span>
           <span>Materiales</span>
+        </NavLink>
+        <NavLink to="/historial" style={({ isActive }) => navLinkStyle(isActive)}>
+          <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center', flexShrink: 0 }}>📁</span>
+          <span>Historial</span>
         </NavLink>
         <NavLink to="/diagnosticos" style={({ isActive }) => navLinkStyle(isActive)}>
           <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center', flexShrink: 0 }}>🩺</span>

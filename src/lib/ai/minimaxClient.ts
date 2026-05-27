@@ -17,6 +17,7 @@ export interface AiResult {
   ok: boolean;
   text: string;
   error?: string;
+  simulated?: boolean;
 }
 
 /** Tipo de motor para enrutar al backend correcto */
@@ -132,12 +133,13 @@ export async function callMinimax(
     }
 
     const output = data.data?.output;
+    const simulated = (data.data as any)?.simulated === true;
     if (!output) {
-      return { ok: false, text: '', error: 'Backend no devolvió output' };
+      return { ok: false, text: '', error: 'Backend no devolvi�� output' };
     }
 
     // Serializar el output como JSON para mantener compatibilidad con AiResult.text
-    return { ok: true, text: JSON.stringify(output) };
+    return { ok: true, text: JSON.stringify(output), simulated };
   } catch (err: any) {
     const msg = err?.response?.data?.error
       || err?.message

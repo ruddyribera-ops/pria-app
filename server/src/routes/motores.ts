@@ -1,7 +1,7 @@
 ﻿import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { motorLimiter } from '../middleware/rateLimiter.js';
-import { dbRun } from '../db/schema.js';
+import { dbAll, dbRun } from '../db/schema.js';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { validateAlpha2 } from '../schemas/alpha2.schema.js';
@@ -40,7 +40,7 @@ function loadSystemPrompt(motorType: string): string {
   }
 }
 
-// �"?�"?�"? MiniMax API integration �"?�"?�"?
+// ???????????????????????? MiniMax API integration ??????????????????????????
 const MINIMAX_API_URL = 'https://api.minimax.io/v1/chat/completions';
 const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY || '';
 const MINIMAX_MODEL = process.env.MINIMAX_MODEL || 'MiniMax-M2.7';
@@ -140,6 +140,19 @@ const VALIDATORS: Record<string, (data: unknown) => any> = {
   micro: validateMicro,
 };
 
+// GET /api/motores/history
+router.get('/history', authMiddleware, async (req: any, res) => {
+  try {
+    const results = await dbAll(
+      'SELECT id, motor_type, status, simulated, created_at FROM motor_results WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20',
+      [req.user.id]
+    );
+    res.json({ data: results });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al cargar historial' });
+  }
+});
+
 // Apply rate limiter to POST /:type
 router.post('/:type', motorLimiter, async (req: any, res) => {
   const { type } = req.params;
@@ -155,6 +168,7 @@ router.post('/:type', motorLimiter, async (req: any, res) => {
     // Intentar MiniMax para todos los motores; fallback a simulado
     const minimaxResult = await tryMinimax(type, params);
     const rawOutput = minimaxResult ?? generateMockOutput(type, params);
+    const isSimulated = minimaxResult === null;
     if (minimaxResult) {
       console.log('[motores] MiniMax', type, 'exitoso');
     }
@@ -165,12 +179,12 @@ router.post('/:type', motorLimiter, async (req: any, res) => {
     // Store in DB
     if (curriculum_id) {
       await dbRun(
-        'INSERT INTO motor_results (user_id, curriculum_id, motor_type, result_json, status) VALUES ($1, $2, $3, $4, $5)',
-        [req.user.id, curriculum_id, type, JSON.stringify(validated), 'done']
+        'INSERT INTO motor_results (user_id, curriculum_id, motor_type, result_json, status, simulated) VALUES ($1, $2, $3, $4, $5, $6)',
+        [req.user.id, curriculum_id, type, JSON.stringify(validated), 'done', isSimulated]
       );
     }
 
-    res.json({ data: { jobId: uuidv4(), status: 'done', output: validated } });
+    res.json({ data: { jobId: uuidv4(), status: 'done', output: validated, simulated: isSimulated } });
   } catch (err) {
     if (err instanceof z.ZodError) {
       res.status(422).json({

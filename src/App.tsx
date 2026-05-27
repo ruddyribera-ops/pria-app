@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+﻿import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './components/UI/Toast';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
@@ -12,6 +12,7 @@ import SlideGeneratorPage from './pages/SlideGeneratorPage';
 import MaterialesPage from './pages/MaterialesPage';
 import DiagnosticosPage from './pages/DiagnosticosPage';
 import AdminPage from './pages/AdminPage';
+import HistoryPage from './pages/HistoryPage';
 import NotFoundPage from './pages/NotFoundPage';
 import './App.css';
 
@@ -39,6 +40,7 @@ export default function App() {
               <Route path="/semanal" element={withErrorBoundary(SemanalPage, 'Plan Semanal')} />
               <Route path="/trimestral" element={withErrorBoundary(TrimestralPage, 'Planificación Trimestral')} />
               <Route path="/materiales" element={withErrorBoundary(MaterialesPage, 'Materiales')} />
+              <Route path="/historial" element={withErrorBoundary(HistoryPage, 'Historial')} />
               <Route path="/diagnosticos" element={withErrorBoundary(DiagnosticosPage, 'Diagnósticos')} />
               <Route path="/admin" element={withErrorBoundary(AdminPage, 'Administración')} />
             </Route>
