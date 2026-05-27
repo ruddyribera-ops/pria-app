@@ -134,25 +134,6 @@ export async function executePromptStreaming(
         structuredOutput: generateMockOutput(context),
       };
     }
-
-      try {
-        const parsed = JSON.parse(result.text);
-        return { mode: 'FULL_AI', rawOutput: result.text, structuredOutput: parsed };
-      } catch {
-        return {
-          mode: 'FULL_AI',
-          error: 'Failed to parse AI response as JSON',
-          rawOutput: result.text,
-          structuredOutput: generateMockOutput(context),
-        };
-      }
-    } catch (err) {
-      return {
-        mode: 'FULL_AI',
-        error: String(err),
-        structuredOutput: generateMockOutput(context),
-      };
-    }
   }
 
   return { mode: 'SKIP', structuredOutput: {} };

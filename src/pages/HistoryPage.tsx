@@ -124,7 +124,7 @@ export default function HistoryPage() {
             const icon = MOTOR_ICONS[entry.motor_type] ?? '⚙️';
             const label = MOTOR_LABELS[entry.motor_type] ?? entry.motor_type;
             const isExpanded = expandedId === entry.id;
-            const isSimulated = entry.simulated === true || entry.simulated === 1;
+            const isSimulated = entry.simulated === true;
 
             return (
               <div
