@@ -3,7 +3,7 @@
 export const motorLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 60,                   // 20 motor generations per hour per user
-  message: { error: 'LÃ­mite de generaciÃ³n alcanzado (20/hora). Espera un momento.' },
+  message: { error: 'Límite de generación alcanzado (60/hora). Espera un momento.' },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
@@ -21,3 +21,4 @@ export const authLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req) => ipKeyGenerator(req.ip || 'unknown'),
 });
+

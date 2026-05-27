@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { motorLimiter } from '../middleware/rateLimiter.js';
 import { dbRun } from '../db/schema.js';
@@ -17,8 +17,30 @@ import { validatePDC } from '../schemas/pdc.schema.js';
 import { validateRecalibrate } from '../schemas/recalibrate.schema.js';
 import { validateMicro } from '../schemas/micro.schema.js';
 import { generateMockOutput } from '../motores/mocks.js';
+import { fileURLToPath } from 'url';
+import path from 'path';
+import fs from 'fs';
 
-// ── MiniMax API integration ──
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PROMPTS_DIR = path.resolve(__dirname, '../motores/prompts');
+
+const promptCache = new Map<string, string>();
+function loadSystemPrompt(motorType: string): string {
+  if (promptCache.has(motorType)) return promptCache.get(motorType)!;
+  const filePath = path.join(PROMPTS_DIR, `${motorType}.md`);
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    promptCache.set(motorType, content);
+    return content;
+  } catch {
+    console.warn(`[motores] Prompt file not found for ${motorType}, using fallback`);
+    const fallback = `Eres un asistente pedagógico especializado en ${motorType}. Genera JSON estructurado.`;
+    promptCache.set(motorType, fallback);
+    return fallback;
+  }
+}
+
+// �"?�"?�"? MiniMax API integration �"?�"?�"?
 const MINIMAX_API_URL = 'https://api.minimax.io/v1/chat/completions';
 const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY || '';
 const MINIMAX_MODEL = process.env.MINIMAX_MODEL || 'MiniMax-M2.7';
@@ -46,7 +68,7 @@ async function tryMinimax(
     return null;
   }
   const paramsJson = JSON.stringify(params, null, 2);
-  const systemPrompt = getSystemPromptForMotor(motorType);
+  const systemPrompt = loadSystemPrompt(motorType);
   const userMessage = [
     'Variables de entrada:',
     paramsJson,
@@ -97,37 +119,6 @@ async function tryMinimax(
   } catch (err) {
     console.warn('[motores] MiniMax fetch falló:', String(err));
     return null;
-  }
-}
-
-function getSystemPromptForMotor(motorType: string): string {
-  switch (motorType) {
-    case 'synthesis':
-      return 'Eres un sintetizador curricular neuro-inclusivo experto en DUA, neuroeducación y ABP. Generas JSON estructurado para unidades didácticas con temas desarrollados, inteligencias múltiples y adaptaciones.';
-    case 'abp':
-      return 'Eres un diseñador de proyectos de aprendizaje basado en proyectos (ABP/PBL). Generas JSON estructurado con fases, actividades, productos y criterios de evaluación.';
-    case 'assessment':
-      return 'Eres un especialista en evaluación educativa. Generas rúbricas, autoevaluaciones y coevaluaciones en JSON estructurado con criterios, niveles y adaptaciones.';
-    case 'plan':
-      return 'Eres un planificador de clases experto. Generas secuencias didácticas de 45 minutos con bloques inicio-desarrollo-cierre, mapa cognitivo Bloom y adaptaciones DUA.';
-    case 'slides':
-      return 'Eres un diseñador de presentaciones educativas. Generas arrays JSON de 10 slides con títulos, texto en pantalla, guion docente y prompts de imagen.';
-    case 'ficha':
-      return 'Eres un diseñador de material didáctico gamificado. Generas fichas de trabajo con misiones, historia-gancho y adaptaciones por diagnóstico.';
-    case 'quiz':
-      return 'Eres un creador de evaluaciones rápidas. Generas quizzes con preguntas de tipos variados (escrita, oral, visual, desafío) en JSON.';
-    case 'tutor':
-      return 'Eres un asistente de tutoría. Generas paneles de control con resumen de clase, puntos clave, momentos críticos y checklist pre-clase.';
-    case 'pdc':
-      return 'Eres un planificador curricular trimestral. Generas PDC con unidades, objetivos holísticos y contenidos en dimensiones Ser/Saber/Hacer/Decidir.';
-    case 'recalibrate':
-      return 'Eres un especialista en recalibración pedagógica. Generas diagnósticos, fortalezas, áreas de mejora y ajustes sugeridos basados en evaluación previa.';
-    case 'micro':
-      return 'Eres un diseñador de micro-objetivos diarios. Generas objetivos SMART por día con criterios de logro y actividades clave.';
-    case 'alpha2':
-      return 'Eres un extractor de currículo desde documentos. Identificas unidad, temas, contenido y páginas de referencia.';
-    default:
-      return 'Eres un asistente pedagógico. Generas JSON estructurado para contenido educativo.';
   }
 }
 
