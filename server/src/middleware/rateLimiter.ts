@@ -2,7 +2,7 @@
 
 export const motorLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 60,                   // 20 motor generations per hour per user
+  max: 60,                   // 60 motor generations per hour per user
   message: { error: 'Límite de generación alcanzado (60/hora). Espera un momento.' },
   standardHeaders: true,
   legacyHeaders: false,
