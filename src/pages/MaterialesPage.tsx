@@ -41,6 +41,7 @@ const SimulatedBanner = () => (
   </div>
 );
 
+// Motor types match filenames in server/src/motores/prompts/*.md
 export default function MaterialesPage() {
   const { showToast } = useToast();
   const synthesis = useMotorGenerator<SynthesisOutput>('synthesis', showToast as (msg: string, type?: string) => void);
@@ -62,15 +63,69 @@ export default function MaterialesPage() {
   const [rawText, setRawText] = useState('');
   const [ingesting, setIngesting] = useState(false);
   const [synthesisStreamText, setSynthesisStreamText] = useState('');
-  const onExportSlides = () => { try { exportSlidesToPPTX(slides.result!, { title: curriculumPreview?.unidad_real || 'Diapositivas', subtitle: '5to Primaria' }); showToast('PPTX descargado.', 'success'); } catch { showToast('Error al exportar.', 'error'); } };
-  const onExportSynthesis = () => { try { exportContentToPPTX('Síntesis', synthesis.result!, { title: 'Síntesis', subtitle: '5to Primaria' }); showToast('PPTX síntesis descargado.', 'success'); } catch { showToast('Error al exportar.', 'error'); } };
-  const onExportPlan = () => { try { exportContentToPPTX('Plan', plan.result!, { title: 'Plan de Clase', subtitle: '5to Primaria' }); showToast('PPTX plan descargado.', 'success'); } catch { showToast('Error al exportar.', 'error'); } };
-  const onExportQuiz = () => { try { exportContentToPPTX('Quiz', quiz.result!, { title: 'Pop Quiz', subtitle: '5to Primaria' }); showToast('PPTX quiz descargado.', 'success'); } catch { showToast('Error al exportar.', 'error'); } };
+  const onExportSlides = async () => {
+    try {
+      const blob = await exportSlidesToPPTX(slides.result!, { title: curriculumPreview?.unidad_real || 'Diapositivas', subtitle: '5to Primaria' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'Diapositivas_PRIA.pptx'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('PPTX descargado.', 'success');
+    } catch { showToast('Error al exportar.', 'error'); }
+  };
+  const onExportSynthesis = async () => {
+    try {
+      const blob = await exportContentToPPTX('Síntesis', synthesis.result!, { title: 'Síntesis', subtitle: '5to Primaria' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'Sintesis_PRIA.pptx'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('PPTX síntesis descargado.', 'success');
+    } catch { showToast('Error al exportar.', 'error'); }
+  };
+  const onExportPlan = async () => {
+    try {
+      const blob = await exportContentToPPTX('Plan', plan.result!, { title: 'Plan de Clase', subtitle: '5to Primaria' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'PlanClase_PRIA.pptx'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('PPTX plan descargado.', 'success');
+    } catch { showToast('Error al exportar.', 'error'); }
+  };
+  const onExportQuiz = async () => {
+    try {
+      const blob = await exportContentToPPTX('Quiz', quiz.result!, { title: 'Pop Quiz', subtitle: '5to Primaria' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'Quiz_PRIA.pptx'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('PPTX quiz descargado.', 'success');
+    } catch { showToast('Error al exportar.', 'error'); }
+  };
   const onExportAll = async () => {
-    const hasResults = [synthesis.result, abp.result, assessment.result, plan.result, slides.result, ficha.result, quiz.result, tutor.result, pdc.result, recalibrate.result, micro.result].some(v => v !== null);
-    if (!hasResults) {
+    const motorNames: Record<string, string> = {
+      synthesis: 'Síntesis', abp: 'ABP', assessment: 'Evaluación',
+      plan: 'Plan', slides: 'Diapositivas', ficha: 'Ficha',
+      quiz: 'Quiz', tutor: 'Tutor', pdc: 'PDC',
+      recalibrate: 'Recalibración', micro: 'Micro-Objetivos',
+    };
+    const results: Record<string, unknown | null> = {
+      synthesis: synthesis.result, abp: abp.result, assessment: assessment.result,
+      plan: plan.result, slides: slides.result, ficha: ficha.result,
+      quiz: quiz.result, tutor: tutor.result, pdc: pdc.result,
+      recalibrate: recalibrate.result, micro: micro.result,
+    };
+    const missing = Object.entries(results)
+      .filter(([_, v]) => v === null)
+      .map(([k]) => motorNames[k])
+      .filter(Boolean);
+    const available = Object.values(results).some(v => v !== null);
+    if (!available) {
       showToast('Genera al menos un contenido antes de exportar.', 'warning');
       return;
+    }
+    if (missing.length > 0) {
+      const proceed = window.confirm(
+        `⚠️ Faltan: ${missing.join(', ')}. ¿Exportar solo los disponibles?`
+      );
+      if (!proceed) return;
     }
     try {
       showToast('Generando presentación...', 'info');

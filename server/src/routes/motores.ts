@@ -24,6 +24,22 @@ import fs from 'fs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROMPTS_DIR = path.resolve(__dirname, '../motores/prompts');
 
+// ── Prompt file mapping ──
+// src/prompts/Motor_M0a.md              →  synthesis
+// src/prompts/Motor_M0b.md              →  abp
+// src/prompts/Motor_M0c.md              →  assessment
+// src/prompts/Motor_M1a.md              →  plan
+// src/prompts/Motor_M1b.md              →  slides
+// src/prompts/Motor_M1c.md              →  ficha
+// src/prompts/Motor_M2a.md              →  quiz
+// src/prompts/Motor_M2b.md              →  tutor
+// src/prompts/Motor_PDC_Trimestral.md   →  pdc
+// src/prompts/Motor_Recalibracion.md    →  recalibrate
+// src/prompts/Motor_MicroObjetivos.md   →  micro
+// src/prompts/Motor_Alpha-2.md          →  alpha2
+//
+// Copied to: server/src/motores/prompts/<motortype>.md
+
 const promptCache = new Map<string, string>();
 function loadSystemPrompt(motorType: string): string {
   if (promptCache.has(motorType)) return promptCache.get(motorType)!;

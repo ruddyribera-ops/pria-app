@@ -33,7 +33,10 @@ import type {
   MicroOutput,
 } from '../../types/motor-types';
 
-// Generator-only extension: adds DUA adaptions UI fields not in Zod schema
+// Generator-only extension: adds DUA adaptions UI fields not in Zod schema.
+// buildSynthesisSlides accepts SynthesisOutput; this extended type documents
+// the optional adaptaciones_dua field that may be injected at runtime.
+// @ts-ignore — declared for documentation; accessed via (data as any) at runtime
 interface SynthesisSlideExtended extends SynthesisOutput {
   adaptaciones_dua?: {
     representacion?: string[];
@@ -91,7 +94,7 @@ function addHeaderSlide(pptx: PptxGenJS, title: string, color: string): PptxGenJ
 }
 
 // ── Synthesis ────────────────────────────────────────────────────────────────
-function buildSynthesisSlides(pptx: PptxGenJS, data: SynthesisSlideExtended) {
+function buildSynthesisSlides(pptx: PptxGenJS, data: SynthesisOutput) {
   if (!data?.unidad_sintetizada) return;
   const s = data.unidad_sintetizada;
 
@@ -150,13 +153,14 @@ function buildSynthesisSlides(pptx: PptxGenJS, data: SynthesisSlideExtended) {
     }
   });
 
-  // DUA slide
-  if (data.adaptaciones_dua) {
+  // DUA slide — adaptaciones_dua is a runtime extension, not in the Zod schema
+  const duaData = (data as SynthesisSlideExtended).adaptaciones_dua;
+  if (duaData) {
     const dua = addHeaderSlide(pptx, 'Adaptaciones DUA', COLOR_ACCENT);
     const rows = [
-      ...((data.adaptaciones_dua.representacion || []).map((r: string) => `Representación: ${r}`)),
-      ...((data.adaptaciones_dua.expresion || []).map((e: string) => `Expresión: ${e}`)),
-      ...((data.adaptaciones_dua.compromiso || []).map((c: string) => `Compromiso: ${c}`)),
+      ...((duaData.representacion || []).map((r: string) => `Representaci��n: ${r}`)),
+      ...((duaData.expresion || []).map((e: string) => `Expresi��n: ${e}`)),
+      ...((duaData.compromiso || []).map((c: string) => `Compromiso: ${c}`)),
     ];
     if (rows.length) {
       dua.addText(rows.join('\n'), {
@@ -650,10 +654,10 @@ export async function exportAllMotorsToPPTX(input: ExportInput): Promise<Blob> {
 
 export interface ExportOptions { title: string; subtitle?: string; author?: string; }
 
-export function exportSlidesToPPTX(
+export async function exportSlidesToPPTX(
   slides: SlideItem[],
   options: ExportOptions,
-): void {
+): Promise<Blob> {
   const pptx = new PptxGenJS();
   pptx.title = options.title;
   pptx.author = options.author || 'PRIA v10';
@@ -661,32 +665,32 @@ export function exportSlidesToPPTX(
 
   const cover = pptx.addSlide();
   cover.addText(options.title, { x: 1, y: 2.5, w: 8, h: 1.5, fontSize: 36, bold: true, color: COLOR_ACCENT, align: 'center' });
-  cover.addText('PRIA v10 — Generado con IA', { x: 0, y: 5, w: 10, h: 0.5, fontSize: 10, color: COLOR_SUBTLE, align: 'center' });
+  cover.addText('PRIA v10 �?" Generado con IA', { x: 0, y: 5, w: 10, h: 0.5, fontSize: 10, color: COLOR_SUBTLE, align: 'center' });
 
   for (const slide of slides) {
     const s = pptx.addSlide();
     s.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 10, h: 0.8, fill: { color: COLOR_ACCENT } });
     s.addText(`${slide.numero}`, { x: 0.3, y: 0.15, w: 0.5, h: 0.5, fontSize: 14, bold: true, color: COLOR_WHITE, align: 'center', valign: 'middle' });
-    s.addText(slide.titulo || 'Sin título', { x: 0.9, y: 0.15, w: 8.5, h: 0.5, fontSize: 18, bold: true, color: COLOR_WHITE, valign: 'middle' });
+    s.addText(slide.titulo || 'Sin t��tulo', { x: 0.9, y: 0.15, w: 8.5, h: 0.5, fontSize: 18, bold: true, color: COLOR_WHITE, valign: 'middle' });
     if (slide.texto_pantalla) s.addText(slide.texto_pantalla, { x: 0.5, y: 1.2, w: 9, h: 4, fontSize: 14, color: COLOR_TEXT, valign: 'top' });
-    if (slide.guion_docente) s.addText('📝 ' + slide.guion_docente, { x: 0.5, y: 5.2, w: 9, h: 0.5, fontSize: 10, color: COLOR_SUBTLE, italic: true });
+    if (slide.guion_docente) s.addText('�Y"? ' + slide.guion_docente, { x: 0.5, y: 5.2, w: 9, h: 0.5, fontSize: 10, color: COLOR_SUBTLE, italic: true });
   }
 
-  pptx.writeFile({ fileName: `${options.title.replace(/[^a-zA-Z0-9]/g, '_')}.pptx` });
+  return await pptx.write({ outputType: 'blob' }) as Blob;
 }
 
-export function exportContentToPPTX(
+export async function exportContentToPPTX(
   title: string,
   content: object,
   options?: Partial<ExportOptions>,
-): void {
+): Promise<Blob> {
   const pptx = new PptxGenJS();
   pptx.title = title;
   pptx.author = options?.author || 'PRIA v10';
 
   const cover = pptx.addSlide();
   cover.addText(title, { x: 1, y: 2, w: 8, h: 1.5, fontSize: 32, bold: true, color: COLOR_ACCENT, align: 'center' });
-  cover.addText('PRIA v10 — ' + (options?.subtitle || 'Contenido Educativo'), { x: 1, y: 3.5, w: 8, h: 0.8, fontSize: 14, color: COLOR_SUBTLE, align: 'center' });
+  cover.addText('PRIA v10 �?" ' + (options?.subtitle || 'Contenido Educativo'), { x: 1, y: 3.5, w: 8, h: 0.8, fontSize: 14, color: COLOR_SUBTLE, align: 'center' });
 
   const entries = Object.entries(content);
   let slideNum = 2;
@@ -701,6 +705,6 @@ export function exportContentToPPTX(
     if (slideNum > 22) break;
   }
 
-  pptx.writeFile({ fileName: `${title.replace(/[^a-zA-Z0-9]/g, '_')}.pptx` });
+  return await pptx.write({ outputType: 'blob' }) as Blob;
 }
 
