@@ -1,0 +1,51 @@
+﻿name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: pria_local
+          POSTGRES_DB: pria
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install server dependencies
+        run: npm ci
+        working-directory: server
+
+      - name: Typecheck server
+        run: npx tsc --noEmit
+        working-directory: server
+
+      - name: Run server tests
+        run: npm test
+        working-directory: server
+        env:
+          DATABASE_URL: postgresql://postgres:pria_local@localhost:5432/pria
+          JWT_SECRET: ci-test-jwt-secret-key-minimum-32-chars!!
+          CORS_ORIGIN: http://localhost:5173

@@ -1,10 +1,8 @@
 import { getPoolClient } from './connection.js';
 
-let idx = 0;
-
 /** Convert ? placeholders to $1, $2, … style for pg */
 function toPgSql(sql: string): string {
-  idx = 0;
+  let idx = 0;
   return sql.replace(/\?/g, () => `$${++idx}`);
 }
 

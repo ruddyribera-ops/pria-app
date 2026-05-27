@@ -1,73 +1,120 @@
-# React + TypeScript + Vite
+﻿# PRIA v10 — Educational AI Content Generator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Genera automáticamente materiales didácticos neuro-inclusivos (síntesis, planes de clase, evaluaciones, diapositivas, quizzes, fichas gamificadas) usando IA de MiniMax.
 
-Currently, two official plugins are available:
+## Development Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### Prerequisites
+- Node.js 22+
+- Docker Desktop (for local PostgreSQL)
 
-## React Compiler
+### Quick start
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+\\\powershell
+# 1. Start PostgreSQL
+.\scripts\start-db.ps1
 
-## Expanding the ESLint configuration
+# 2. Install dependencies
+cd server; npm install; cd ..
+npm install
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+# 3. Copy env files
+copy .env.example .env
+copy server\.env.example server\.env
+# Edit both .env files with your secrets (MINIMAX_API_KEY goes in server\.env)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+# 4. Start dev server (backend + frontend)
+npm run dev
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+# 5. Run tests
+cd server; npm test; cd ..
+\\\
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Useful commands
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+| Command | Description |
+|---------|-------------|
+| \.\scripts\start-db.ps1\ | Start local PostgreSQL via Docker |
+| \.\scripts\stop-db.ps1\ | Stop PostgreSQL (data persists) |
+| \cd server; npm run dev; cd ..\ | Start backend (port 3000) + frontend (port 5173) |
+| \cd server; npm test; cd ..\ | Run backend unit tests (vitest) |
+| \
+px tsc --noEmit\ | Typecheck frontend |
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Default credentials (development)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+| Username | Password | Role |
+|----------|----------|------|
+| admin | admin123 | admin |
+| ruddy | profesor123 | teacher |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 18 + TypeScript + Vite |
+| Backend | Express + TypeScript |
+| Database | PostgreSQL 16 |
+| AI | MiniMax M2.7 API |
+| Presentation | PptxGenJS |
+
+## Project Structure
+
+\\\
+PRIA v10/
+├── server/               # Express API (port 3000)
+│   └── src/
+│       ├── db/           # PostgreSQL connection + schema
+│       ├── motores/      # Motor prompt files + mock generators
+│       │   └── prompts/  # Rich system prompts per motor
+│       ├── routes/       # API endpoints (auth, motores, materials, ...)
+│       └── schemas/      # Zod validation schemas
+├── src/                 # React SPA (port 5173)
+│   ├── api/             # Axios client + typed API calls
+│   ├── components/      # React components
+│   │   ├── Auth/        # Login, protected routes
+│   │   ├── Layout/      # Header, Sidebar, AppLayout
+│   │   ├── Materials/   # Upload, file list, curriculum preview
+│   │   ├── Motores/     # Motor result sections
+│   │   └── UI/          # Button, Input, Modal, Toast, ...
+│   ├── hooks/           # useAuth, useCurriculum, useMotorGenerator
+│   ├── lib/             # AI client, PPTX generator, document ingester
+│   └── pages/           # Route-level page components
+├── docker-compose.yml   # Local PostgreSQL setup
+├── scripts/             # Dev helper scripts
+└── .github/workflows/   # GitHub Actions CI
+\\\
+
+## API Endpoints
+
+### Authentication
+- \POST /api/auth/login\ — Login
+- \POST /api/auth/register\ — Register
+- \GET /api/auth/me\ — Current user
+
+### Motors (AI generation)
+- \POST /api/motores/:type\ — Generate content (12 motor types)
+- \GET /api/motores/history\ — Generation history
+
+### Materials
+- \GET /api/materials\ — List uploaded files
+- \POST /api/materials\ — Upload file
+- \DELETE /api/materials/:id\ — Delete file
+
+## Environment Variables
+
+### Root \.env\
+| Variable | Description |
+|----------|-------------|
+| \VITE_API_URL\ | Frontend → backend URL (default: /api) |
+
+### Server \server/.env\
+| Variable | Description |
+|----------|-------------|
+| \DATABASE_URL\ | PostgreSQL connection string |
+| \JWT_SECRET\ | Secret for JWT signing |
+| \JWT_EXPIRY\ | Token expiry (e.g. 24h) |
+| \MINIMAX_API_KEY\ | MiniMax API key |
+| \CORS_ORIGIN\ | Allowed frontend origin |

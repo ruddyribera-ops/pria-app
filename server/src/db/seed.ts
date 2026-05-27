@@ -3,8 +3,15 @@ import { getPoolClient } from './connection.js';
 
 export async function seed(): Promise<void> {
   const pool = getPoolClient();
-  const hash = bcrypt.hashSync('admin123', 12);
 
+  // Skip expensive bcrypt hash if users already exist
+  const { rows } = await pool.query('SELECT COUNT(*)::int AS count FROM users');
+  if (rows[0].count > 0) {
+    console.log('[seed] Users already exist, skipping');
+    return;
+  }
+
+  const hash = bcrypt.hashSync('admin123', 12);
   const users = [
     { username: 'admin', password_hash: hash, nombre: 'Administrador', role: 'admin', nivel: 'Primaria', grado: '5to' },
     { username: 'ruddy', password_hash: bcrypt.hashSync('profesor123', 12), nombre: 'Ruddy Ribera', role: 'teacher', nivel: 'Primaria', grado: '5to' },
@@ -20,4 +27,5 @@ export async function seed(): Promise<void> {
       [u.username, u.password_hash, u.nombre, u.role, u.nivel, u.grado]
     );
   }
+  console.log('[seed] 4 users seeded');
 }
