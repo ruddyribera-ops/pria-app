@@ -7,6 +7,11 @@ import { authMiddleware } from '../middleware/auth.js';
 import { authLimiter } from '../middleware/rateLimiter.js';
 import { validateBody } from '../middleware/validateBody.js';
 import { LoginSchema, RegisterSchema, UpdateMeSchema } from '../schemas/requests/auth.schema.js';
+import type { AuthPayload } from '../middleware/auth.js';
+
+interface AuthRequest extends Request {
+  user: AuthPayload;
+}
 
 const router = Router();
 
@@ -16,7 +21,7 @@ router.post('/login', authLimiter, validateBody(LoginSchema), async (req, res) =
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.status(401).json({ error: 'Credenciales inválidas' });
   }
-  const token = jwt.sign({ sub: user.id, role: user.role }, config.JWT_SECRET, { expiresIn: config.JWT_EXPIRY as any });
+  const token = jwt.sign({ sub: user.id, role: user.role }, config.JWT_SECRET, { expiresIn: config.JWT_EXPIRY });
   res.json({
     data: {
       token,
@@ -25,7 +30,7 @@ router.post('/login', authLimiter, validateBody(LoginSchema), async (req, res) =
   });
 });
 
-router.post('/register', authMiddleware, async (req: any, res) => {
+router.post('/register', authMiddleware, async (req: AuthRequest, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ error: 'Solo administradores' });
   const result = RegisterSchema.safeParse(req.body);
   if (!result.success) return res.status(400).json({ error: 'Validation failed', details: result.error.issues });
@@ -35,16 +40,16 @@ router.post('/register', authMiddleware, async (req: any, res) => {
     'INSERT INTO users (username, password_hash, nombre, nivel, grado) VALUES ($1, $2, $3, $4, $5) RETURNING id',
     [username, hash, nombre, nivel, grado]
   );
-  res.json({ data: { id: info.lastInsertRowid, created: new Date().toISOString() } });
+  res.json({ data: { id: info.id, created: new Date().toISOString() } });
 });
 
-router.get('/me', authMiddleware, async (req: any, res) => {
+router.get('/me', authMiddleware, async (req: AuthRequest, res) => {
   const user = await dbGet('SELECT id, nombre, role, nivel, grado, student_book FROM users WHERE id = $1', [req.user.id]);
   if (!user) return res.status(404).json({ error: 'User not found' });
   res.json({ data: user });
 });
 
-router.patch('/me', authMiddleware, validateBody(UpdateMeSchema), async (req: any, res) => {
+router.patch('/me', authMiddleware, validateBody(UpdateMeSchema), async (req: AuthRequest, res) => {
   const { student_book } = req.body;
   if (student_book !== undefined) {
     await dbRun('UPDATE users SET student_book = $1 WHERE id = $2', [student_book ? true : false, req.user.id]);

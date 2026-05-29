@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useHealthCheck } from '../../hooks/useHealthCheck';
-import { MOTORS, getMockEstadoSistema, getEstadoSistema } from '../../api/admin';
+import { MOTORS, getEstadoSistema } from '../../api/admin';
 
 interface SidebarProps {
   nivel: string;
@@ -19,26 +19,23 @@ export default function Sidebar({ nivel, grado, onNivelChange, onGradoChange }: 
   const [estado, setEstado] = useState<Record<string, string> | null>(null);
   const health = useHealthCheck();
 
-  // Poll estado-sistema every 5s when authenticated
+  // Poll estado-sistema every 5s when authenticated and dropdown open
   useEffect(() => {
-    if (!isAuthenticated) {
-      setEstado(getMockEstadoSistema().motors);
-      return;
-    }
+    if (!isAuthenticated || !estadoOpen) return;
 
     const fetchEstado = async () => {
       try {
         const data = await getEstadoSistema();
         setEstado(data.motors);
       } catch {
-        setEstado(getMockEstadoSistema().motors);
+        setEstado(null);
       }
     };
 
     fetchEstado();
     const interval = setInterval(fetchEstado, 5000);
     return () => clearInterval(interval);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, estadoOpen]);
 
   const initials = user?.nombre
     ?.split(' ')

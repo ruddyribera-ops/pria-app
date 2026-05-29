@@ -49,3 +49,29 @@ jobs:
           DATABASE_URL: postgresql://postgres:pria_local@localhost:5432/pria
           JWT_SECRET: ci-test-jwt-secret-key-minimum-32-chars!!
           CORS_ORIGIN: http://localhost:5173
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: .
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: .
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps
+
+      - name: Start dev server
+        run: npm run dev &
+        working-directory: .
+        env:
+          NODE_ENV: test
+
+      - name: Wait for dev server
+        run: sleep 10
+
+      - name: Run E2E smoke tests
+        run: npm run test:e2e
+        working-directory: .
+        env:
+          BASE_URL: http://localhost:5173

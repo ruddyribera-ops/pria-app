@@ -18,7 +18,7 @@ router.post('/', validateBody(CreateMaterialSchema), async (req: any, res) => {
     'INSERT INTO materials (user_id, filename, tipo, size) VALUES ($1, $2, $3, $4) RETURNING id',
     [req.user.id, filename, tipo || 'textbook', size || 0]
   );
-  res.json({ data: { id: info.lastInsertRowid, created: new Date().toISOString() } });
+  res.json({ data: { id: info.id, created: new Date().toISOString() } });
 });
 
 router.delete('/:id', async (req: any, res) => {

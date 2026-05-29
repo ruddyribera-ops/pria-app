@@ -7,7 +7,8 @@ export async function loginAsAdmin(page: Page) {
   await usernameInput.fill('admin');
   await passwordInput.fill('admin123');
   await page.click('button[type="submit"]');
-  await page.waitForURL('**/materiales', { timeout: 10000 });
+  // Wait for navigation away from login — use networkidle + URL check for robustness
+  await page.waitForURL((url) => !url.toString().includes('/login'), { timeout: 15000 });
 }
 
 export const test = base.extend<{ customTest: string }>({

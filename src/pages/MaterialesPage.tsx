@@ -2,7 +2,7 @@
 import { TOKEN_KEY } from '../constants';
 import Header from '../components/Layout/Header';
 import { useToast } from '../components/UI/Toast';
-import { listMaterials, uploadMaterial, deleteMaterial, getMockMaterials } from '../api/materials';
+import { listMaterials, uploadMaterial, deleteMaterial } from '../api/materials';
 import { ingestDocument, extractCurriculumWithAI, type IngestResult, type CurriculumResult } from '../lib/ingest/documentIngester';
 import { exportSlidesToPPTX, exportContentToPPTX, exportAllMotorsToPPTX } from '../lib/pptx/generator';
 import { useCurriculum } from '../hooks/useCurriculum';
@@ -44,24 +44,26 @@ const SimulatedBanner = () => (
 // Motor types match filenames in server/src/motores/prompts/*.md
 export default function MaterialesPage() {
   const { showToast } = useToast();
-  const synthesis = useMotorGenerator<SynthesisOutput>('synthesis', showToast as (msg: string, type?: string) => void);
-  const abp = useMotorGenerator<ABPOutput>('abp', showToast as (msg: string, type?: string) => void);
-  const assessment = useMotorGenerator<AssessmentOutput>('assessment', showToast as (msg: string, type?: string) => void);
-  const plan = useMotorGenerator<PlanOutput>('plan', showToast as (msg: string, type?: string) => void);
-  const slides = useMotorGenerator<SlidesOutput>('slides', showToast as (msg: string, type?: string) => void);
-  const ficha = useMotorGenerator<FichaOutput>('ficha', showToast as (msg: string, type?: string) => void);
-  const quiz = useMotorGenerator<QuizOutput>('quiz', showToast as (msg: string, type?: string) => void);
-  const tutor = useMotorGenerator<TutorOutput>('tutor', showToast as (msg: string, type?: string) => void);
-  const pdc = useMotorGenerator<PDCOutput>('pdc', showToast as (msg: string, type?: string) => void);
-  const recalibrate = useMotorGenerator<RecalibrateOutput>('recalibrate', showToast as (msg: string, type?: string) => void);
-  const micro = useMotorGenerator<MicroOutput>('micro', showToast as (msg: string, type?: string) => void);
+  const synthesis = useMotorGenerator<SynthesisOutput>('synthesis', showToast);
+  const abp = useMotorGenerator<ABPOutput>('abp', showToast);
+  const assessment = useMotorGenerator<AssessmentOutput>('assessment', showToast);
+  const plan = useMotorGenerator<PlanOutput>('plan', showToast);
+  const slides = useMotorGenerator<SlidesOutput>('slides', showToast);
+  const ficha = useMotorGenerator<FichaOutput>('ficha', showToast);
+  const quiz = useMotorGenerator<QuizOutput>('quiz', showToast);
+  const tutor = useMotorGenerator<TutorOutput>('tutor', showToast);
+  const pdc = useMotorGenerator<PDCOutput>('pdc', showToast);
+  const recalibrate = useMotorGenerator<RecalibrateOutput>('recalibrate', showToast);
+  const micro = useMotorGenerator<MicroOutput>('micro', showToast);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [studentBook, setStudentBook] = useState(false);
   const [curriculumPreview, setCurriculumPreview] = useState<CurriculumResult | null>(null);
   const { saveCurriculum } = useCurriculum();
   const [rawText, setRawText] = useState('');
+  const [ingestWarnings, setIngestWarnings] = useState<Array<{code: string; message: string}>>([]);
   const [ingesting, setIngesting] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState<{ text: string; percent: number } | null>(null);
   const [synthesisStreamText, setSynthesisStreamText] = useState('');
   const onExportSlides = async () => {
     try {
@@ -162,8 +164,9 @@ export default function MaterialesPage() {
     try {
       const data = await listMaterials();
       setMaterials(data);
-    } catch {
-      setMaterials(getMockMaterials());
+    } catch (err) {
+      console.error('Failed to load materials:', err);
+      showToast('Error al cargar materiales. ¿Servidor disponible?', 'error');
     }
     setLoading(false);
   }, []);
@@ -198,6 +201,8 @@ export default function MaterialesPage() {
 
     setIngesting(true);
     setCurriculumPreview(null);
+    setIngestWarnings([]);
+    setOcrProgress(null);
 
     try {
       await uploadMaterial(file, 'textbook');
@@ -213,8 +218,11 @@ export default function MaterialesPage() {
     }
 
     try {
-      const ingestResult: IngestResult = await ingestDocument(file);
+      const ingestResult: IngestResult = await ingestDocument(file, (text, percent) => {
+        setOcrProgress({ text, percent });
+      });
       setRawText(ingestResult.fullText);
+      setIngestWarnings(ingestResult.warnings || []);
       showToast('Texto extraído. Analizando con IA...', 'info');
       const curriculum = await extractCurriculumWithAI(ingestResult);
       setCurriculumPreview(curriculum);
@@ -236,11 +244,12 @@ export default function MaterialesPage() {
     if (!window.confirm('¿Eliminar este archivo?')) return;
     try {
       await deleteMaterial(id);
-      await loadMaterials();
-      showToast('Archivo eliminado correctamente.', 'success');
-    } catch {
-      setMaterials((prev) => prev.filter((m) => m.id !== id));
-      showToast('Archivo eliminado correctamente.', 'success');
+      await loadMaterials();  // re-fetch from server to get accurate list
+      showToast('Archivo eliminado.', 'success');
+    } catch (err) {
+      console.error('Delete failed:', err);
+      showToast('Error al eliminar. Intenta de nuevo.', 'error');
+      // Do NOT remove from local state — server still has it
     }
   };
 
@@ -277,13 +286,32 @@ export default function MaterialesPage() {
       {/* File List */}
       <FileList materials={materials} loading={loading} onDelete={handleDelete} />
 
-      {/* Loading / Processing indicator */}
+      {/* Loading / Processing indicator with progress bar */}
       {ingesting && (
         <div style={{
           padding: '1rem', textAlign: 'center', color: '#6b6b80', fontSize: '0.8125rem',
           background: '#f8f8fa', borderRadius: '8px', marginTop: '1rem',
         }}>
-          ⏳ Procesando contenido del libro de texto...
+          ⏳ {ocrProgress?.text || 'Procesando contenido del libro de texto...'}
+          {ocrProgress && (
+            <div style={{ marginTop: '0.5rem', height: '4px', background: '#e6e6eb', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${ocrProgress.percent}%`, background: '#3A9E5E', transition: 'width 0.3s ease' }} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* OCR Warnings */}
+      {ingestWarnings.length > 0 && (
+        <div style={{
+          marginTop: '1rem', padding: '0.75rem 1rem',
+          background: '#FEF3C7', border: '1px solid #F59E0B',
+          borderRadius: '8px', fontSize: '0.8125rem', color: '#92400E',
+        }}>
+          <strong style={{ display: 'block', marginBottom: '0.25rem' }}>⚠️ Avisos del procesamiento:</strong>
+          {ingestWarnings.map((w, i) => (
+            <div key={i} style={{ marginLeft: '0.5rem' }}>• {w.message}</div>
+          ))}
         </div>
       )}
 

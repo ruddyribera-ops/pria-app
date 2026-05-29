@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import Header from '../components/Layout/Header';
 import ProgressBar from '../components/UI/ProgressBar';
 import LoadingSkeleton from '../components/UI/LoadingSkeleton';
-import { getMockDaySchedule, getMockTeachers, getScheduleByDay } from '../api/schedule';
+import { getScheduleByDay } from '../api/schedule';
 import { getEstadoSistema } from '../api/admin';
 import type { ScheduleEntry } from '../types';
 
@@ -37,7 +37,7 @@ export default function DiarioPage() {
       const data = await getScheduleByDay(code, dia);
       setSchedule(data);
     } catch {
-      setSchedule(getMockDaySchedule());
+      setSchedule([]);
     }
     try {
       const sysEstado = await getEstadoSistema();
@@ -62,7 +62,7 @@ export default function DiarioPage() {
     setCurrentDate(new Date());
   };
 
-  const teachers = getMockTeachers();
+  const teachers: {code: string; name: string}[] = [];
 
   return (
     <div>

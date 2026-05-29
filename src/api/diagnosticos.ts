@@ -18,12 +18,3 @@ export async function uploadDiagnostico(file: File, tipo: string): Promise<Diagn
 export async function deleteDiagnostico(diagnosticoId: number): Promise<void> {
   await client.delete(`/diagnosticos/${diagnosticoId}`);
 }
-
-// ===== Mock =====
-export function getMockDiagnosticos(): Diagnostico[] {
-  return [
-    { id: 1, estudiante: '', nivel: '', filename: 'diagnostico_matematicas_3A.docx', tipo: 'docx', size: 245_000 },
-    { id: 2, estudiante: '', nivel: '', filename: 'diagnostico_lenguaje_3A.pdf', tipo: 'pdf', size: 312_000 },
-    { id: 3, estudiante: '', nivel: '', filename: 'resultados_prueba_inicial.txt', tipo: 'txt', size: 18_000 },
-  ];
-}

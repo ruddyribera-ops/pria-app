@@ -29,7 +29,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(savedToken);
         setUser(JSON.parse(savedUser) as UserInfo);
         // Validate token with /auth/me
-        apiLogin({ username: '', password: '' } as any).catch(() => {});
         getMe().then((u) => {
           setUser(u);
           localStorage.setItem(USER_KEY, JSON.stringify(u));

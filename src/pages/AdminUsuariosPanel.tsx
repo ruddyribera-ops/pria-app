@@ -1,0 +1,178 @@
+import { useState, useCallback, useEffect } from 'react';
+import { listUsers, createUser, updateUser, deleteUser } from '../api/users';
+import { adminTheme } from '../styles/adminTheme';
+import StatusBadge from '../components/UI/StatusBadge';
+import Modal from '../components/UI/Modal';
+import type { UsuarioResponse } from '../types';
+
+interface Props {
+  showToast: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+}
+
+export default function AdminUsuariosPanel({ showToast }: Props) {
+  const [users, setUsers] = useState<UsuarioResponse[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [newUser, setNewUser] = useState({ nombre: '', correo: '', usuario: '', contrasena: '', rol: 'docente' });
+  const [editingUser, setEditingUser] = useState<UsuarioResponse | null>(null);
+  const [editUserData, setEditUserData] = useState({ nombre: '', correo: '', rol: '', estado: true });
+  const [editUserLoading, setEditUserLoading] = useState(false);
+
+  const loadUsers = useCallback(async () => {
+    setLoadingUsers(true);
+    try {
+      const data = await listUsers();
+      setUsers(data);
+    } catch {
+      setUsers([]);
+    }
+    setLoadingUsers(false);
+  }, []);
+
+  useEffect(() => { loadUsers(); }, [loadUsers]);
+
+  const handleCreateUser = async () => {
+    if (!newUser.nombre.trim()) { showToast('⚠️ El nombre es requerido.', 'warning'); return; }
+    if (!newUser.usuario.trim()) { showToast('⚠️ El usuario es requerido.', 'warning'); return; }
+    if (!newUser.contrasena || newUser.contrasena.length < 6) { showToast('⚠️ La contraseña debe tener al menos 6 caracteres.', 'warning'); return; }
+    try {
+      await createUser({
+        username: newUser.usuario,
+        nombre: newUser.nombre,
+        role: newUser.rol,
+        password: newUser.contrasena,
+        teacher_code: newUser.usuario.toUpperCase(),
+      });
+      await loadUsers();
+      setNewUser({ nombre: '', correo: '', usuario: '', contrasena: '', rol: 'docente' });
+      showToast('✅ Usuario creado correctamente.', 'success');
+    } catch {
+      showToast('⚠️ Error al crear usuario.', 'error');
+    }
+  };
+
+  const handleSaveEditUser = async () => {
+    if (!editingUser) return;
+    setEditUserLoading(true);
+    try {
+      await updateUser(editingUser.id, {
+        nombre: editUserData.nombre,
+        correo: editUserData.correo,
+        rol: editUserData.rol,
+        estado: editUserData.estado,
+      });
+      await loadUsers();
+      setEditingUser(null);
+      showToast('Usuario actualizado correctamente.', 'success');
+    } catch {
+      setUsers(prev => prev.map(u => u.id === editingUser.id ? { ...u, nombre: editUserData.nombre, correo: editUserData.correo, rol: editUserData.rol, estado: editUserData.estado } : u));
+      setEditingUser(null);
+      showToast('Usuario actualizado correctamente.', 'success');
+    }
+    setEditUserLoading(false);
+  };
+
+  const handleEditUser = (u: UsuarioResponse) => {
+    setEditingUser(u);
+    setEditUserData({ nombre: u.nombre, correo: u.correo || '', rol: u.rol || u.role, estado: u.estado ?? true });
+  };
+
+  const handleDeleteUser = async (userId: number) => {
+    if (!window.confirm('¿Eliminar este usuario?')) return;
+    try {
+      await deleteUser(userId);
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      showToast('Usuario eliminado.', 'success');
+    } catch {
+      showToast('⚠️ Error al eliminar usuario.', 'error');
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ ...adminTheme.card, marginBottom: '1.25rem' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              {['NOMBRE', 'EMAIL', 'ROL', 'ESTADO', 'ACCIONES'].map(h => (
+                <th key={h} style={{ padding: '0.625rem 0.75rem', fontSize: '0.6875rem', fontWeight: 600, color: '#6b6b80', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'left', borderBottom: '2px solid #e6e6eb', background: '#fff' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loadingUsers ? (
+              <tr><td colSpan={5} style={{ padding: '1rem', textAlign: 'center', color: '#6b6b80' }}>Cargando...</td></tr>
+            ) : users.length === 0 ? (
+              <tr><td colSpan={5} style={{ padding: '1rem', textAlign: 'center', color: '#6b6b80' }}>No hay usuarios.</td></tr>
+            ) : (
+              users.map(u => (
+                <tr key={u.id}>
+                  <td style={{ padding: '0.625rem 0.75rem', fontSize: '0.8125rem', borderBottom: '1px solid #e6e6eb' }}>{u.nombre}</td>
+                  <td style={{ padding: '0.625rem 0.75rem', fontSize: '0.8125rem', borderBottom: '1px solid #e6e6eb' }}>{u.correo || '—'}</td>
+                  <td style={{ padding: '0.625rem 0.75rem', fontSize: '0.8125rem', borderBottom: '1px solid #e6e6eb' }}>{u.rol === 'admin' ? 'Administrador' : 'Docente'}</td>
+                  <td style={{ padding: '0.625rem 0.75rem', fontSize: '0.8125rem', borderBottom: '1px solid #e6e6eb' }}><StatusBadge status={u.estado ?? false} /></td>
+                  <td style={{ padding: '0.625rem 0.75rem', fontSize: '0.8125rem', borderBottom: '1px solid #e6e6eb' }}>
+                    <button onClick={() => handleEditUser(u)} style={{ padding: '0.25rem 0.5rem', border: 'none', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 500, marginRight: '0.25rem', cursor: 'pointer', background: 'rgba(92,106,196,0.08)', color: '#5c6ac4' }}>✎ Editar</button>
+                    <button onClick={() => handleDeleteUser(u.id)} style={{ padding: '0.25rem 0.5rem', border: 'none', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer', background: '#fef2f2', color: '#dc2626' }}>✕ Eliminar</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Create User Form */}
+      <div style={{ background: '#fff', border: '1px solid #e6e6eb', borderRadius: '8px', padding: '1.25rem' }}>
+        <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1e1e2f', marginBottom: '1rem' }}>➕ Crear Nuevo Usuario</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          <div>
+            <label style={adminTheme.label}>Nombre Completo</label>
+            <input value={newUser.nombre} onChange={e => setNewUser({ ...newUser, nombre: e.target.value })} placeholder="Ej: Juan Pérez" style={adminTheme.input} />
+          </div>
+          <div>
+            <label style={adminTheme.label}>Email</label>
+            <input value={newUser.correo} onChange={e => setNewUser({ ...newUser, correo: e.target.value })} placeholder="Ej: jperez@pria.edu" style={adminTheme.input} />
+          </div>
+          <div>
+            <label style={adminTheme.label}>Usuario</label>
+            <input value={newUser.usuario} onChange={e => setNewUser({ ...newUser, usuario: e.target.value })} placeholder="Ej: jperez" style={adminTheme.input} />
+          </div>
+          <div>
+            <label style={adminTheme.label}>Contraseña</label>
+            <input type="password" value={newUser.contrasena} onChange={e => setNewUser({ ...newUser, contrasena: e.target.value })} placeholder="••••••••" style={adminTheme.input} />
+          </div>
+          <div>
+            <label style={adminTheme.label}>Rol</label>
+            <select value={newUser.rol} onChange={e => setNewUser({ ...newUser, rol: e.target.value })} style={adminTheme.input}>
+              <option value="docente">Docente</option><option value="admin">Administrador</option>
+            </select>
+          </div>
+        </div>
+        <button onClick={handleCreateUser} style={adminTheme.greenBtn}>💾 Guardar Usuario</button>
+      </div>
+
+      {/* Edit Modal */}
+      <Modal isOpen={!!editingUser} onClose={() => setEditingUser(null)} title="✎ Editar Usuario">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div><label style={adminTheme.label}>Nombre</label><input value={editUserData.nombre} onChange={e => setEditUserData({ ...editUserData, nombre: e.target.value })} style={adminTheme.input} /></div>
+          <div><label style={adminTheme.label}>Correo</label><input value={editUserData.correo} onChange={e => setEditUserData({ ...editUserData, correo: e.target.value })} style={adminTheme.input} /></div>
+          <div>
+            <label style={adminTheme.label}>Rol</label>
+            <select value={editUserData.rol} onChange={e => setEditUserData({ ...editUserData, rol: e.target.value })} style={adminTheme.input}>
+              <option value="docente">Docente</option><option value="admin">Administrador</option>
+            </select>
+          </div>
+          <div>
+            <label style={adminTheme.label}>Estado</label>
+            <select value={editUserData.estado ? 'true' : 'false'} onChange={e => setEditUserData({ ...editUserData, estado: e.target.value === 'true' })} style={adminTheme.input}>
+              <option value="true">Activo</option><option value="false">Inactivo</option>
+            </select>
+          </div>
+          <button onClick={handleSaveEditUser} disabled={editUserLoading} style={{ ...adminTheme.greenBtn, opacity: editUserLoading ? 0.6 : 1, cursor: editUserLoading ? 'not-allowed' : 'pointer', width: '100%', textAlign: 'center' }}>
+            {editUserLoading ? 'Guardando...' : '💾 Guardar Cambios'}
+          </button>
+        </div>
+      </Modal>
+    </div>
+  );
+}

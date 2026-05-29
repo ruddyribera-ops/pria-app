@@ -82,9 +82,11 @@ router.post('/generate', async (req: any, res) => {
     if (!response.ok) {
       const errorText = await response.text().catch(() => '');
       console.error('[ai] MiniMax HTTP error:', response.status, errorText);
+      const debug = process.env.NODE_ENV === 'development' ? { _debug: `API error ${response.status}` } : {};
       return res.status(502).json({
         ok: false,
-        error: `Error de API: ${response.status} — ${errorText || 'sin detalles'}`,
+        error: 'Error de generación. Intenta de nuevo.',
+        ...debug,
       });
     }
 
@@ -92,9 +94,11 @@ router.post('/generate', async (req: any, res) => {
 
     if (data.error) {
       console.error('[ai] MiniMax API error:', data.error.message);
+      const debug = process.env.NODE_ENV === 'development' ? { _debug: data.error.message } : {};
       return res.status(502).json({
         ok: false,
-        error: 'Error del modelo: ' + data.error.message,
+        error: 'Error de generación. Intenta de nuevo.',
+        ...debug,
       });
     }
 
@@ -109,10 +113,8 @@ router.post('/generate', async (req: any, res) => {
 
     const text = cleanResponse(raw);
     res.json({ ok: true, text });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error('[ai] MiniMax fetch error:', message);
-    res.status(502).json({ ok: false, error: 'Error de conexión con el modelo de AI' });
+  } catch {
+    res.status(502).json({ ok: false, error: 'Error de generación. Intenta de nuevo.' });
   }
 });
 

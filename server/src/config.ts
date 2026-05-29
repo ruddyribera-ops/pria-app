@@ -24,8 +24,6 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   DATABASE_URL: z.string().optional(),
   MINIMAX_MODEL: z.string().default('MiniMax-M2.7'),
-  MINIMAX_TEMPERATURE: z.coerce.number().default(0.2),
-  MINIMAX_MAX_TOKENS: z.coerce.number().default(4096),
 });
 
 export function validateEnv() {

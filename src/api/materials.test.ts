@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatFileSize, getMockMaterials } from './materials';
+import { formatFileSize } from './materials';
 
 describe('formatFileSize', () => {
   it('formats bytes as B', () => {
@@ -18,23 +18,5 @@ describe('formatFileSize', () => {
     expect(formatFileSize(1024 * 1024)).toBe('1.0 MB');
     expect(formatFileSize(1024 * 1024 * 2)).toBe('2.0 MB');
     expect(formatFileSize(Math.round(1024 * 1024 * 3.5))).toBe('3.5 MB');
-  });
-});
-
-describe('getMockMaterials', () => {
-  it('returns array of mock materials', () => {
-    const materials = getMockMaterials();
-    expect(Array.isArray(materials)).toBe(true);
-    expect(materials.length).toBeGreaterThan(0);
-  });
-
-  it('each material has id, filename, tipo, size', () => {
-    const materials = getMockMaterials();
-    materials.forEach(m => {
-      expect(m).toHaveProperty('id');
-      expect(m).toHaveProperty('filename');
-      expect(m).toHaveProperty('tipo');
-      expect(m).toHaveProperty('size');
-    });
   });
 });

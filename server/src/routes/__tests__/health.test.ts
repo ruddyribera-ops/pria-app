@@ -1,7 +1,8 @@
 /**
- * Integration tests for GET /api/health.
- * Requires PostgreSQL running (DATABASE_URL or default Docker PG).
+ * @vitest-environment node
  */
+// Integration tests for GET /api/health.
+// Requires PostgreSQL running (docker start pria-pg).
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import http from 'http';
 import { createApp } from '../../app.js';
@@ -14,6 +15,15 @@ describe('GET /api/health', () => {
   let port: number;
 
   beforeAll(async () => {
+    try {
+      const pool = (await import('../../db/connection.js')).getPoolClient();
+      await pool.query('SELECT 1');
+    } catch {
+      throw new Error(
+        'PostgreSQL is required for integration tests. ' +
+        'Run "docker start pria-pg" or set DATABASE_URL.'
+      );
+    }
     await initDatabase();
     initDB();
     await seed();

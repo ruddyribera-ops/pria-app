@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '../components/Layout/Header';
 import { useToast } from '../components/UI/Toast';
-import { listDiagnosticos, uploadDiagnostico, deleteDiagnostico, getMockDiagnosticos } from '../api/diagnosticos';
+import { listDiagnosticos, uploadDiagnostico, deleteDiagnostico } from '../api/diagnosticos';
 import { formatFileSize } from '../api/materials';
 import type { Diagnostico } from '../types';
 
@@ -18,7 +18,7 @@ export default function DiagnosticosPage() {
       const data = await listDiagnosticos();
       setDiagnosticos(data);
     } catch {
-      setDiagnosticos(getMockDiagnosticos());
+      setDiagnosticos([]);
     }
     setLoading(false);
   }, []);

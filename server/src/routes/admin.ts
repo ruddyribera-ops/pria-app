@@ -32,7 +32,7 @@ router.post('/users', authMiddleware, adminOnly, validateBody(CreateUserSchema),
     'INSERT INTO users (username, password_hash, nombre, nivel, grado) VALUES ($1, $2, $3, $4, $5) RETURNING id',
     [usuario, hash, nombre, nivel || 'Primaria', grado || '5to']
   );
-  res.json({ data: { id: info.lastInsertRowid, created: new Date().toISOString() } });
+  res.json({ data: { id: info.id, created: new Date().toISOString() } });
 });
 
 export default router;

@@ -1,73 +1,112 @@
-# PRIA v10 — Project Memory
+# PRIA v10 — Project Memory (Updated 2026-05-27)
 
 ## Overview
-React frontend (Vite + TypeScript + React Router 7 + Axios) for PRIA v5.4 API.
-Codecademy-style UI: dark sidebar `#1c1e24`, green accent `#3A9E5E`.
+AI lesson-planning assistant for Las Palmas teachers. Upload textbook PDFs/JPEGs → browser OCR → 12 AI motors generate curriculum, slides, assessments, etc.
 
-## Backend API
-- **URL:** https://steadfast-alignment-production.up.railway.app
-- **OpenAPI:** /openapi.json
-- **Auth:** POST /api/auth/login { usuario, contrasena } → JWT Bearer token
-- **Fallback:** Mock data si la API no responde
+## Tech Stack
+- Frontend: React 19 + TypeScript + Vite 5 (dev :5173)
+- Backend: Express + TypeScript (tsx) (prod :3000)
+- Database: PostgreSQL via pg.Pool (Docker `pria-pg` on :5432) or SQLite for local dev
+- AI: MiniMax M2.7 API (`MINIMAX_API_KEY` in `server/.env`)
+- PDF OCR: pdfjs-dist (browser)
+- Image OCR: tesseract.js eng+spa (browser)
+- Error tracking: Sentry (optional, via `SENTRY_DSN` env var)
+
+## Entry Points
+- Dev frontend: `npm run dev` (Vite proxy → :3000)
+- Backend (dev): `npx tsx server.js`
+- Production: `npm start` (NODE_ENV=production tsx server.js)
+- Railway deployment via Railway.toml (nixpacks builder)
+
+## Database
+- Default: `sqlite://./prisa.db` (local dev, no FK support)
+- Production: `postgresql://postgres:pria_local@localhost:5432/pria`
+- Docker: `docker start pria-pg`
+- **Migration system (Sprint 1):** `server/src/db/migrations/` + `server/src/db/migrate.ts`
 
 ## Key Files
 ```
+server/src/
+├── db/
+│   ├── migrations/
+│   │   └── 001_initial.sql   — complete schema with FKs + TIMESTAMPTZ
+│   ├── migrate.ts            — migration runner with tracking table
+│   ├── schema.ts             — dbAll, dbGet, dbRun (migrations replaced initDB)
+│   ├── connection.ts         — pg.Pool setup
+│   └── seed.ts              — admin-only seed
+├── routes/
+│   ├── auth.ts              — login, register, me, patch-me (AuthRequest typed)
+│   ├── materials.ts         — CRUD for uploaded textbooks
+│   ├── curriculums.ts       — curriculum management
+│   └── motores.ts           — 12 AI motors (MOTOR_TEMPS table)
+├── middleware/
+│   ├── auth.ts              — authMiddleware, AuthPayload interface
+│   ├── errorHandler.ts       — sanitized error responses
+│   └── rateLimiter.ts        — motorLimiter, authLimiter
+├── motores/
+│   ├── mocks.ts             — 12 mock generators (all Zod-validated)
+│   └── prompts/             — motor prompt templates on disk
+└── schemas/                 — Zod validation schemas
+
 src/
-├── api/           # 9 módulos: client, auth, schedule, blocks, materials, diagnosticos, users, admin, motores
-├── lib/pptx/      # PPTX Generator: types, designSystem, buildSlides, mockContent, phaseDefinitions, multiPhaseContent
-├── context/       # AuthContext (JWT + mock fallback)
-├── components/    # UI, Layout (Sidebar, Header, AppLayout), Auth, Motores (PhaseStepper, PhaseNavigation)
-├── pages/         # 9 páginas: Login, Diario, Semanal, Trimestral, Slides, Materiales, Diagnosticos, Admin, NotFound
-├── types/         # All TypeScript interfaces
-├── hooks/         # useMotorGeneration, useMultiPhaseGeneration
-├── App.tsx        # Router con todas las rutas activas
-└── App.css        # Codecademy design system
+├── api/                — client, auth, materials, admin, motores
+├── lib/
+│   ├── ingest/
+│   │   └── documentIngester.ts  — ingestDocument/Pdf/Image with onProgress
+│   └── pptx/
+│       ├── promptRunner.ts  — executePrompt + executePromptStreaming (no ?raw)
+│       └── generator.ts     — PPTX generation
+├── hooks/
+│   └── useMotorGenerator.ts — typed showToast (no as any cast)
+└── pages/
+    └── HistoryPage.tsx     — shows result_json_preview (real content)
+
+.deploy/
+├── Railway.toml        — Railway deployment config
+├── docker-compose.yml  — PostgreSQL only
+├── .github/workflows/test.yml — CI with E2E smoke tests
+├── e2e/smoke.spec.ts   — Playwright smoke tests
+├── PRODUCTION_CHECKLIST.md — deployment guide
+└── KNOWN_ISSUES.md     — accepted tradeoffs
 ```
 
-## Routes (all active)
-| Route | Page | API Calls |
-|-------|------|-----------|
-| /login | LoginPage | POST /api/auth/login |
-| /slides | SlideGeneratorPage | POST /api/motores/slides/ + poll + PPTX download |
-| /diario | DiarioPage | GET /api/schedule/{code}/{dia}, GET /api/admin/estado-sistema |
-| /semanal | SemanalPage | GET /api/schedule/{code}, POST /api/motores/* |
-| /trimestral | TrimestralPage | POST /api/motores/pdc |
-| /materiales | MaterialesPage | CRUD /api/materials |
-| /diagnosticos | DiagnosticosPage | CRUD /api/diagnosticos |
-| /admin | AdminPage | CRUD /api/users, /api/blocks, /api/admin/* |
+## Current Sprint Status (Sprint 8 — Final)
+- Sprint 0 ✅ DONE — All fake data removed
+- Sprint 1 ✅ DONE — Database migrations, FKs, TIMESTAMPTZ
+- Sprint 2 ✅ DONE — Real textbook pipeline (JSON upload, OCR progress bar, MAX_PDF_PAGES=50, warnings UI)
+- Sprint 3 ✅ DONE — Prompt cleanup (dead ?raw imports removed, streaming.ts merged, temperature table)
+- Sprint 4 ✅ DONE — Security hardening (helmet, CSP, error sanitization, no as any)
+- Sprint 5 ✅ DONE — Testing (12 mock generators vs Zod, MotorButton component tests)
+- Sprint 6 ✅ DONE — UI polish (HistoryPage real JSON, skeleton, version 10.0.0)
+- Sprint 7 ✅ DONE — Infrastructure (Railway.toml, CI+E2E, docker-compose, Sentry)
+- Sprint 8 ✅ DONE — Production deploy (PRODUCTION_CHECKLIST.md, KNOWN_ISSUES.md, project_active.md updated)
 
-## Sidebar Sections
-- **Perfil Docente** (dropdown con datos + Cerrar Sesión)
-- **Generación:** Diapositivas 🖼️
-- **Planificación:** Diario 🌅, Semanal 📅, Trimestral 📆
-- **Recursos:** Materiales 📥, Diagnósticos 🩺
-- **Administración:** Panel Admin ⚙️ (solo rol=admin)
-- **Nivel Educativo** (selectors inline: nivel + grado)
-- **Estado del Sistema** (collapsible, 7 motores con status dots)
-- Reiniciar Todo 🧹, Cerrar Sesión 🚪
+## Verified Working
+- Login/logout with JWT ✅
+- MiniMax M2.7 API (key in `server/.env`) ✅
+- Browser OCR (pdfjs-dist + tesseract.js) ✅
+- 12 motor Zod schemas with validation ✅
+- Rate limiting (motor + auth limiters) ✅
+- Health check endpoint ✅
+- Helmet security headers ✅
+- All 24 mock generators pass Zod validation ✅
+- MotorButton component tests pass ✅
 
-## PPTX Generator + Multi-Fase
-- `src/lib/pptx/types.ts` — Slide content data models
-- `src/lib/pptx/designSystem.ts` — 10 paletas por materia, fuentes (Bitter + Calibri), dimensiones 16:9
-- `src/lib/pptx/buildSlides.ts` — PptxGenJS builder: cover, objectives, content cards, activities, page numbers
-- `src/lib/pptx/mockContent.ts` — Contenido educativo generado por materia y motor (slides, plan, ficha, quiz, pdc)
-- `src/lib/pptx/phaseDefinitions.ts` — Config de fases por motor: slides (3), plan (3), ficha (2), quiz (2), pdc (3), synthesis (2)
-- `src/lib/pptx/multiPhaseContent.ts` — Generadores de contenido por fase + mergePhaseResults para PPTX
-- `src/hooks/useMultiPhaseGeneration.ts` — Hook multi-fase: submit por fase, resultados acumulados, navegación entre fases
-- `src/components/Motores/PhaseStepper.tsx` — Stepper visual con checkmarks y conectores
-- `src/components/Motores/PhaseNavigation.tsx` — Anterior/Regenerar/Siguiente/Cerrar
-- Paletas daltónico-safe únicas por materia | Bloom taxonomy con badges | 📝 boxes
-- ⬇️ Descargar PPTX en: SlideGeneratorPage (multi-fase), SemanalPage, TrimestralPage
+## Danger Zones
+- `server.js` vs `server/src/index.ts`: Two entry points. `server.js` is authoritative for production.
+- `dbRun` returns `{ id }` (not `lastInsertRowid`) — changed in Sprint 1
+- `server/.env` controls actual runtime config (not root `.env`)
+- `promptRunner.ts` no longer imports ?raw (Sprint 3 removed them)
+- `useMotorGenerator` showToast typed to specific union (no more `as any`)
 
-## Credenciales (mock)
-- Usuario: admin / Contraseña: cualquier cosa
+## Design Constraints
+- Spanish-first UI text, English code identifiers
+- MiniMax API key strictly server-side (never in frontend bundle)
+- Motor generation always routes through backend /motores/{type} endpoint
+- Frontend promptRunner does NOT load prompts — backend owns all prompts
 
-## Known Gotchas
-- Backend Railway API es DIFERENTE al código en el repo `ruddyribera-ops/pria-app` (commit 0e14037)
-- API de Railway tiene /api/auth/login con { usuario, contrasena } NO email/password
-- Mock token empieza con "mock-" y el interceptor 401 lo salta (no limpia sesión)
-- Vite proxy: /api → https://steadfast-alignment-production.up.railway.app
-- Railway API devuelve 500 en login (posiblemente caída o cambio)
-
-## What's Next
-- Debug login real contra Railway API (500 error)
+## Deployment
+- Railway: `railway login && railway up`
+- Health check: GET /api/health → { status: "healthy", version: "10.0.0" }
+- Admin password: Check Railway startup logs OR set ADMIN_PASSWORD env var
+- CORS_ORIGIN must match Railway deployment URL

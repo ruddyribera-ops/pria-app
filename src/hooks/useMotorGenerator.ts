@@ -1,10 +1,9 @@
 ﻿import { useState, useCallback } from 'react';
-import { executePrompt } from '../lib/pptx/promptRunner';
-import { executePromptStreaming } from '../lib/pptx/streaming';
+import { executePrompt, executePromptStreaming } from '../lib/pptx/promptRunner';
 
 export function useMotorGenerator<T = unknown>(
   motorType: string,
-  showToast: (msg: string, type?: string) => void,
+  showToast: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void,
 ) {
   const [result, setResult] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);

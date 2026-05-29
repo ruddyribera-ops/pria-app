@@ -12,7 +12,7 @@ test.describe('Auth Flow', () => {
     await page.click('button[type="submit"]');
     await page.waitForURL('**/materiales', { timeout: 15000 });
     // Verify we are actually on materiales page
-    await expect(page.locator('body')).toContain(/material/i);
+    await expect(page.locator('body')).toContainText(/material/i);
   });
 
   test('login wrong credentials shows error', async ({ page }) => {

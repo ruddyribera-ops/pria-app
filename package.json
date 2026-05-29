@@ -1,7 +1,7 @@
 {
   "name": "react_frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "10.0.0",
   "type": "module",
   "scripts": {
     "postinstall": "cd server && npm install",
@@ -19,22 +19,26 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@sentry/node": "^10.54.0",
     "axios": "^1.16.1",
     "express": "^4.21.0",
+    "helmet": "^8.2.0",
     "http-proxy-middleware": "^3.0.0",
-    "tsx": "^4.19.2",
     "mammoth": "^1.12.0",
     "pdfjs-dist": "^5.7.284",
     "pptxgenjs": "^4.0.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.15.0",
-    "tesseract.js": "^7.0.0"
+    "tesseract.js": "^7.0.0",
+    "tsx": "^4.19.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.60.0",
+    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -43,6 +47,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "jsdom": "^29.1.1",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^5.4.21",

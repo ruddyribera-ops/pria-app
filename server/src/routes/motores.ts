@@ -61,6 +61,21 @@ const MINIMAX_API_URL = 'https://api.minimax.io/v1/chat/completions';
 const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY || '';
 const MINIMAX_MODEL = process.env.MINIMAX_MODEL || 'MiniMax-M2.7';
 
+const MOTOR_TEMPS: Record<string, number> = {
+  synthesis: 0.7,
+  abp: 0.8,
+  assessment: 0.3,
+  plan: 0.4,
+  slides: 0.5,
+  ficha: 0.6,
+  quiz: 0.4,
+  tutor: 0.3,
+  pdc: 0.3,
+  recalibrate: 0.3,
+  micro: 0.3,
+  alpha2: 0.2,
+};
+
 interface MinimaxChoice {
   finish_reason?: string;
   message?: { role?: string; content?: string };
@@ -98,7 +113,7 @@ async function tryMinimax(
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userMessage },
     ],
-    temperature: motorType === 'synthesis' ? 0.7 : 0.3,
+    temperature: MOTOR_TEMPS[motorType] ?? 0.3,
     max_tokens: 4096,
     response_format: { type: 'json_object' },
   };
@@ -160,7 +175,7 @@ const VALIDATORS: Record<string, (data: unknown) => any> = {
 router.get('/history', authMiddleware, async (req: any, res) => {
   try {
     const results = await dbAll(
-      'SELECT id, motor_type, status, simulated, created_at FROM motor_results WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20',
+      'SELECT id, motor_type, status, simulated, created_at, LEFT(result_json, 2000) AS result_json_preview FROM motor_results WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20',
       [req.user.id]
     );
     res.json({ data: results });

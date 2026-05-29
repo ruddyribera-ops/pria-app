@@ -38,6 +38,7 @@ interface HistoryEntry {
   status: string;
   simulated: boolean | null;
   created_at: string;
+  result_json_preview: string | null;
 }
 
 function formatDate(dateStr: string): string {
@@ -202,7 +203,7 @@ export default function HistoryPage() {
                       overflowX: 'auto', maxHeight: '200px', overflowY: 'auto',
                       whiteSpace: 'pre',
                     }}>
-                      {'{\n  "id": ' + entry.id + ',\n  "motor_type": "' + entry.motor_type + '",\n  "status": "' + entry.status + '",\n  "simulated": ' + (isSimulated ? 'true' : 'false') + ',\n  "created_at": "' + entry.created_at + '"\n}'}
+                      {entry.result_json_preview || '{ "error": "Sin contenido disponible" }'}
                     </div>
                   </div>
                 )}

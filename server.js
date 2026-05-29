@@ -14,8 +14,8 @@ const PORT = process.env.PORT || 3000;
 async function main() {
   // Initialize database + seed dev users
   await initDatabase();
-  initDB();
-  seed();
+  await initDB();
+  await seed();
 
   // Create the backend app (includes all /api/* routes)
   const app = await createApp();

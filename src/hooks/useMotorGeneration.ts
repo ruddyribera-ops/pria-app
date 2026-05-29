@@ -12,18 +12,18 @@ interface MotorState {
   motorKey: string | null;
 }
 
-// Map motor types to estado-sistema keys
+// Map motor types to estado-sistema keys (must match server/src/routes/admin.ts /estado-sistema)
 const MOTOR_KEYS: Record<MotorType, string> = {
-  alpha2: 'extraccion_curricular',
-  synthesis: 'sintesis_unidad',
-  abp: 'proyecto_abp',
-  assessment: 'evaluacion',
-  plan: 'plan_clase',
-  slides: 'diapositivas',
-  ficha: 'ficha_gamificada',
-  quiz: 'pop_quiz',
-  pdc: 'guia_tutor',
-  tutor: 'guia_tutor',
+  alpha2: 'alpha2',
+  synthesis: 'synthesis',
+  abp: 'abp',
+  assessment: 'assessment',
+  plan: 'plan',
+  slides: 'slides',
+  ficha: 'ficha',
+  quiz: 'quiz',
+  pdc: 'pdc',
+  tutor: 'tutor',
   recalibrate: 'recalibrate',
   micro: 'micro',
 };

@@ -1,5 +1,8 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import * as Sentry from '@sentry/node';
+import pinoHttp from 'pino-http';
 import { config } from './config.js';
 import healthRouter from './routes/health.js';
 import authRouter from './routes/auth.js';
@@ -12,11 +15,45 @@ import curriculumsRouter from './routes/curriculums.js';
 import aiRouter from './routes/ai.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
+// Init Sentry if DSN is provided
+if (process.env.SENTRY_DSN) {
+  Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1 });
+}
+
 export async function createApp() {
   const app = express();
 
+  // Security headers
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'same-origin' },
+  }));
+  app.use((req, res, next) => {
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.minimax.io;"
+    );
+    next();
+  });
+
   app.use(cors({ origin: config.CORS_ORIGIN }));
-  app.use(express.json({ limit: '50mb' }));
+  app.use(express.json({ limit: '10mb' }));
+
+  // Structured request logging
+  app.use(pinoHttp({
+    autoLogging: {
+      ignore: (req) => req.url === '/api/health',
+    },
+    customLogLevel: (_req, res, err) => {
+      if (res.statusCode >= 500 || err) return 'error';
+      if (res.statusCode >= 400) return 'warn';
+      return 'info';
+    },
+    serializers: {
+      req: (req) => ({ method: req.method, url: req.url, query: req.query }),
+      res: (res) => ({ statusCode: res.statusCode }),
+    },
+  }));
 
   // Routes
   app.use('/api/health', healthRouter);

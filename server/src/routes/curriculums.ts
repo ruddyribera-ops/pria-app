@@ -24,7 +24,7 @@ router.post('/', validateBody(CreateCurriculumSchema), async (req: any, res) => 
     'INSERT INTO curriculums (user_id, material_id, unidad_real, temas, contenido_temas, paginas_temas, raw_text) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
     [req.user.id, material_id || null, unidad_real, JSON.stringify(temas), JSON.stringify(contenido_temas), JSON.stringify(paginas_temas), raw_text || '']
   );
-  res.json({ data: { id: info.lastInsertRowid } });
+  res.json({ data: { id: info.id } });
 });
 
 router.delete('/:id', async (req: any, res) => {

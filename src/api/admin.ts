@@ -5,14 +5,6 @@ export async function getEstadoSistema(): Promise<EstadoSistema> {
   const response = await client.get<{ data: EstadoSistema }>('/admin/estado-sistema');
   return response.data.data;
 }
-
-export function getMockEstadoSistema(): EstadoSistema {
-  return {
-    motors: Object.fromEntries(MOTORS.map(m => [m.key, 'ready'])),
-    lastUpdated: new Date().toISOString(),
-  };
-}
-
 export async function getCacheStats() {
   const response = await client.get<{ data: { entries: number; motores_cache: number; pdfs_cache: number } }>('/admin/cache/stats');
   return response.data.data;

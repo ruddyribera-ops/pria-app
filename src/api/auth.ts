@@ -10,8 +10,3 @@ export async function getMe(): Promise<UserInfo> {
   const response = await client.get<{ data: UserInfo }>('/auth/me');
   return response.data.data;
 }
-
-export async function refreshToken(refresh_token: string): Promise<TokenResponse> {
-  const response = await client.post<{ data: TokenResponse }>('/auth/refresh', { refresh_token });
-  return response.data.data;
-}

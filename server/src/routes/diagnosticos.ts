@@ -18,7 +18,7 @@ router.post('/', validateBody(CreateDiagnosticoSchema), async (req: any, res) =>
     'INSERT INTO diagnosticos (user_id, estudiante, nivel, area, fecha, resultado) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
     [req.user.id, estudiante, nivel, area || '', fecha || '', resultado || '']
   );
-  res.json({ data: { id: info.lastInsertRowid } });
+  res.json({ data: { id: info.id } });
 });
 
 router.put('/:id', validateBody(UpdateDiagnosticoSchema), async (req: any, res) => {

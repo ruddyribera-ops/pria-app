@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import Header from '../components/Layout/Header';
-import { getMockWeekSchedule, DAYS } from '../api/schedule';
+import { DAYS } from '../api/schedule';
 import { useCurriculum } from '../hooks/useCurriculum';
 import type { ScheduleEntry } from '../types';
 import { useMultiPhaseGeneration } from '../hooks/useMultiPhaseGeneration';
@@ -67,7 +67,7 @@ export default function SemanalPage() {
   const effectiveMotorType = activeMotorType || 'slides';
   const mpg = useMultiPhaseGeneration(effectiveMotorType);
 
-  const weekData = getMockWeekSchedule();
+  const weekData: Record<string, any> = {};
 
   const getMateriaIcon = (name: string): string => {
     if (name.includes('Matemáticas')) return '📐';
