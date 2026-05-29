@@ -64,6 +64,8 @@
 | **Sprint 6** | ✅ DONE | 2026-05-27 | 2026-05-27 | M2.7 | UI polish: HistoryPage, skeleton, version 10.0.0 |
 | **Sprint 7** | ✅ DONE | 2026-05-27 | 2026-05-27 | M2.7 | Infrastructure: Railway.toml, CI+E2E, docker-compose |
 | **Sprint 8** | ✅ DONE | 2026-05-27 | 2026-05-27 | M2.7 | Production deploy docs + project_active update |
+| **Sprint 9** | ✅ DONE | 2026-05-28 | 2026-05-28 | M2.7 | PPTX partial warning, Blob API, type cleanup, prompt mapping |
+| **Sprint 10** | ✅ DONE | 2026-05-29 | 2026-05-29 | M2.7 | Testing & Observability: 127 tests, 11 E2E, pino-http, 6 admin component tests |
 
 ---
 
