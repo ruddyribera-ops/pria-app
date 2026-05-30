@@ -56,6 +56,7 @@ function getMigrationFiles(): { version: number; name: string; path: string }[] 
 /**
  * Run all pending migrations in order.
  * Each migration runs in its own transaction; failure rolls back and exits.
+ * Duplicate key (23505) is treated as already applied — no exit.
  */
 export async function runMigrations(): Promise<void> {
   const pool = getPoolClient();
@@ -90,8 +91,14 @@ export async function runMigrations(): Promise<void> {
       );
       await client.query('COMMIT');
       console.log(`[migrate] ✓ ${migration.name} applied`);
-    } catch (err) {
+    } catch (err: any) {
       await client.query('ROLLBACK');
+      // 23505 = duplicate key — migration already applied (e.g. in parallel test suites)
+      if (err?.code === '23505') {
+        console.log(`[migrate] ${migration.name} already applied (duplicate key)`);
+        client.release();
+        continue;
+      }
       console.error(`[migrate] ✗ ${migration.name} failed:`);
       console.error(err);
       process.exit(1);
