@@ -3,7 +3,7 @@ import client from './client';
 
 export async function listDiagnosticos(): Promise<Diagnostico[]> {
   const response = await client.get('/diagnosticos/');
-  return response.data;
+  return response.data.data;
 }
 
 export async function uploadDiagnostico(file: File, tipo: string): Promise<Diagnostico> {
@@ -12,7 +12,7 @@ export async function uploadDiagnostico(file: File, tipo: string): Promise<Diagn
   const response = await client.post(`/diagnosticos/upload?tipo=${tipo}`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  return response.data;
+  return response.data.data;
 }
 
 export async function deleteDiagnostico(diagnosticoId: number): Promise<void> {
