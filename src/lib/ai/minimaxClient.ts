@@ -149,16 +149,20 @@ export async function callMinimax(
 }
 
 /**
- * Streaming variant. NOTE: Backend does not support SSE streaming yet.
- * This function calls the non-streaming endpoint and passes the full 
- * response as a single chunk. The UI receives progressive updates via 
- * polling, not true streaming.
+ * Streaming variant using SSE via fetch + ReadableStream.
  *
- * TODO: Implement SSE in backend for true streaming.
+ * EventSource does not support POST requests, so we use fetch()
+ * and read the response body as an SSE stream.
+ *
+ * Backend SSE format:
+ *   data: {"status":"started"}\n\n         → ignore (log if needed)
+ *   data: {"chunk":"..."}\n\n       → call onChunk(text) immediately
+ *   data: {"status":"done","output":{...}}\n\n → return { ok: true, text: JSON.stringify(output) }
+ *   data: {"status":"error","error":"..."}\n\n → return { ok: false, text: '', error: ... }
  */
 export async function callMinimaxStream(
-  systemPrompt: string,
-  userMessage: string,
+  _systemPrompt: string,
+  _userMessage: string,
   onChunk: StreamingCallback,
   options: {
     temperature?: number;
@@ -168,9 +172,128 @@ export async function callMinimaxStream(
     params?: Record<string, unknown>;
   } = {},
 ): Promise<AiResult> {
-  const result = await callMinimax(systemPrompt, userMessage, options);
-  if (result.ok && result.text) {
-    onChunk(result.text);
+  const { motorType, params, temperature, maxTokens, jsonMode } = options;
+
+  const controller = new AbortController();
+
+  try {
+    // ── Determine endpoint and POST body ─────────────────────────────────────
+    let url: string;
+    let body: Record<string, unknown>;
+
+    if (motorType) {
+      // Motor SSE endpoint: POST /api/motores/{type}/stream
+      // Backend loads prompt from disk; body carries params + curriculum_id
+      url = `/api/motores/${motorType}/stream`;
+      body = {
+        params: params || {},
+        curriculum_id: (params?.curriculum_id as string) || '',
+      };
+    } else {
+      // Generic SSE endpoint: POST /api/ai/stream
+      url = '/api/ai/stream';
+      body = {
+        systemPrompt: _systemPrompt,
+        userMessage: _userMessage,
+        temperature,
+        maxTokens,
+        jsonMode,
+      };
+    }
+
+    // ── Open fetch stream ─────────────────────────────────────────────────────
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      return { ok: false, text: '', error: `HTTP ${response.status}: ${text}` };
+    }
+
+    if (!response.body) {
+      return { ok: false, text: '', error: 'Response body is null — SSE not supported by this endpoint' };
+    }
+
+    // ── Read SSE stream ───────────────────────────────────────────────────────
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let done = false;
+
+    while (!done) {
+      const { value, done: streamDone } = await reader.read();
+      done = streamDone;
+
+      if (value) {
+        buffer += decoder.decode(value, { stream: !done });
+      }
+
+      if (done) {
+        // Flush any remaining content in buffer
+        buffer += decoder.decode(undefined, { stream: false });
+      }
+
+      // ── Process complete SSE lines ─────────────────────────────────────────
+      // Lines are separated by "\n"; data lines start with "data: "
+      const lines = buffer.split('\n');
+      // Keep incomplete last line in buffer (may be partial SSE)
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('data:')) continue;
+
+        const jsonStr = trimmed.slice('data:'.length).trim();
+        if (!jsonStr) continue;
+
+        let event: { status?: string; chunk?: string; output?: unknown; error?: string };
+        try {
+          event = JSON.parse(jsonStr);
+        } catch {
+          // Malformed JSON — skip
+          continue;
+        }
+
+        if (event.status === 'started') {
+          // Server-side initialization — ignore, streaming has started
+          continue;
+        }
+
+        if (event.chunk !== undefined) {
+          // Text chunk — deliver immediately to UI
+          onChunk(event.chunk);
+          continue;
+        }
+
+        if (event.status === 'done') {
+          // Streaming complete
+          return {
+            ok: true,
+            text: event.output ? JSON.stringify(event.output) : '',
+            simulated: false,
+          };
+        }
+
+        if (event.status === 'error') {
+          return { ok: false, text: '', error: event.error ?? 'Unknown SSE error' };
+        }
+      }
+    }
+
+    // Stream ended without a "done" event
+    return { ok: false, text: '', error: 'SSE stream ended without a done event' };
+  } catch (err: unknown) {
+    if ((err as Error)?.name === 'AbortError' || (err as DOMException)?.name === 'AbortError') {
+      return { ok: false, text: '', error: 'Request was cancelled' };
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, text: '', error: msg };
+  } finally {
+    // Ensure reader is cancelled if we exit early
+    controller.abort();
   }
-  return result;
 }

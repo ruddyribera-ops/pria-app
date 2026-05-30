@@ -164,6 +164,110 @@ async function tryMinimax(
   }
 }
 
+/**
+ * MiniMax streaming variant — reads SSE from MiniMax and returns accumulated text + JSON
+ */
+async function tryMinimaxStream(
+  motorType: string,
+  params: Record<string, unknown>
+): Promise<{ chunks: string[]; output: unknown } | null> {
+  if (!MINIMAX_API_KEY) {
+    console.warn('[motores] MINIMAX_API_KEY no configurada');
+    return null;
+  }
+
+  const paramsJson = JSON.stringify(params, null, 2);
+  const systemPrompt = loadSystemPrompt(motorType);
+  const userMessage = [
+    'Variables de entrada:',
+    paramsJson,
+    '',
+    'Genera la salida en JSON según el OUTPUT SCHEMA del prompt de sistema.',
+    'Responde ÚNICAMENTE con el JSON, sin markdown ni texto adicional.',
+  ].join('\n');
+
+  const body = {
+    model: MINIMAX_MODEL,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMessage },
+    ],
+    temperature: MOTOR_TEMPS[motorType] ?? 0.3,
+    max_tokens: 4096,
+    stream: true,
+  };
+
+  try {
+    const response = await fetch(MINIMAX_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + MINIMAX_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      console.warn('[motores] MiniMax stream error:', response.status);
+      return null;
+    }
+
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    const chunks: string[] = [];
+    let fullContent = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              const cleaned = content.replace(/<[^>]+>/g, '').trim();
+              if (cleaned) {
+                chunks.push(cleaned);
+                fullContent += cleaned;
+              }
+            }
+          } catch {
+            // Skip malformed JSON lines
+          }
+        }
+      }
+    }
+
+    if (!fullContent.trim()) {
+      console.warn('[motores] MiniMax stream vacía');
+      return null;
+    }
+
+    // Strip thinking blocks and code fences, then parse JSON
+    let cleaned = fullContent.trim();
+    cleaned = cleaned.replace(/<[^>]+>/g, '').trim();
+    if (cleaned.startsWith('```json')) cleaned = cleaned.slice(7);
+    else if (cleaned.startsWith('```')) cleaned = cleaned.slice(3);
+    if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
+    cleaned = cleaned.trim();
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    if (start < 0 || end <= start) return null;
+    const parsed = JSON.parse(cleaned.slice(start, end + 1));
+
+    return { chunks, output: parsed };
+  } catch (err) {
+    console.warn('[motores] MiniMax stream fetch falló:', String(err));
+    return null;
+  }
+}
+
 const router = Router();
 router.use(authMiddleware);
 
@@ -240,6 +344,64 @@ router.post('/:type', motorLimiter, async (req: any, res) => {
       res.status(500).json({ error: 'Error generando contenido' });
     }
   }
+});
+
+// POST /api/motores/:type/stream — SSE streaming variant
+router.post('/:type/stream', motorLimiter, async (req: any, res: any) => {
+  const { type } = req.params;
+  const validator = VALIDATORS[type];
+  if (!validator) {
+    return res.status(400).json({ error: `Motor desconocido: ${type}` });
+  }
+
+  const { params = {}, curriculum_id } = req.body || {};
+
+  // Set SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  const sendEvent = (data: unknown) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  sendEvent({ status: 'started' });
+
+  try {
+    const result = await tryMinimaxStream(type, params);
+    if (!result) {
+      // MiniMax failed — generate mock and stream it
+      const mockOutput = generateMockOutput(type, params);
+      sendEvent({ status: 'done', output: mockOutput, simulated: true });
+      return;
+    }
+
+    // Stream accumulated chunks token by token
+    for (const chunk of result.chunks) {
+      sendEvent({ chunk });
+    }
+
+    // Validate and store
+    const validated = validator(result.output);
+    const promptVersion = getPromptVersion(type);
+    await dbRun(
+      'INSERT INTO motor_results (user_id, curriculum_id, motor_type, result_json, status, simulated, prompt_version) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      [req.user.id, curriculum_id || null, type, JSON.stringify(validated), 'done', false, promptVersion]
+    );
+
+    sendEvent({ status: 'done', output: validated, simulated: false });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      sendEvent({ status: 'error', error: 'El motor devolvió datos con formato inválido' });
+    } else {
+      console.error('[motores/stream]', err);
+      sendEvent({ status: 'error', error: 'Error generando contenido' });
+    }
+  }
+
+  res.end();
 });
 
 router.get('/:type/:jobId', (req, res) => {

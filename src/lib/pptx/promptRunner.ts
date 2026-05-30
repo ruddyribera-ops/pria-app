@@ -12,7 +12,7 @@
  */
 
 import type { MotorType } from '../../hooks/useMotorGeneration';
-import { callMinimax } from '../ai/minimaxClient';
+import { callMinimax, callMinimaxStream } from '../ai/minimaxClient';
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Mode configuration
@@ -638,22 +638,96 @@ export async function executePrompt(
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Streaming variant â€” wraps executePrompt
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Streaming variant — calls SSE endpoint via callMinimaxStream
+// ──────────────────────────────────────────────────
 
 /**
- * Streaming variant: calls backend and invokes onChunk with result.
- * NOTE: Backend does not support true SSE yet â€” this delivers
- * the full response as a single onChunk call.
+ * Streaming variant: uses SSE via callMinimaxStream to receive
+ * progressive chunks from the backend in real time.
+ *
+ * For SKIP / MOCK modes, falls back to non-streaming behaviour.
+ * For FULL_AI mode, calls callMinimaxStream which opens a
+ * fetch ReadableStream and parses SSE data: lines.
  */
+
 export async function executePromptStreaming(
   context: PromptContext,
   mode: PromptMode,
   onChunk: (text: string) => void,
 ): Promise<PromptResult> {
-  const result = await executePrompt(context, mode);
-  if (result.structuredOutput) {
-    onChunk(JSON.stringify(result.structuredOutput));
+  if (mode === 'SKIP') {
+    return { mode: 'SKIP', structuredOutput: {} };
   }
-  return result;
+
+  if (mode === 'MOCK') {
+    try {
+      const output = generateMockOutput(context);
+      onChunk(JSON.stringify(output));
+      return { mode: 'MOCK', structuredOutput: output };
+    } catch (err) {
+      return { mode: 'MOCK', error: String(err), structuredOutput: {} };
+    }
+  }
+
+  // FULL_AI — use SSE streaming
+  try {
+    const { motorType, params } = context;
+
+    const normalizedParams = { ...params };
+    if (motorType === 'synthesis' || motorType === 'alpha2') {
+      if (normalizedParams.unidad && !normalizedParams.unidad_real) {
+        normalizedParams.unidad_real = normalizedParams.unidad;
+      }
+      if (typeof normalizedParams.temas === 'string') {
+        normalizedParams.temas = (normalizedParams.temas as string).split(/[,\n]/).map((t: string) => t.trim()).filter(Boolean);
+      }
+    }
+
+    // callMinimaxStream uses SSE via fetch + ReadableStream.
+    // For motorType: POST /api/motores/{type}/stream with { params, curriculum_id }
+    // onChunk is called for every SSE "chunk" event.
+    // Returns when the SSE stream sends "done" or "error".
+    const result = await callMinimaxStream(
+      '',
+      '',
+      onChunk,
+      {
+        motorType: motorType as Parameters<typeof callMinimaxStream>[4]['motorType'],
+        params: normalizedParams,
+      },
+    );
+
+    if (!result.ok) {
+      // SSE failed — fall back to mock so the UI still gets something
+      console.warn('SSE stream failed:', result.error, '— falling back to MOCK');
+      const mockOutput = generateMockOutput(context);
+      return {
+        mode: 'FULL_AI',
+        error: result.error,
+        simulated: true,
+        structuredOutput: mockOutput,
+      };
+    }
+
+    // Parse the final JSON output accumulated from chunks
+    try {
+      const parsed = JSON.parse(result.text);
+      return { mode: 'FULL_AI', rawOutput: result.text, simulated: false, structuredOutput: parsed };
+    } catch {
+      return {
+        mode: 'FULL_AI',
+        error: 'Failed to parse SSE output as JSON',
+        rawOutput: result.text,
+        simulated: true,
+        structuredOutput: generateMockOutput(context),
+      };
+    }
+  } catch (err) {
+    return {
+      mode: 'FULL_AI',
+      error: String(err),
+      simulated: true,
+      structuredOutput: generateMockOutput(context),
+    };
+  }
 }
