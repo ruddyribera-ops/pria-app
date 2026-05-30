@@ -3,7 +3,7 @@ import client from './client';
 
 export async function listMaterials(): Promise<Material[]> {
   const response = await client.get('/materials/');
-  return response.data;
+  return response.data.data;
 }
 
 export async function uploadMaterial(file: File, tipo: string): Promise<Material> {
@@ -12,7 +12,7 @@ export async function uploadMaterial(file: File, tipo: string): Promise<Material
     tipo,
     size: file.size,
   });
-  return response.data;
+  return response.data.data;
 }
 
 export async function deleteMaterial(materialId: number): Promise<void> {

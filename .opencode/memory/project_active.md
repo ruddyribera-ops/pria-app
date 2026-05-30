@@ -1,12 +1,12 @@
-# PRIA v10 — Project Memory (Updated 2026-05-27)
+# PRIA v10 — Project Memory (Updated 2026-05-30)
 
 ## Overview
 AI lesson-planning assistant for Las Palmas teachers. Upload textbook PDFs/JPEGs → browser OCR → 12 AI motors generate curriculum, slides, assessments, etc.
 
 ## Tech Stack
 - Frontend: React 19 + TypeScript + Vite 5 (dev :5173)
-- Backend: Express + TypeScript (tsx) (prod :3000)
-- Database: PostgreSQL via pg.Pool (Docker `pria-pg` on :5432) or SQLite for local dev
+- Backend: Express + TypeScript (tsx) (server :3000)
+- Database: PostgreSQL via pg.Pool (Docker `pria-pg` on :5432)
 - AI: MiniMax M2.7 API (`MINIMAX_API_KEY` in `server/.env`)
 - PDF OCR: pdfjs-dist (browser)
 - Image OCR: tesseract.js eng+spa (browser)
@@ -14,38 +14,40 @@ AI lesson-planning assistant for Las Palmas teachers. Upload textbook PDFs/JPEGs
 
 ## Entry Points
 - Dev frontend: `npm run dev` (Vite proxy → :3000)
-- Backend (dev): `npx tsx server.js`
-- Production: `npm start` (NODE_ENV=production tsx server.js)
+- Backend (dev): `npx tsx server/src/index.ts`
+- Production: `npm start` (NODE_ENV=production tsx server/src/index.js)
 - Railway deployment via Railway.toml (nixpacks builder)
 
 ## Database
-- Default: `sqlite://./prisa.db` (local dev, no FK support)
-- Production: `postgresql://postgres:pria_local@localhost:5432/pria`
+- Default: `postgresql://postgres:pria_local@localhost:5432/pria`
 - Docker: `docker start pria-pg`
-- **Migration system (Sprint 1):** `server/src/db/migrations/` + `server/src/db/migrate.ts`
+- Migration system: `server/src/db/migrations/` + `server/src/db/migrate.ts`
+- Migrations applied: 001 (schema), 002 (rate_limiter), 003 (prompt_version)
 
 ## Key Files
 ```
 server/src/
 ├── db/
 │   ├── migrations/
-│   │   └── 001_initial.sql   — complete schema with FKs + TIMESTAMPTZ
-│   ├── migrate.ts            — migration runner with tracking table
-│   ├── schema.ts             — dbAll, dbGet, dbRun (migrations replaced initDB)
+│   │   ├── 001_initial.sql    — complete schema with FKs + TIMESTAMPTZ
+│   │   ├── 002_rate_limiter.sql
+│   │   └── 003_prompt_version.sql  — prompt_version TEXT column
+│   ├── migrate.ts            — graceful23505 handling (no process.exit)
+│   ├── schema.ts             — dbAll, dbGet, dbRun (no generic type args)
 │   ├── connection.ts         — pg.Pool setup
 │   └── seed.ts              — admin-only seed
 ├── routes/
-│   ├── auth.ts              — login, register, me, patch-me (AuthRequest typed)
-│   ├── materials.ts         — CRUD for uploaded textbooks
-│   ├── curriculums.ts       — curriculum management
-│   └── motores.ts           — 12 AI motors (MOTOR_TEMPS table)
+│   ├── auth.ts              — login with CSRF cookie (SameSite=Strict)
+│   ├── materials.ts         — CRUD + GET /:id/output endpoint
+│   ├── motores.ts           — 12 AI motors + getPromptVersion()
+│   └── prompts.ts           — GET /api/prompts/:motorKey (NEW)
 ├── middleware/
-│   ├── auth.ts              — authMiddleware, AuthPayload interface
+│   ├── auth.ts              — authMiddleware, AuthPayload (sub + role)
 │   ├── errorHandler.ts       — sanitized error responses
 │   └── rateLimiter.ts        — motorLimiter, authLimiter
 ├── motores/
 │   ├── mocks.ts             — 12 mock generators (all Zod-validated)
-│   └── prompts/             — motor prompt templates on disk
+│   └── prompts/             — 12 motor prompt templates (SINGLE source of truth)
 └── schemas/                 — Zod validation schemas
 
 src/
@@ -54,50 +56,59 @@ src/
 │   ├── ingest/
 │   │   └── documentIngester.ts  — ingestDocument/Pdf/Image with onProgress
 │   └── pptx/
-│       ├── promptRunner.ts  — executePrompt + executePromptStreaming (no ?raw)
+│       ├── promptRunner.ts  — NO ?raw imports (cleaned Sprint E)
 │       └── generator.ts     — PPTX generation
 ├── hooks/
-│   └── useMotorGenerator.ts — typed showToast (no as any cast)
+│   └── useMotorGenerator.ts — typed showToast, polling
 └── pages/
-    └── HistoryPage.tsx     — shows result_json_preview (real content)
+    ├── MaterialesPage.tsx  — 12 motor buttons, OCR upload
+    ├── HistoryPage.tsx — result_json preview
+    └── AdminPage.tsx       — 6 panels (Cache, Reset, Archivos, Bloques, Usuarios)
 
-.deploy/
-├── Railway.toml        — Railway deployment config
-├── docker-compose.yml  — PostgreSQL only
-├── .github/workflows/test.yml — CI with E2E smoke tests
-├── e2e/smoke.spec.ts   — Playwright smoke tests
-├── PRODUCTION_CHECKLIST.md — deployment guide
-└── KNOWN_ISSUES.md     — accepted tradeoffs
+src/prompts/ — 11 files DELETED (Sprint E dedup)
+ Motor_Alpha-2.md RETAINED (legacy alpha2 use only)
 ```
 
-## Current Sprint Status (Sprint 8 — Final)
-- Sprint 0 ✅ DONE — All fake data removed
-- Sprint 1 ✅ DONE — Database migrations, FKs, TIMESTAMPTZ
-- Sprint 2 ✅ DONE — Real textbook pipeline (JSON upload, OCR progress bar, MAX_PDF_PAGES=50, warnings UI)
-- Sprint 3 ✅ DONE — Prompt cleanup (dead ?raw imports removed, streaming.ts merged, temperature table)
-- Sprint 4 ✅ DONE — Security hardening (helmet, CSP, error sanitization, no as any)
-- Sprint 5 ✅ DONE — Testing (12 mock generators vs Zod, MotorButton component tests)
-- Sprint 6 ✅ DONE — UI polish (HistoryPage real JSON, skeleton, version 10.0.0)
-- Sprint 7 ✅ DONE — Infrastructure (Railway.toml, CI+E2E, docker-compose, Sentry)
-- Sprint 8 ✅ DONE — Production deploy (PRODUCTION_CHECKLIST.md, KNOWN_ISSUES.md, project_active.md updated)
+## Current Sprint Status (Updated 2026-05-30)
+| Sprint | Status | Date Done | Agent | Notes |
+|--------|--------|----------|-------|-------|
+| Sprint 0-8 | ✅ DONE | 2026-05-27 | M2.7 | Infrastructure, DB, security, testing |
+| Sprint 9 | ✅ DONE | 2026-05-28 | M2.7 | PPTX partial warning, Blob API, type cleanup |
+| Sprint 10 | ✅ DONE | 2026-05-29 | M2.7 | Testing& Observability: 127 tests, pino-http |
+| Sprint 11 | ✅ DONE | 2026-05-29 | M2.7 | Frontend Architecture: CSS Modules, React Query |
+| Sprint 12 | ✅ DONE | 2026-05-30 | External Agent | Prompts & Data: backend API, versioning, CSRF |
 
-## Verified Working
-- Login/logout with JWT ✅
-- MiniMax M2.7 API (key in `server/.env`) ✅
-- Browser OCR (pdfjs-dist + tesseract.js) ✅
-- 12 motor Zod schemas with validation ✅
-- Rate limiting (motor + auth limiters) ✅
-- Health check endpoint ✅
-- Helmet security headers ✅
-- All 24 mock generators pass Zod validation ✅
-- MotorButton component tests pass ✅
+## Sprint 12 Completed Features
+- `GET /api/prompts/:motorKey` — backend endpoint, text/plain, 1hr cache
+- `src/prompts/` — 11 files deleted (single source of truth: server/src/motores/prompts/)
+- Migration 003 — `prompt_version TEXT` on motor_results + materials
+- `GET /api/materials/:id/output` — full JSON retrieval, ETag, Cache-Control
+- Auth CSRF cookie — `SameSite=Strict; HttpOnly`
+- `.env.example` —28 lines, ADMIN_PASSWORD documented
+
+## Verified Working (2026-05-30)
+- `npm run build` → 0 errors
+- `npx tsc --noEmit` →0 errors
+- `npx vitest run` → 127/127 passed, 0 errors
+- `GET /api/prompts/synthesis` → 200 + full prompt text (~3KB)
+- `GET /api/materials/1/output` → 200 + full JSON + ETag + Cache-Control
+- Auth login cookie → `SameSite=Strict; HttpOnly`
+- `prompt_version` column → exists in DB
+- `migrate.ts` duplicate key → graceful continue (no crash)
+
+## TypeScript Fixes Applied (2026-05-30)
+- pino-http ESM import → `import { pinoHttp as pinoHttpFn }`
+- jwt.sign overload → `as Parameters<typeof jwt.sign>[2]`
+- dbGet generic args → removed, used `as Type | undefined` cast
+- AuthRequest type mismatch → `req: any`
+- migrate.ts duplicate key → `err?.code === '23505'` → continue
 
 ## Danger Zones
-- `server.js` vs `server/src/index.ts`: Two entry points. `server.js` is authoritative for production.
-- `dbRun` returns `{ id }` (not `lastInsertRowid`) — changed in Sprint 1
+- `server/src/index.ts` is the dev entry (tsx), NOT `server.js`
+- `dbRun` returns `{ id }` (not `lastInsertRowid`)
 - `server/.env` controls actual runtime config (not root `.env`)
-- `promptRunner.ts` no longer imports ?raw (Sprint 3 removed them)
-- `useMotorGenerator` showToast typed to specific union (no more `as any`)
+- `src/prompts/` — do NOT re-add files here; server/src/motores/prompts/ is the source of truth
+- `prompt_version` shows `unknown` in dev (git hash-object not available in all run contexts)
 
 ## Design Constraints
 - Spanish-first UI text, English code identifiers
@@ -110,3 +121,4 @@ src/
 - Health check: GET /api/health → { status: "healthy", version: "10.0.0" }
 - Admin password: Check Railway startup logs OR set ADMIN_PASSWORD env var
 - CORS_ORIGIN must match Railway deployment URL
+- Git: local-only, no remote configured
