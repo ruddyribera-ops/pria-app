@@ -2,8 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import * as Sentry from '@sentry/node';
-import pinoHttp from 'pino-http';
+import { pinoHttp as pinoHttpFn } from 'pino-http';
 import { config } from './config.js';
+import type { Request, Response } from 'express';
 import healthRouter from './routes/health.js';
 import authRouter from './routes/auth.js';
 import adminRouter from './routes/admin.js';
@@ -41,18 +42,18 @@ export async function createApp() {
   app.use(express.json({ limit: '10mb' }));
 
   // Structured request logging
-  app.use(pinoHttp({
+  app.use(pinoHttpFn({
     autoLogging: {
-      ignore: (req) => req.url === '/api/health',
+      ignore: (req: Request) => req.url === '/api/health',
     },
-    customLogLevel: (_req, res, err) => {
+    customLogLevel: (_req: Request, res: Response, err: Error | undefined) => {
       if (res.statusCode >= 500 || err) return 'error';
       if (res.statusCode >= 400) return 'warn';
       return 'info';
     },
     serializers: {
-      req: (req) => ({ method: req.method, url: req.url, query: req.query }),
-      res: (res) => ({ statusCode: res.statusCode }),
+      req: (req: Request) => ({ method: req.method, url: req.url, query: req.query }),
+      res: (res: Response) => ({ statusCode: res.statusCode }),
     },
   }));
 

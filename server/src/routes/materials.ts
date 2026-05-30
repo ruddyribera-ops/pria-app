@@ -29,10 +29,10 @@ router.delete('/:id', async (req: any, res) => {
 
 // GET /api/materials/:id/output — returns full result_json (not truncated)
 router.get('/:id/output', authMiddleware, async (req: any, res) => {
-  const row = await dbGet<{ result_json: string; user_id: number }>(
+  const row = await dbGet(
     'SELECT result_json, user_id FROM motor_results WHERE id = $1',
     [req.params.id]
-  );
+  ) as { result_json: string; user_id: number } | undefined;
   if (!row) return res.status(404).json({ error: 'Not found' });
   if (row.user_id !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
   res.setHeader('Cache-Control', 'private, max-age=300');

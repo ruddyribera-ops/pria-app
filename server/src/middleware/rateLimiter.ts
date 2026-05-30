@@ -32,10 +32,10 @@ export function createRateLimiter(maxReqs: number, windowMs: number) {
         [key]
       );
 
-      const row = await dbGet<RateLimitRow>(
+      const row = await dbGet(
         'SELECT count, reset_at FROM rate_limiter WHERE key = $1',
         [key]
-      );
+      ) as RateLimitRow | undefined;
 
       if (row && row.count > maxReqs) {
         res.set('Retry-After', String(windowSec));
