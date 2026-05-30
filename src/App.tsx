@@ -1,4 +1,6 @@
-﻿import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './lib/queryClient';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './components/UI/Toast';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
@@ -26,31 +28,33 @@ function withErrorBoundary(Component: React.FC, pageName: string) {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <ToastProvider>
-        <AuthProvider>
-          <Routes>
-            {/* Public */}
-            <Route path="/login" element={withErrorBoundary(LoginPage, 'Iniciar Sesión')} />
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <ToastProvider>
+          <AuthProvider>
+            <Routes>
+              {/* Public */}
+              <Route path="/login" element={withErrorBoundary(LoginPage, 'Iniciar Sesión')} />
 
-            {/* Protected — AppLayout provides sidebar + outlet */}
-            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route path="/slides" element={withErrorBoundary(SlideGeneratorPage, 'Generar Diapositivas')} />
-              <Route path="/diario" element={withErrorBoundary(DiarioPage, 'Diario')} />
-              <Route path="/semanal" element={withErrorBoundary(SemanalPage, 'Plan Semanal')} />
-              <Route path="/trimestral" element={withErrorBoundary(TrimestralPage, 'Planificación Trimestral')} />
-              <Route path="/materiales" element={withErrorBoundary(MaterialesPage, 'Materiales')} />
-              <Route path="/historial" element={withErrorBoundary(HistoryPage, 'Historial')} />
-              <Route path="/diagnosticos" element={withErrorBoundary(DiagnosticosPage, 'Diagnósticos')} />
-              <Route path="/admin" element={withErrorBoundary(AdminPage, 'Administración')} />
-            </Route>
+              {/* Protected — AppLayout provides sidebar + outlet */}
+              <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                <Route path="/slides" element={withErrorBoundary(SlideGeneratorPage, 'Generar Diapositivas')} />
+                <Route path="/diario" element={withErrorBoundary(DiarioPage, 'Diario')} />
+                <Route path="/semanal" element={withErrorBoundary(SemanalPage, 'Plan Semanal')} />
+                <Route path="/trimestral" element={withErrorBoundary(TrimestralPage, 'Planificación Trimestral')} />
+                <Route path="/materiales" element={withErrorBoundary(MaterialesPage, 'Materiales')} />
+                <Route path="/historial" element={withErrorBoundary(HistoryPage, 'Historial')} />
+                <Route path="/diagnosticos" element={withErrorBoundary(DiagnosticosPage, 'Diagnósticos')} />
+                <Route path="/admin" element={withErrorBoundary(AdminPage, 'Administración')} />
+              </Route>
 
-            {/* Redirects */}
-            <Route path="/" element={<Navigate to="/slides" replace />} />
-            <Route path="*" element={withErrorBoundary(NotFoundPage, '404')} />
-          </Routes>
-        </AuthProvider>
-      </ToastProvider>
-    </BrowserRouter>
+              {/* Redirects */}
+              <Route path="/" element={<Navigate to="/slides" replace />} />
+              <Route path="*" element={withErrorBoundary(NotFoundPage, '404')} />
+            </Routes>
+          </AuthProvider>
+        </ToastProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }

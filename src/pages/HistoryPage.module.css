@@ -1,0 +1,177 @@
+/* HistoryPage.module.css */
+.page {
+  padding: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e1e2f;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 0.8125rem;
+  color: #6b6b80;
+  margin: 0.25rem 0 0;
+}
+
+.loadingState {
+  text-align: center;
+  padding: 3rem;
+  color: #6b6b80;
+}
+
+.loadingIcon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.loadingText {
+  font-size: 0.875rem;
+}
+
+.errorState {
+  padding: 1rem;
+  background: #FEE2E2;
+  border: 1px solid #FCA5A5;
+  border-radius: 8px;
+  color: #991B1B;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.emptyState {
+  padding: 3rem;
+  text-align: center;
+  background: #f8f8fa;
+  border-radius: 12px;
+  color: #6b6b80;
+}
+
+.emptyIcon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.emptyTitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.emptyText {
+  font-size: 0.8125rem;
+}
+
+.entryList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.entryCard {
+  background: #fff;
+  border: 1px solid #e6e6eb;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+
+.entryCard:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.entryHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  cursor: pointer;
+}
+
+.entryHeader:focus-visible {
+  outline: 2px solid var(--pria-accent, #3A9E5E);
+  outline-offset: -2px;
+}
+
+.entryIcon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.entryInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.entryLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e1e2f;
+}
+
+.entryDate {
+  font-size: 0.75rem;
+  color: #6b6b80;
+}
+
+.entryActions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+}
+
+.badgeSimulated {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.badgeReal {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.expandIcon {
+  font-size: 0.875rem;
+  color: #6b6b80;
+}
+
+.expandedContent {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #f0f0f5;
+  background: #fafafa;
+}
+
+.expandedMeta {
+  font-size: 0.75rem;
+  color: #6b6b80;
+  margin-bottom: 0.5rem;
+}
+
+.jsonPreview {
+  font-size: 0.6875rem;
+  font-family: monospace;
+  background: #1e1e2f;
+  color: #a5f3fc;
+  padding: 0.75rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre;
+}

@@ -1,0 +1,224 @@
+/* SlideGeneratorPage.module.css */
+.phaseHeader {
+  background: #fff;
+  border: 1px solid #e6e6eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.phaseMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e6e6eb;
+}
+
+.phaseSubtitle {
+  font-size: 0.75rem;
+  color: #6b6b80;
+  margin-bottom: 0.125rem;
+}
+
+.phaseTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e1e2f;
+  margin: 0;
+}
+
+.phaseDescription {
+  font-size: 0.75rem;
+  color: #6b6b80;
+  margin: 0.25rem 0 0;
+}
+
+.doneBadge {
+  background: #f0fdf4;
+  color: #166534;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.phaseBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.fieldLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #6b6b80;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fieldInput {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d4d4e0;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  outline: none;
+  background: #f8f8ff;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fieldInput:focus {
+  border-color: #3A9E5E;
+  box-shadow: 0 0 0 2px rgba(58, 158, 94, 0.1);
+}
+
+.fieldMargin {
+  margin-top: 0.375rem;
+}
+
+.checkboxField {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.checkboxInput {
+  width: 18px;
+  height: 18px;
+  accent-color: #3A9E5E;
+  cursor: pointer;
+}
+
+.checkboxLabel {
+  font-size: 0.8125rem;
+  color: #1e1e2f;
+}
+
+.textareaInput {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d4d4e0;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  outline: none;
+  background: #f8f8ff;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 80px;
+  resize: vertical;
+}
+
+.textareaInput:focus {
+  border-color: #3A9E5E;
+  box-shadow: 0 0 0 2px rgba(58, 158, 94, 0.1);
+}
+
+.submitBtn {
+  padding: 0.6rem 1.5rem;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.submitBtn:disabled {
+  background: #b3b3cc;
+  cursor: not-allowed;
+}
+
+.submitBtn:not(:disabled) {
+  background: #3A9E5E;
+}
+
+.submitBtn:not(:disabled):hover {
+  background: #2d7a4a;
+}
+
+.submitBtn:focus-visible {
+  outline: 2px solid #3A9E5E;
+  outline-offset: 2px;
+}
+
+/* Editor complete state */
+.editorComplete {
+  margin-top: 1.25rem;
+}
+
+.successCard {
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 1.25rem;
+  background: #f0fdf4;
+}
+
+.successHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.successTitle {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #166534;
+  margin-bottom: 0.25rem;
+}
+
+.successText {
+  font-size: 0.75rem;
+  color: #6b6b80;
+}
+
+.openEditorBtn {
+  padding: 0.6rem 1.25rem;
+  background: #3A9E5E;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  white-space: nowrap;
+}
+
+.openEditorBtn:hover {
+  background: #2d7a4a;
+}
+
+.openEditorBtn:focus-visible {
+  outline: 2px solid #3A9E5E;
+  outline-offset: 2px;
+}
+
+/* Idle helper */
+.idleHelper {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f8f8ff;
+  border: 1px solid #e6e6eb;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  color: #6b6b80;
+}
+
+.helperTitle {
+  color: #1e1e2f;
+}
+
+.helperStep {
+  margin: 0.25rem 0;
+}

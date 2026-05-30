@@ -1,0 +1,55 @@
+/* MotorButton.module.css */
+.btn {
+  padding: 0.5rem 1.25rem;
+  background: var(--btn-color, #3A9E5E);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: opacity 0.15s ease;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--btn-color, #3A9E5E);
+  outline-offset: 2px;
+}
+
+.btnLoading {
+  opacity: 0.6;
+}
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.withSubtitle {
+  border-top: 1px solid #e6e6eb;
+  padding: 1rem;
+}
+
+.subtitle {
+  font-size: 0.6875rem;
+  color: #6b6b80;
+  margin-bottom: 0.5rem;
+}

@@ -11,6 +11,7 @@ import SlideEditorPanel from '../components/SlideEditor/SlideEditorPanel';
 import ResultPreview from '../components/SlideEditor/ResultPreview';
 import { mergePhaseResults } from '../lib/pptx/multiPhaseContent';
 import type { PhaseField } from '../lib/pptx/phaseDefinitions';
+import styles from './SemanalPage.module.css';
 
 const DAY_LABELS: Record<string, string> = {
   LUNES: 'LUNES',
@@ -42,28 +43,18 @@ const MOTOR_LABELS: Record<MotorType, string> = {
   micro: '',
 };
 
-const LABEL_STYLE: React.CSSProperties = {
-  fontSize: '0.6875rem', fontWeight: 600, color: '#6b6b80',
-  textTransform: 'uppercase', letterSpacing: '0.04em',
-};
-
 export default function SemanalPage() {
   const [nivel, setNivel] = useState('Secundaria');
   const [grado, setGrado] = useState('3er año');
   const [materia, setMateria] = useState('Todas las materias');
   const [paginas, setPaginas] = useState('45-62');
-
-  // Multi-phase state
   const [activeMotorType, setActiveMotorType] = useState<MotorType | null>(null);
   const [activeDay, setActiveDay] = useState<string>('');
   const [activeLabel, setActiveLabel] = useState('');
   const [params, setParams] = useState<Record<string, unknown>>({});
   const [showEditor, setShowEditor] = useState(false);
 
-  // Load curriculum from API (replaces localStorage)
   const { curriculum: curriculumFromMaterials } = useCurriculum();
-
-  // Always create the hook with a valid motor type
   const effectiveMotorType = activeMotorType || 'slides';
   const mpg = useMultiPhaseGeneration(effectiveMotorType);
 
@@ -81,7 +72,6 @@ export default function SemanalPage() {
   const handleDayAction = (day: string, action: string) => {
     const motorType = ACTION_MOTOR_MAP[action];
     if (!motorType) return;
-
     setActiveMotorType(motorType);
     setActiveDay(day);
     setActiveLabel(`${action} — ${day}`);
@@ -95,23 +85,9 @@ export default function SemanalPage() {
     });
   };
 
-  const handleSubmit = async () => {
-    await mpg.submit(params);
-  };
-
-  const handleRegenerate = async () => {
-    await mpg.regenerate(params);
-  };
-
-  /** Merged data for editor */
-  const mergedData = useMemo(() => {
-    if (!mpg.allPhasesDone || !activeMotorType) return null;
-    return mergePhaseResults(activeMotorType, mpg.results, params) as any;
-  }, [mpg.allPhasesDone, mpg.results, activeMotorType, params]);
-
-  const handleClearEditor = () => {
-    setShowEditor(false);
-  };
+  const handleSubmit = async () => { await mpg.submit(params); };
+  const handleRegenerate = async () => { await mpg.regenerate(params); };
+  const handleClearEditor = () => { setShowEditor(false); };
 
   const handleReset = () => {
     mpg.reset();
@@ -120,6 +96,11 @@ export default function SemanalPage() {
     setActiveLabel('');
     setShowEditor(false);
   };
+
+  const mergedData = useMemo(() => {
+    if (!mpg.allPhasesDone || !activeMotorType) return null;
+    return mergePhaseResults(activeMotorType, mpg.results, params) as any;
+  }, [mpg.allPhasesDone, mpg.results, activeMotorType, params]);
 
   const renderField = (field: PhaseField, val: unknown) => {
     const value = (val !== undefined && val !== '') ? val : field.default ?? '';
@@ -130,11 +111,8 @@ export default function SemanalPage() {
           value={value as string}
           onChange={(e) => setParams(p => ({ ...p, [field.name]: e.target.value }))}
           disabled={mpg.isActive}
-          style={{
-            padding: '0.5rem 0.75rem', border: '1px solid #d4d4e0', borderRadius: '4px',
-            fontSize: '0.8125rem', outline: 'none', background: '#f8f8ff', width: '100%',
-            boxSizing: 'border-box',
-          }}
+          className={styles.filterSelect}
+          aria-label={field.label}
         >
           {(field.options || []).map(opt => (
             <option key={opt} value={opt}>{opt}</option>
@@ -145,15 +123,17 @@ export default function SemanalPage() {
 
     if (field.type === 'checkbox') {
       return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className={styles.checkboxField}>
           <input
             type="checkbox"
+            id={`sem-field-${field.name}`}
             checked={value === true || value === 'true'}
             onChange={(e) => setParams(p => ({ ...p, [field.name]: e.target.checked }))}
             disabled={mpg.isActive}
-            style={{ width: '18px', height: '18px', accentColor: '#3A9E5E' }}
+            className={styles.checkboxInput}
+            aria-label={field.label}
           />
-          <label style={{ fontSize: '0.8125rem', color: '#1e1e2f' }}>{field.label}</label>
+          <label htmlFor={`sem-field-${field.name}`} className={styles.checkboxLabel}>{field.label}</label>
         </div>
       );
     }
@@ -165,11 +145,8 @@ export default function SemanalPage() {
           onChange={(e) => setParams(p => ({ ...p, [field.name]: e.target.value }))}
           disabled={mpg.isActive}
           placeholder={field.placeholder}
-          style={{
-            padding: '0.5rem 0.75rem', border: '1px solid #d4d4e0', borderRadius: '4px',
-            fontSize: '0.8125rem', outline: 'none', background: '#f8f8ff', width: '100%',
-            minHeight: '80px', resize: 'vertical', boxSizing: 'border-box',
-          }}
+          className={styles.textareaInput}
+          aria-label={field.label}
         />
       );
     }
@@ -181,11 +158,8 @@ export default function SemanalPage() {
         onChange={(e) => setParams(p => ({ ...p, [field.name]: e.target.value }))}
         disabled={mpg.isActive}
         placeholder={field.placeholder}
-        style={{
-          padding: '0.5rem 0.75rem', border: '1px solid #d4d4e0', borderRadius: '4px',
-          fontSize: '0.8125rem', outline: 'none', background: '#f8f8ff', width: '100%',
-          boxSizing: 'border-box',
-        }}
+        className={styles.filterInput}
+        aria-label={field.label}
       />
     );
   };
@@ -196,103 +170,75 @@ export default function SemanalPage() {
     <div>
       <Header title="📅 Plan Semanal" subtitle="Planificación semanal por nivel, grado y materia" />
 
-      {/* Hint banner when no active generation */}
+      {/* Hint banner */}
       {!activeMotorType && (
-        <div style={{
-          padding: '0.75rem 1rem', background: '#f0fdf4', borderRadius: '8px',
-          marginBottom: '1rem', fontSize: '0.75rem', color: '#166534',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
+        <div className={styles.hintBanner}>
           {curriculumFromMaterials ? (
             <>
               <span>📋 <strong>{curriculumFromMaterials.unidad_real}</strong> — {curriculumFromMaterials.temas.length} tema(s) cargado(s): {curriculumFromMaterials.temas.slice(0, 3).join(', ')}{curriculumFromMaterials.temas.length > 3 ? '...' : ''}</span>
-              <a href="/materiales" style={{ color: '#3A9E5E', fontWeight: 600, textDecoration: 'none' }}>Ver en Materiales →</a>
+              <a href="/materiales" className={styles.hintLink}>Ver en Materiales →</a>
             </>
           ) : (
             <>
               <span>💡 Para generar contenido nuevo, ve a Materiales y usa los motores IA.</span>
-              <a href="/materiales" style={{ color: '#3A9E5E', fontWeight: 600, textDecoration: 'none' }}>Ir a Materiales →</a>
+              <a href="/materiales" className={styles.hintLink}>Ir a Materiales →</a>
             </>
           )}
         </div>
       )}
 
       {/* Filters */}
-      <div style={{
-        display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem',
-        background: '#fff', border: '1px solid #e6e6eb', borderRadius: '8px',
-        padding: '1rem 1.25rem', alignItems: 'flex-end',
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <label style={LABEL_STYLE}>Nivel</label>
-          <select value={nivel} onChange={(e) => setNivel(e.target.value)}
-            disabled={mpg.isActive}
-            style={{ padding: '0.5rem 0.75rem', border: '1px solid #d4d4e0', borderRadius: '4px', fontSize: '0.8125rem', outline: 'none', background: '#f8f8ff' }}>
+      <div className={styles.filterBar}>
+        <div className={styles.filterGroup}>
+          <label htmlFor="sem-nivel" className={styles.filterLabel}>Nivel</label>
+          <select id="sem-nivel" value={nivel} onChange={(e) => setNivel(e.target.value)} disabled={mpg.isActive} className={styles.filterSelect}>
             <option>Secundaria</option><option>Primaria</option>
           </select>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <label style={LABEL_STYLE}>Grado</label>
-          <select value={grado} onChange={(e) => setGrado(e.target.value)}
-            disabled={mpg.isActive}
-            style={{ padding: '0.5rem 0.75rem', border: '1px solid #d4d4e0', borderRadius: '4px', fontSize: '0.8125rem', outline: 'none', background: '#f8f8ff' }}>
+        <div className={styles.filterGroup}>
+          <label htmlFor="sem-grado" className={styles.filterLabel}>Grado</label>
+          <select id="sem-grado" value={grado} onChange={(e) => setGrado(e.target.value)} disabled={mpg.isActive} className={styles.filterSelect}>
             <option>3er año</option><option>2do año</option><option>1er año</option>
           </select>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <label style={LABEL_STYLE}>Materia</label>
-          <select value={materia} onChange={(e) => setMateria(e.target.value)}
-            disabled={mpg.isActive}
-            style={{ padding: '0.5rem 0.75rem', border: '1px solid #d4d4e0', borderRadius: '4px', fontSize: '0.8125rem', outline: 'none', background: '#f8f8ff' }}>
+        <div className={styles.filterGroup}>
+          <label htmlFor="sem-materia" className={styles.filterLabel}>Materia</label>
+          <select id="sem-materia" value={materia} onChange={(e) => setMateria(e.target.value)} disabled={mpg.isActive} className={styles.filterSelect}>
             <option>Todas las materias</option><option>Matemáticas</option><option>Lenguaje</option><option>Cs. Naturales</option>
           </select>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <label style={LABEL_STYLE}>Páginas del Libro</label>
-          <input type="text" value={paginas} onChange={(e) => setPaginas(e.target.value)}
-            disabled={mpg.isActive} placeholder="Ej: 45-62"
-            style={{ padding: '0.5rem 0.75rem', border: '1px solid #d4d4e0', borderRadius: '4px', fontSize: '0.8125rem', outline: 'none', background: '#f8f8ff' }} />
+        <div className={styles.filterGroup}>
+          <label htmlFor="sem-paginas" className={styles.filterLabel}>Páginas del Libro</label>
+          <input id="sem-paginas" type="text" value={paginas} onChange={(e) => setPaginas(e.target.value)} disabled={mpg.isActive} placeholder="Ej: 45-62" className={styles.filterInput} />
         </div>
       </div>
 
       {/* Week Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem' }}>
+      <div className={styles.weekGrid}>
         {DAYS.map((day) => {
           const dayEntries = weekData[day] || [];
           return (
-            <div key={day} style={{
-              background: '#fff', border: '1px solid #e6e6eb', borderRadius: '8px',
-              padding: '1rem', minHeight: '220px',
-            }}>
-              <h4 style={{
-                fontSize: '0.6875rem', fontWeight: 600, color: '#1e1e2f',
-                textTransform: 'uppercase', letterSpacing: '0.04em',
-                marginBottom: '0.5rem', paddingBottom: '0.5rem',
-                borderBottom: '2px solid #e6e6eb', textAlign: 'center',
-              }}>{DAY_LABELS[day] || day}</h4>
+            <div key={day} className={styles.dayCard}>
+              <h4 className={styles.dayTitle}>{DAY_LABELS[day] || day}</h4>
               {dayEntries.filter((e: ScheduleEntry) => e.tipo !== 'recess').map((entry: ScheduleEntry, i: number) => (
-                <div key={i} style={{
-                  padding: '0.5rem', marginBottom: '0.375rem', borderRadius: '4px',
-                  fontSize: '0.6875rem', background: '#f8f8ff', borderLeft: '3px solid #3A9E5E',
-                }}>
-                  <div style={{ fontWeight: 600, color: '#1e1e2f' }}>{getMateriaIcon(entry.materia)} {entry.materia}</div>
-                  <div style={{ fontSize: '0.625rem', color: '#6b6b80' }}>{entry.hora}</div>
+                <div key={i} className={styles.dayEntry}>
+                  <div className={styles.entryMateria}>{getMateriaIcon(entry.materia)} {entry.materia}</div>
+                  <div className={styles.entryHora}>{entry.hora}</div>
                 </div>
               ))}
               {dayEntries.length === 0 && (
-                <div style={{ fontSize: '0.75rem', color: '#6b6b80', textAlign: 'center', padding: '1rem 0' }}>Sin clases</div>
+                <div className={styles.dayEmpty}>Sin clases</div>
               )}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.5rem' }}>
+              <div className={styles.dayActions}>
                 {['📄 Plan', '🖼️ Diapositivas', '📋 Ficha', '📝 Quiz'].map((action, i) => (
-                  <button key={i}
+                  <button
+                    key={i}
                     onClick={() => handleDayAction(day, action)}
                     disabled={mpg.isActive}
-                    style={{
-                      padding: '0.25rem 0.5rem', borderRadius: '4px',
-                      border: '1px solid #e6e6eb', background: '#fff',
-                      fontSize: '0.625rem', fontWeight: 500, color: mpg.isActive ? '#ccc' : '#6b6b80',
-                      cursor: mpg.isActive ? 'not-allowed' : 'pointer',
-                    }}>
+                    className={styles.dayActionBtn}
+                    aria-busy={mpg.isActive}
+                    aria-label={`Generar ${action.replace('📄 ', '').replace('🖼️ ', '').replace('📋 ', '').replace('📝 ', '')} para ${day}`}
+                  >
                     {action}
                   </button>
                 ))}
@@ -304,32 +250,17 @@ export default function SemanalPage() {
 
       {/* Multi-phase generation panel */}
       {activeMotorType && (
-        <div style={{
-          marginTop: '1.5rem', background: '#fff', border: '1px solid #e6e6eb',
-          borderRadius: '8px', padding: '1.25rem',
-        }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            marginBottom: '1rem',
-          }}>
+        <div className={styles.genPanel}>
+          <div className={styles.genPanelHeader}>
             <div>
-              <div style={{ fontSize: '0.75rem', color: '#6b6b80' }}>
-                Generación activa · {activeLabel}
-              </div>
-              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1e1e2f' }}>
-                {MOTOR_LABELS[activeMotorType]} en {mpg.totalPhases} fases
-              </div>
+              <div className={styles.genPanelMeta}>Generación activa · {activeLabel}</div>
+              <div className={styles.genPanelTitle}>{MOTOR_LABELS[activeMotorType]} en {mpg.totalPhases} fases</div>
             </div>
-            <button onClick={handleReset}
-              style={{
-                padding: '0.375rem 0.75rem', border: '1px solid #e6e6eb', borderRadius: '4px',
-                background: '#fff', fontSize: '0.75rem', cursor: 'pointer', color: '#6b6b80',
-              }}>
+            <button onClick={handleReset} className={styles.cancelBtn} aria-label="Cancelar generación">
               ✕ Cancelar
             </button>
           </div>
 
-          {/* Phase Stepper */}
           <PhaseStepper
             phases={mpg.phaseDefs}
             currentPhase={mpg.currentPhase}
@@ -338,57 +269,38 @@ export default function SemanalPage() {
             onPhaseClick={(i) => { if (mpg.phaseStatuses[i] === 'done') mpg.goToPhase(i); }}
           />
 
-          {/* Current phase form */}
           {!mpg.phaseStatuses[mpg.currentPhase]?.includes('done') && currentPhaseDef && (
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{
-                fontSize: '0.75rem', color: '#6b6b80', marginBottom: '0.25rem',
-              }}>
-                {currentPhaseDef.subtitle}
-              </div>
-              <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#1e1e2f', margin: '0 0 0.25rem' }}>
-                {currentPhaseDef.label}
-              </h4>
-              <p style={{ fontSize: '0.75rem', color: '#6b6b80', margin: '0 0 1rem' }}>
-                {currentPhaseDef.description}
-              </p>
+            <div>
+              <div className={styles.phaseMetaInfo}>{currentPhaseDef.subtitle}</div>
+              <h4 className={styles.phaseTitle}>{currentPhaseDef.label}</h4>
+              <p className={styles.phaseDesc}>{currentPhaseDef.description}</p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div className={styles.fieldList}>
                 {currentPhaseDef.fields.map(field => (
-                  <div key={field.name}>
-                    {field.type !== 'checkbox' && <label style={LABEL_STYLE}>{field.label}</label>}
-                    <div style={{ marginTop: field.type !== 'checkbox' ? '0.25rem' : 0 }}>
+                  <div key={field.name} className={styles.fieldItem}>
+                    {field.type !== 'checkbox' && (
+                      <label className={styles.filterLabel}>{field.label}</label>
+                    )}
+                    <div className={field.type !== 'checkbox' ? styles.fieldMarginTop : ''}>
                       {renderField(field, params[field.name])}
                     </div>
                   </div>
                 ))}
               </div>
 
-              <button onClick={handleSubmit} disabled={mpg.isActive}
-                style={{
-                  padding: '0.6rem 1.5rem', background: mpg.isActive ? '#b3b3cc' : '#3A9E5E',
-                  color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600,
-                  fontSize: '0.875rem', cursor: mpg.isActive ? 'not-allowed' : 'pointer',
-                }}>
+              <button onClick={handleSubmit} disabled={mpg.isActive} className={styles.genSubmitBtn} aria-busy={mpg.isActive}>
                 {mpg.isActive ? '⏳ Generando...' : `⚡ Generar ${currentPhaseDef.label}`}
               </button>
             </div>
           )}
 
-          {/* Current phase result */}
           {mpg.phaseStatuses[mpg.currentPhase] === 'done' && mpg.currentResult && (
-            <div style={{
-              padding: '0.75rem', background: '#f0fdf4', borderRadius: '4px',
-              border: '1px solid #bbf7d0', marginBottom: '0.75rem',
-            }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#166534', marginBottom: '0.375rem' }}>
-                ✅ {currentPhaseDef?.label} completado
-              </div>
+            <div className={styles.phaseResult}>
+              <div className={styles.phaseResultTitle}>✅ {currentPhaseDef?.label} completado</div>
               <ResultPreview data={mpg.currentResult} />
             </div>
           )}
 
-          {/* Phase Navigation */}
           <PhaseNavigation
             currentPhase={mpg.currentPhase}
             totalPhases={mpg.totalPhases}
@@ -403,30 +315,15 @@ export default function SemanalPage() {
             onReset={handleReset}
           />
 
-          {/* All phases done — show editor or prompt */}
           {mpg.allPhasesDone && mergedData && (
-            <div style={{ marginTop: '1rem' }}>
+            <div>
               {!showEditor ? (
-                <div style={{
-                  padding: '1rem', background: '#f0fdf4',
-                  border: '1px solid #bbf7d0', borderRadius: '8px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                }}>
+                <div className={styles.completeCard}>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: '#166534' }}>
-                      🎉 {MOTOR_LABELS[activeMotorType]} completo
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: '#6b6b80' }}>
-                      {mpg.totalPhases} fases generadas para {activeLabel}
-                    </div>
+                    <div className={styles.completeTitle}>🎉 {MOTOR_LABELS[activeMotorType]} completo</div>
+                    <div className={styles.completeSubtitle}>{mpg.totalPhases} fases generadas para {activeLabel}</div>
                   </div>
-                  <button onClick={() => setShowEditor(true)}
-                    style={{
-                      padding: '0.5rem 1rem', background: '#3A9E5E',
-                      color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600,
-                      fontSize: '0.8125rem', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: '0.375rem',
-                    }}>
+                  <button onClick={() => setShowEditor(true)} className={styles.openEditorBtn}>
                     🎬 Abrir Editor Visual
                   </button>
                 </div>

@@ -26,17 +26,10 @@ import MotorSection_Recalibrate from '../components/Motores/MotorSection_Recalib
 import MotorSection_Micro from '../components/Motores/MotorSection_Micro';
 import MotorSection_Export from '../components/Motores/MotorSection_Export';
 import MotorButtonRow from '../components/Motores/MotorButtonRow';
+import styles from './MaterialesPage.module.css';
 
 const SimulatedBanner = () => (
-  <div style={{
-    margin: '0 1rem 1rem',
-    padding: '0.5rem 1rem',
-    background: '#FFF3CD',
-    border: '1px solid #FFC107',
-    borderRadius: '6px',
-    fontSize: '0.75rem',
-    color: '#856404',
-  }}>
+  <div className={styles.simulatedBanner}>
     ⚠️ IA no disponible — contenido simulado con fines ilustrativos.
   </div>
 );
@@ -261,26 +254,17 @@ export default function MaterialesPage() {
       <UploadZone onUpload={handleUpload} ingesting={ingesting} />
 
       {/* Student Book Toggle */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem',
-        background: '#fff', border: '1px solid #e6e6eb', borderRadius: '8px', padding: '0.75rem 1rem',
-      }}>
-        <span style={{ fontSize: '0.8125rem', fontWeight: 500, color: '#1e1e2f' }}>¿Usa Student Book?</span>
+      <div className={styles.studentBookToggle}>
+        <span className={styles.studentBookLabel}>¿Usa Student Book?</span>
         <button
           onClick={toggleStudentBook}
-          style={{
-            position: 'relative', width: '44px', height: '24px',
-            background: studentBook ? '#3A9E5E' : '#e6e6eb',
-            borderRadius: '12px', border: 'none', cursor: 'pointer', transition: 'all .2s',
-          }}
+          className={`${styles.toggleSwitch} ${studentBook ? styles.toggleSwitchOn : styles.toggleSwitchOff}`}
+          aria-pressed={studentBook}
+          aria-label="Activar modo Student Book"
         >
-          <span style={{
-            position: 'absolute', top: '2px', left: studentBook ? '22px' : '2px',
-            width: '20px', height: '20px', background: '#fff', borderRadius: '50%',
-            transition: 'all .25s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-          }} />
+          <span className={`${styles.toggleKnob} ${studentBook ? styles.toggleKnobOn : ''}`} />
         </button>
-        <span style={{ fontSize: '0.75rem', color: '#6b6b80' }}>{studentBook ? 'Sí' : 'No'}</span>
+        <span className={styles.studentBookStatus}>{studentBook ? 'Sí' : 'No'}</span>
       </div>
 
       {/* File List */}
@@ -288,14 +272,11 @@ export default function MaterialesPage() {
 
       {/* Loading / Processing indicator with progress bar */}
       {ingesting && (
-        <div style={{
-          padding: '1rem', textAlign: 'center', color: '#6b6b80', fontSize: '0.8125rem',
-          background: '#f8f8fa', borderRadius: '8px', marginTop: '1rem',
-        }}>
+        <div className={styles.ingestProgress} role="status" aria-live="polite">
           ⏳ {ocrProgress?.text || 'Procesando contenido del libro de texto...'}
           {ocrProgress && (
-            <div style={{ marginTop: '0.5rem', height: '4px', background: '#e6e6eb', borderRadius: '2px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${ocrProgress.percent}%`, background: '#3A9E5E', transition: 'width 0.3s ease' }} />
+            <div className={styles.progressBar} role="progressbar" aria-valuenow={ocrProgress.percent} aria-valuemin={0} aria-valuemax={100}>
+              <div className={styles.progressFill} style={{ width: `${ocrProgress.percent}%` }} />
             </div>
           )}
         </div>
@@ -303,14 +284,10 @@ export default function MaterialesPage() {
 
       {/* OCR Warnings */}
       {ingestWarnings.length > 0 && (
-        <div style={{
-          marginTop: '1rem', padding: '0.75rem 1rem',
-          background: '#FEF3C7', border: '1px solid #F59E0B',
-          borderRadius: '8px', fontSize: '0.8125rem', color: '#92400E',
-        }}>
-          <strong style={{ display: 'block', marginBottom: '0.25rem' }}>⚠️ Avisos del procesamiento:</strong>
+        <div className={styles.ingestWarnings} role="alert">
+          <strong className={styles.warningTitle}>⚠️ Avisos del procesamiento:</strong>
           {ingestWarnings.map((w, i) => (
-            <div key={i} style={{ marginLeft: '0.5rem' }}>• {w.message}</div>
+            <div key={i} className={styles.warningItem}>• {w.message}</div>
           ))}
         </div>
       )}

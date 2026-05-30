@@ -111,8 +111,8 @@ export default function AdminUsuariosPanel({ showToast }: Props) {
                   <td style={{ padding: '0.625rem 0.75rem', fontSize: '0.8125rem', borderBottom: '1px solid #e6e6eb' }}>{u.rol === 'admin' ? 'Administrador' : 'Docente'}</td>
                   <td style={{ padding: '0.625rem 0.75rem', fontSize: '0.8125rem', borderBottom: '1px solid #e6e6eb' }}><StatusBadge status={u.estado ?? false} /></td>
                   <td style={{ padding: '0.625rem 0.75rem', fontSize: '0.8125rem', borderBottom: '1px solid #e6e6eb' }}>
-                    <button onClick={() => handleEditUser(u)} style={{ padding: '0.25rem 0.5rem', border: 'none', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 500, marginRight: '0.25rem', cursor: 'pointer', background: 'rgba(92,106,196,0.08)', color: '#5c6ac4' }}>✎ Editar</button>
-                    <button onClick={() => handleDeleteUser(u.id)} style={{ padding: '0.25rem 0.5rem', border: 'none', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer', background: '#fef2f2', color: '#dc2626' }}>✕ Eliminar</button>
+                    <button onClick={() => handleEditUser(u)} aria-label={`Editar usuario ${u.nombre}`} style={{ padding: '0.25rem 0.5rem', border: 'none', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 500, marginRight: '0.25rem', cursor: 'pointer', background: 'rgba(92,106,196,0.08)', color: '#5c6ac4' }}>✎ Editar</button>
+                    <button onClick={() => handleDeleteUser(u.id)} aria-label={`Eliminar usuario ${u.nombre}`} style={{ padding: '0.25rem 0.5rem', border: 'none', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer', background: '#fef2f2', color: '#dc2626' }}>✕ Eliminar</button>
                   </td>
                 </tr>
               ))
@@ -126,24 +126,24 @@ export default function AdminUsuariosPanel({ showToast }: Props) {
         <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1e1e2f', marginBottom: '1rem' }}>➕ Crear Nuevo Usuario</h4>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <div>
-            <label style={adminTheme.label}>Nombre Completo</label>
-            <input value={newUser.nombre} onChange={e => setNewUser({ ...newUser, nombre: e.target.value })} placeholder="Ej: Juan Pérez" style={adminTheme.input} />
+            <label htmlFor="new-user-nombre" style={adminTheme.label}>Nombre Completo</label>
+            <input id="new-user-nombre" value={newUser.nombre} onChange={e => setNewUser({ ...newUser, nombre: e.target.value })} placeholder="Ej: Juan Pérez" style={adminTheme.input} />
           </div>
           <div>
-            <label style={adminTheme.label}>Email</label>
-            <input value={newUser.correo} onChange={e => setNewUser({ ...newUser, correo: e.target.value })} placeholder="Ej: jperez@pria.edu" style={adminTheme.input} />
+            <label htmlFor="new-user-correo" style={adminTheme.label}>Email</label>
+            <input id="new-user-correo" value={newUser.correo} onChange={e => setNewUser({ ...newUser, correo: e.target.value })} placeholder="Ej: jperez@pria.edu" style={adminTheme.input} />
           </div>
           <div>
-            <label style={adminTheme.label}>Usuario</label>
-            <input value={newUser.usuario} onChange={e => setNewUser({ ...newUser, usuario: e.target.value })} placeholder="Ej: jperez" style={adminTheme.input} />
+            <label htmlFor="new-user-usuario" style={adminTheme.label}>Usuario</label>
+            <input id="new-user-usuario" value={newUser.usuario} onChange={e => setNewUser({ ...newUser, usuario: e.target.value })} placeholder="Ej: jperez" style={adminTheme.input} />
           </div>
           <div>
-            <label style={adminTheme.label}>Contraseña</label>
-            <input type="password" value={newUser.contrasena} onChange={e => setNewUser({ ...newUser, contrasena: e.target.value })} placeholder="••••••••" style={adminTheme.input} />
+            <label htmlFor="new-user-contrasena" style={adminTheme.label}>Contraseña</label>
+            <input id="new-user-contrasena" type="password" value={newUser.contrasena} onChange={e => setNewUser({ ...newUser, contrasena: e.target.value })} placeholder="••••••••" style={adminTheme.input} />
           </div>
           <div>
-            <label style={adminTheme.label}>Rol</label>
-            <select value={newUser.rol} onChange={e => setNewUser({ ...newUser, rol: e.target.value })} style={adminTheme.input}>
+            <label htmlFor="new-user-rol" style={adminTheme.label}>Rol</label>
+            <select id="new-user-rol" value={newUser.rol} onChange={e => setNewUser({ ...newUser, rol: e.target.value })} style={adminTheme.input}>
               <option value="docente">Docente</option><option value="admin">Administrador</option>
             </select>
           </div>
@@ -154,17 +154,17 @@ export default function AdminUsuariosPanel({ showToast }: Props) {
       {/* Edit Modal */}
       <Modal isOpen={!!editingUser} onClose={() => setEditingUser(null)} title="✎ Editar Usuario">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div><label style={adminTheme.label}>Nombre</label><input value={editUserData.nombre} onChange={e => setEditUserData({ ...editUserData, nombre: e.target.value })} style={adminTheme.input} /></div>
-          <div><label style={adminTheme.label}>Correo</label><input value={editUserData.correo} onChange={e => setEditUserData({ ...editUserData, correo: e.target.value })} style={adminTheme.input} /></div>
+          <div><label htmlFor="edit-user-nombre" style={adminTheme.label}>Nombre</label><input id="edit-user-nombre" value={editUserData.nombre} onChange={e => setEditUserData({ ...editUserData, nombre: e.target.value })} style={adminTheme.input} /></div>
+          <div><label htmlFor="edit-user-correo" style={adminTheme.label}>Correo</label><input id="edit-user-correo" value={editUserData.correo} onChange={e => setEditUserData({ ...editUserData, correo: e.target.value })} style={adminTheme.input} /></div>
           <div>
-            <label style={adminTheme.label}>Rol</label>
-            <select value={editUserData.rol} onChange={e => setEditUserData({ ...editUserData, rol: e.target.value })} style={adminTheme.input}>
+            <label htmlFor="edit-user-rol" style={adminTheme.label}>Rol</label>
+            <select id="edit-user-rol" value={editUserData.rol} onChange={e => setEditUserData({ ...editUserData, rol: e.target.value })} style={adminTheme.input}>
               <option value="docente">Docente</option><option value="admin">Administrador</option>
             </select>
           </div>
           <div>
-            <label style={adminTheme.label}>Estado</label>
-            <select value={editUserData.estado ? 'true' : 'false'} onChange={e => setEditUserData({ ...editUserData, estado: e.target.value === 'true' })} style={adminTheme.input}>
+            <label htmlFor="edit-user-estado" style={adminTheme.label}>Estado</label>
+            <select id="edit-user-estado" value={editUserData.estado ? 'true' : 'false'} onChange={e => setEditUserData({ ...editUserData, estado: e.target.value === 'true' })} style={adminTheme.input}>
               <option value="true">Activo</option><option value="false">Inactivo</option>
             </select>
           </div>

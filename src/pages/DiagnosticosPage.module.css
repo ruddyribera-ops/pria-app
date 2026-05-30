@@ -1,0 +1,205 @@
+/* DiagnosticosPage.module.css */
+.uploadZone {
+  border: 2px dashed #e6e6eb;
+  border-radius: 8px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  background: #fff;
+  cursor: pointer;
+  margin-bottom: 1.25rem;
+}
+
+.uploadIcon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.uploadTitle {
+  font-size: 0.875rem;
+  color: #1e1e2f;
+  margin-bottom: 0.25rem;
+}
+
+.uploadSubtitle {
+  font-size: 0.75rem;
+  color: #6b6b80;
+}
+
+.uploadHint {
+  font-size: 0.75rem;
+  color: #6b6b80;
+  margin-top: 0.25rem;
+}
+
+.uploadInput {
+  display: none;
+}
+
+.fileListCard {
+  background: #fff;
+  border: 1px solid #e6e6eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.loadingState {
+  padding: 1.5rem;
+  text-align: center;
+  color: #6b6b80;
+  font-size: 0.8125rem;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.emptyText {
+  color: #6b6b80;
+  font-size: 0.8125rem;
+  margin-bottom: 1rem;
+}
+
+.createBtn {
+  padding: 0.6rem 1.5rem;
+  background: #3A9E5E;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.createBtn:focus-visible {
+  outline: 2px solid #3A9E5E;
+  outline-offset: 2px;
+}
+
+.formCard {
+  background: #fff;
+  border: 1px solid #e6e6eb;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+}
+
+.formTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e1e2f;
+  margin-bottom: 1rem;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+}
+
+.formLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #6b6b80;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.formInput,
+.formSelect {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d4d4e0;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  box-sizing: border-box;
+  background: #f8f8ff;
+  outline: none;
+}
+
+.formInput:focus,
+.formSelect:focus {
+  border-color: #3A9E5E;
+  box-shadow: 0 0 0 2px rgba(58, 158, 94, 0.1);
+}
+
+.formActions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.cancelBtn {
+  padding: 0.5rem 1.25rem;
+  background: #fff;
+  color: #6b6b80;
+  border: 1px solid #e6e6eb;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.saveBtn {
+  padding: 0.5rem 1.25rem;
+  background: #3A9E5E;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fileItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e6e6eb;
+  font-size: 0.8125rem;
+  color: #1e1e2f;
+}
+
+.fileItem:last-child {
+  border-bottom: none;
+}
+
+.fileInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fileName {
+  font-weight: 600;
+}
+
+.fileSize {
+  font-size: 0.6875rem;
+  color: #6b6b80;
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: #6b6b80;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.deleteBtn:hover {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.deleteBtn:focus-visible {
+  outline: 2px solid #ef4444;
+  outline-offset: 2px;
+}

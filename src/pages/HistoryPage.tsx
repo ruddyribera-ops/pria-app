@@ -1,6 +1,7 @@
-﻿import { useState, useEffect } from 'react';
-import client from '../api/client';
+import { useState } from 'react';
+import { useMotorHistory } from '../hooks/useMotorHistory';
 import { useToast } from '../components/UI/Toast';
+import styles from './HistoryPage.module.css';
 
 const MOTOR_ICONS: Record<string, string> = {
   synthesis: '🧠',
@@ -32,15 +33,6 @@ const MOTOR_LABELS: Record<string, string> = {
   micro: 'Micro-Objetivos',
 };
 
-interface HistoryEntry {
-  id: number;
-  motor_type: string;
-  status: string;
-  simulated: boolean | null;
-  created_at: string;
-  result_json_preview: string | null;
-}
-
 function formatDate(dateStr: string): string {
   try {
     const d = new Date(dateStr);
@@ -57,70 +49,48 @@ function formatDate(dateStr: string): string {
 }
 
 export default function HistoryPage() {
-  const [entries, setEntries] = useState<HistoryEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const { showToast } = useToast();
+  const { data: entries = [], isLoading, error } = useMotorHistory();
 
-  useEffect(() => {
-    client.get('/motores/history')
-      .then((res) => {
-        setEntries(res.data.data ?? []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        const msg = err?.response?.data?.error || err?.message || 'Error al cargar historial';
-        setError(msg);
-        setLoading(false);
-        showToast(msg, 'error');
-      });
-  }, []);
+  if (error && entries.length === 0) {
+    showToast('Error al cargar historial', 'error');
+  }
 
   return (
-    <div style={{ padding: '1.5rem', maxWidth: '900px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e1e2f', margin: 0 }}>
-          📁 Historial de Generación
-        </h1>
-        <p style={{ fontSize: '0.8125rem', color: '#6b6b80', margin: '0.25rem 0 0' }}>
+    <div className={styles.page}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>📁 Historial de Generación</h1>
+        <p className={styles.subtitle}>
           Últimos 20 contenidos generados con los motores IA
         </p>
       </div>
 
-      {loading && (
-        <div style={{ textAlign: 'center', padding: '3rem', color: '#6b6b80' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⏳</div>
-          <div style={{ fontSize: '0.875rem' }}>Cargando historial...</div>
+      {isLoading && (
+        <div className={styles.loadingState}>
+          <div className={styles.loadingIcon}>⏳</div>
+          <div className={styles.loadingText}>Cargando historial...</div>
         </div>
       )}
 
-      {!loading && error && (
-        <div style={{
-          padding: '1rem', background: '#FEE2E2', border: '1px solid #FCA5A5',
-          borderRadius: '8px', color: '#991B1B', fontSize: '0.875rem', textAlign: 'center',
-        }}>
-          {error}
+      {error && entries.length === 0 && (
+        <div className={styles.errorState}>
+          Error al cargar historial. Intenta de nuevo.
         </div>
       )}
 
-      {!loading && !error && entries.length === 0 && (
-        <div style={{
-          padding: '3rem', textAlign: 'center', background: '#f8f8fa',
-          borderRadius: '12px', color: '#6b6b80',
-        }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📭</div>
-          <div style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-            Aún no has generado ningún contenido
-          </div>
-          <div style={{ fontSize: '0.8125rem' }}>
+      {!isLoading && entries.length === 0 && !error && (
+        <div className={styles.emptyState}>
+          <div className={styles.emptyIcon}>📭</div>
+          <div className={styles.emptyTitle}>Aún no has generado ningún contenido</div>
+          <div className={styles.emptyText}>
             Ve a <strong>Materiales</strong> y genera tu primer motor.
           </div>
         </div>
       )}
 
-      {!loading && !error && entries.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      {!isLoading && entries.length > 0 && (
+        <div className={styles.entryList}>
           {entries.map((entry) => {
             const icon = MOTOR_ICONS[entry.motor_type] ?? '⚙️';
             const label = MOTOR_LABELS[entry.motor_type] ?? entry.motor_type;
@@ -128,55 +98,33 @@ export default function HistoryPage() {
             const isSimulated = entry.simulated === true;
 
             return (
-              <div
-                key={entry.id}
-                style={{
-                  background: '#fff',
-                  border: '1px solid #e6e6eb',
-                  borderRadius: '10px',
-                  overflow: 'hidden',
-                  transition: 'box-shadow 0.15s',
-                }}
-              >
+              <div key={entry.id} className={styles.entryCard}>
                 {/* Row header */}
                 <div
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '0.75rem',
-                    padding: '0.875rem 1rem', cursor: 'pointer',
-                  }}
+                  className={styles.entryHeader}
                   onClick={() => setExpandedId(isExpanded ? null : entry.id)}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => e.key === 'Enter' && setExpandedId(isExpanded ? null : entry.id)}
+                  aria-expanded={isExpanded}
+                  aria-label={`${label}, ${formatDate(entry.created_at)}`}
                 >
-                  <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>{icon}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1e1e2f' }}>
-                      {label}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: '#6b6b80' }}>
-                      {formatDate(entry.created_at)}
-                    </div>
+                  <span className={styles.entryIcon}>{icon}</span>
+                  <div className={styles.entryInfo}>
+                    <div className={styles.entryLabel}>{label}</div>
+                    <div className={styles.entryDate}>{formatDate(entry.created_at)}</div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }}>
+                  <div className={styles.entryActions}>
                     {isSimulated ? (
-                      <span style={{
-                        fontSize: '0.6875rem', fontWeight: 600,
-                        background: '#FEF3C7', color: '#92400E',
-                        padding: '0.2rem 0.6rem', borderRadius: '99px',
-                      }}>
+                      <span className={`${styles.badge} ${styles.badgeSimulated}`}>
                         ⚠️ Simulado
                       </span>
                     ) : (
-                      <span style={{
-                        fontSize: '0.6875rem', fontWeight: 600,
-                        background: '#D1FAE5', color: '#065F46',
-                        padding: '0.2rem 0.6rem', borderRadius: '99px',
-                      }}>
+                      <span className={`${styles.badge} ${styles.badgeReal}`}>
                         ✅ Real
                       </span>
                     )}
-                    <span style={{ fontSize: '0.875rem', color: '#6b6b80' }}>
+                    <span className={styles.expandIcon}>
                       {isExpanded ? '▲' : '▼'}
                     </span>
                   </div>
@@ -184,25 +132,14 @@ export default function HistoryPage() {
 
                 {/* Expanded JSON preview */}
                 {isExpanded && (
-                  <div style={{
-                    padding: '0.75rem 1rem',
-                    borderTop: '1px solid #f0f0f5',
-                    background: '#fafafa',
-                  }}>
-                    <div style={{
-                      fontSize: '0.75rem', color: '#6b6b80', marginBottom: '0.5rem',
-                    }}>
+                  <div className={styles.expandedContent}>
+                    <div className={styles.expandedMeta}>
                       ID: {entry.id} · Tipo: {entry.motor_type} · Status: {entry.status}
-                      {isSimulated ? ' · ⚠️ Generado sin IA (contenido simulado)'
+                      {isSimulated
+                        ? ' · ⚠️ Generado sin IA (contenido simulado)'
                         : ' · Motor IA'}
                     </div>
-                    <div style={{
-                      fontSize: '0.6875rem', fontFamily: 'monospace',
-                      background: '#1e1e2f', color: '#a5f3fc',
-                      padding: '0.75rem', borderRadius: '6px',
-                      overflowX: 'auto', maxHeight: '200px', overflowY: 'auto',
-                      whiteSpace: 'pre',
-                    }}>
+                    <div className={styles.jsonPreview}>
                       {entry.result_json_preview || '{ "error": "Sin contenido disponible" }'}
                     </div>
                   </div>

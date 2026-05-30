@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { getCacheStats, clearCache } from '../api/admin';
+import styles from './AdminCachePanel.module.css';
 
 interface CacheStatsDisplay { entries: number; motores_cache: number; pdfs_cache: number; }
 
@@ -31,27 +32,32 @@ export default function AdminCachePanel() {
     setClearing(false);
   };
 
+  const statItems = [
+    { label: 'Entradas Totales', value: stats?.entries ?? 0, color: 'var(--pria-accent)' },
+    { label: 'Motores en Caché', value: stats?.motores_cache ?? 0, color: '#5c6ac4' },
+    { label: 'PDFs en Caché', value: stats?.pdfs_cache ?? 0, color: '#b45309' },
+  ];
+
   return (
     <div>
-      <div style={{ background: '#fff', border: '1px solid #e6e6eb', borderRadius: '8px', padding: '1.25rem', marginBottom: '1.25rem' }}>
-        <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1e1e2f', marginBottom: '1rem' }}>⚡ Estado de la Caché</h4>
-        {loading ? <p style={{ color: '#6b6b80', fontSize: '0.8125rem' }}>Cargando estadísticas...</p>
-          : stats ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-              {[
-                { label: 'Entradas Totales', value: stats.entries, color: '#3A9E5E' },
-                { label: 'Motores en Caché', value: stats.motores_cache, color: '#5c6ac4' },
-                { label: 'PDFs en Caché', value: stats.pdfs_cache, color: '#b45309' },
-              ].map(s => (
-                <div key={s.label} style={{ background: '#f8f8ff', border: '1px solid #e6e6eb', borderRadius: '8px', padding: '1rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: s.color }}>{s.value}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#6b6b80', marginTop: '0.25rem' }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-          ) : <p style={{ color: '#6b6b80', fontSize: '0.8125rem' }}>No se pudieron cargar las estadísticas.</p>}
+      <div className={styles.card}>
+        <h4 className={styles.heading}>⚡ Estado de la Caché</h4>
+        {loading ? (
+          <p className={styles.loadingText}>Cargando estadísticas...</p>
+        ) : stats ? (
+          <div className={styles.statsGrid}>
+            {statItems.map(s => (
+              <div key={s.label} className={styles.statCard}>
+                <div className={styles.statValue} style={{ color: s.color }}>{s.value}</div>
+                <div className={styles.statLabel}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className={styles.errorText}>No se pudieron cargar las estadísticas.</p>
+        )}
       </div>
-      <button onClick={handleClear} disabled={clearing} style={{ padding: '0.5rem 1.5rem', background: clearing ? '#fca5a5' : '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 500, fontSize: '0.8125rem', cursor: clearing ? 'not-allowed' : 'pointer' }}>
+      <button onClick={handleClear} disabled={clearing} className={styles.clearBtn}>
         {clearing ? '⏳ Limpiando...' : '🗑️ Limpiar Caché'}
       </button>
     </div>

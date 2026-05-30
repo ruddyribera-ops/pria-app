@@ -1,15 +1,11 @@
+import styles from './MotorButton.module.css';
+
 interface MotorButtonProps {
-  /** Etiqueta del botón (texto + emoji) */
   label: string;
-  /** Etiqueta cuando está generando */
   loadingLabel: string;
-  /** Color de fondo (hex) */
   color: string;
-  /** Handler al hacer clic */
   onClick: () => void;
-  /** Si está en proceso de generación */
   loading: boolean;
-  /** Texto accesorio opcional */
   subtitle?: string;
 }
 
@@ -25,36 +21,20 @@ export default function MotorButton({
     <button
       onClick={onClick}
       disabled={loading}
-      style={{
-        padding: '0.5rem 1.25rem', background: color, color: '#fff',
-        border: 'none', borderRadius: '6px', fontSize: '0.8125rem', fontWeight: 600,
-        cursor: loading ? 'not-allowed' : 'pointer',
-        opacity: loading ? 0.6 : 1,
-        display: 'flex', alignItems: 'center', gap: '0.5rem',
-      }}
+      aria-busy={loading}
+      aria-label={loading ? loadingLabel : label}
+      className={`${styles.btn} ${loading ? styles.btnLoading : ''}`}
+      style={{ '--btn-color': color } as React.CSSProperties}
     >
-      {loading && (
-        <span style={{
-          display: 'inline-block', width: '12px', height: '12px',
-          border: '2px solid rgba(255,255,255,0.4)',
-          borderTopColor: '#fff',
-          borderRadius: '50%',
-          animation: 'spin 0.7s linear infinite',
-          flexShrink: 0,
-        }} />
-      )}
-      {loading ? loadingLabel : label}
+      {loading && <span className={styles.spinner} aria-hidden="true" />}
+      <span>{loading ? loadingLabel : label}</span>
     </button>
   );
 
-  // With subtitle: render as a bordered section with label above the button.
-  // Without subtitle: render just the button — used inline in synthesis blocks, fragments, etc.
   if (subtitle) {
     return (
-      <div style={{ borderTop: '1px solid #e6e6eb', padding: '1rem' }}>
-        <div style={{ fontSize: '0.6875rem', color: '#6b6b80', marginBottom: '0.5rem' }}>
-          {subtitle}
-        </div>
+      <div className={styles.withSubtitle}>
+        <div className={styles.subtitle}>{subtitle}</div>
         {buttonElement}
       </div>
     );

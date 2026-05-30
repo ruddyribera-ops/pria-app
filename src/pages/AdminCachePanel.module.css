@@ -1,0 +1,71 @@
+.card {
+  background: var(--main-bg);
+  border: 1px solid var(--border-light);
+  border-radius: var(--card-radius);
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.heading {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.statCard {
+  background: var(--input-bg);
+  border: 1px solid var(--border-light);
+  border-radius: var(--card-radius);
+  padding: 1rem;
+  text-align: center;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 0.25rem;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.loadingText {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.errorText {
+  color: #e53e3e;
+  font-size: 0.8125rem;
+}
+
+.clearBtn {
+  padding: 0.5rem 1.5rem;
+  background: #e53e3e;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.clearBtn:hover:not(:disabled) {
+  background: #c53030;
+}
+
+.clearBtn:disabled {
+  background: #fca5a5;
+  cursor: not-allowed;
+}

@@ -4,10 +4,11 @@ import Header from '../components/Layout/Header';
 import ProgressBar from '../components/UI/ProgressBar';
 import LoadingSkeleton from '../components/UI/LoadingSkeleton';
 import { getScheduleByDay } from '../api/schedule';
-import { getEstadoSistema } from '../api/admin';
+import { useEstadoSistema } from '../hooks/useAdmin';
 import type { ScheduleEntry } from '../types';
+import styles from './DiarioPage.module.css';
 
-const DAYS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const DAYS_ES = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
 const MONTHS_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
 function formatDate(date: Date): string {
@@ -17,7 +18,6 @@ function formatDate(date: Date): string {
 const DAY_NAME_MAP = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
 
 function dateToDia(date: Date): string {
-  // The API works with day names (LUNES, MARTES, etc.) not dates
   return DAY_NAME_MAP[date.getDay()];
 }
 
@@ -28,7 +28,7 @@ export default function DiarioPage() {
   const [loading, setLoading] = useState(true);
   const [teacherCode, setTeacherCode] = useState(user?.teacher_code || 'ADMIN');
   const [progressInfo] = useState({ current: 33, total: 51 });
-  const [estado, setEstado] = useState<Record<string, string> | null>(null);
+  const { data: estadoData } = useEstadoSistema();
 
   const loadSchedule = useCallback(async (code: string, date: Date) => {
     setLoading(true);
@@ -38,12 +38,6 @@ export default function DiarioPage() {
       setSchedule(data);
     } catch {
       setSchedule([]);
-    }
-    try {
-      const sysEstado = await getEstadoSistema();
-      setEstado(sysEstado as unknown as Record<string, string>);
-    } catch {
-      // ignore
     }
     setLoading(false);
   }, []);
@@ -69,51 +63,42 @@ export default function DiarioPage() {
       <Header title="📅 Diario" subtitle="Vista diaria de tu planificación académica" />
 
       {/* Date Navigation */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+      <div className={styles.dateNav}>
         <button
           onClick={() => navigateDay(-1)}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.5rem 1rem',
-            border: '1px solid #e6e6eb', borderRadius: '4px', background: '#fff',
-            fontSize: '0.8125rem', fontWeight: 500, color: '#6b6b80', cursor: 'pointer',
-          }}
+          className={styles.navBtn}
+          aria-label="Día anterior"
         >
           ◀ Ayer
         </button>
-        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1e1e2f', minWidth: '200px', textAlign: 'center' }}>
+        <span className={styles.dateLabel} aria-live="polite">
           {formatDate(currentDate)}
         </span>
         <button
           onClick={() => navigateDay(1)}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.5rem 1rem',
-            border: '1px solid #e6e6eb', borderRadius: '4px', background: '#fff',
-            fontSize: '0.8125rem', fontWeight: 500, color: '#6b6b80', cursor: 'pointer',
-          }}
+          className={styles.navBtn}
+          aria-label="Día siguiente"
         >
           Mañana ▶
         </button>
         <button
           onClick={goToday}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.5rem 1rem',
-            background: '#3A9E5E', color: '#fff', border: 'none', borderRadius: '4px',
-            fontSize: '0.8125rem', fontWeight: 500, cursor: 'pointer', marginLeft: 'auto',
-          }}
+          className={`${styles.navBtn} ${styles.todayBtn}`}
         >
           📅 Hoy
         </button>
       </div>
 
       {/* Teacher Selector */}
-      <div style={{ marginBottom: '1.25rem' }}>
+      <div>
+        <label htmlFor="teacher-select" className={styles.teacherLabel}>
+          Docente:
+        </label>
         <select
+          id="teacher-select"
           value={teacherCode}
           onChange={(e) => setTeacherCode(e.target.value)}
-          style={{
-            padding: '0.5rem 1rem', border: '1px solid #d4d4e0', borderRadius: '4px',
-            background: '#f8f8ff', fontSize: '0.8125rem', minWidth: '250px', outline: 'none',
-          }}
+          className={styles.teacherSelect}
         >
           {teachers.map((t) => (
             <option key={t.code} value={t.code}>{t.name}</option>
@@ -121,14 +106,14 @@ export default function DiarioPage() {
         </select>
       </div>
 
+      <div className={styles.progressWrap}>
+        <ProgressBar current={progressInfo.current} total={progressInfo.total} />
+      </div>
+
       {/* Section Title */}
-      <div style={{ fontSize: '1rem', fontWeight: 600, color: '#1e1e2f', marginBottom: '0.75rem' }}>
+      <div className={styles.sectionTitle}>
         Tu Ruta del Día
-        <span style={{
-          display: 'inline-block', background: 'rgba(92,106,196,0.08)', color: '#5c6ac4',
-          fontSize: '0.6875rem', padding: '0.125rem 0.5rem', borderRadius: '4px',
-          fontWeight: 500, marginLeft: '0.5rem',
-        }}>
+        <span className={styles.sectionBadge}>
           3er año · Secundaria
         </span>
       </div>
@@ -137,51 +122,38 @@ export default function DiarioPage() {
       {loading ? (
         <LoadingSkeleton type="table" rows={6} />
       ) : (
-        <table style={{
-          width: '100%', borderCollapse: 'collapse', background: '#fff',
-          border: '1px solid #e6e6eb', borderRadius: '8px', overflow: 'hidden',
-        }}>
+        <table className={styles.scheduleTable} aria-label="Horario del día">
           <thead>
             <tr>
               {['HORA', 'MATERIA', 'GRADO', 'NIVEL', 'DOCENTE'].map((h) => (
-                <th key={h} style={{
-                  padding: '0.75rem 1rem', fontSize: '0.6875rem', fontWeight: 600,
-                  color: '#6b6b80', textTransform: 'uppercase', letterSpacing: '0.04em',
-                  textAlign: 'left', borderBottom: '2px solid #e6e6eb', background: '#fff',
-                }}>
-                  {h}
-                </th>
+                <th key={h} className={styles.tableHead}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {schedule.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: '#6b6b80', fontSize: '0.8125rem' }}>
+                <td colSpan={5} className={styles.emptyRow}>
                   No hay clases para este día
                 </td>
               </tr>
             ) : (
               schedule.map((entry, i) => (
                 <tr key={i} style={entry.tipo === 'recess' ? { background: '#fffbeb' } : undefined}>
-                  <td style={{
-                    padding: '0.75rem 1rem', fontSize: '0.8125rem', color: entry.tipo === 'recess' ? '#b45309' : '#1e1e2f',
-                    borderBottom: '1px solid #e6e6eb', fontWeight: entry.tipo === 'recess' ? 500 : 400,
-                    borderLeft: entry.tipo === 'recess' ? '3px solid #f59e0b' : 'none',
-                  }}>
+                  <td className={`${styles.tableCell} ${entry.tipo === 'recess' ? styles.tableCellRecess : ''}`}>
                     {entry.hora}
                   </td>
-                  <td style={{ padding: '0.75rem 1rem', fontSize: '0.8125rem', color: entry.tipo === 'recess' ? '#b45309' : '#1e1e2f', borderBottom: '1px solid #e6e6eb' }}>
+                  <td className={`${styles.tableCell} ${entry.tipo === 'recess' ? styles.tableCellRecess : ''}`}>
                     {entry.materia}
                   </td>
-                  <td style={{ padding: '0.75rem 1rem', fontSize: '0.8125rem', color: entry.tipo === 'recess' ? '#b45309' : '#1e1e2f', borderBottom: '1px solid #e6e6eb' }}>
+                  <td className={`${styles.tableCell} ${entry.tipo === 'recess' ? styles.tableCellRecess : ''}`}>
                     {entry.grado}
                   </td>
-                  <td style={{ padding: '0.75rem 1rem', fontSize: '0.8125rem', color: entry.tipo === 'recess' ? '#b45309' : '#1e1e2f', borderBottom: '1px solid #e6e6eb' }}>
-                    {entry.nivel}
+                  <td className={`${styles.tableCell} ${entry.tipo === 'recess' ? styles.tableCellRecess : ''}`}>
+                    {entry.nivel || ''}
                   </td>
-                  <td style={{ padding: '0.75rem 1rem', fontSize: '0.8125rem', color: entry.tipo === 'recess' ? '#b45309' : '#1e1e2f', borderBottom: '1px solid #e6e6eb' }}>
-                    {entry.docente}
+                  <td className={`${styles.tableCell} ${entry.tipo === 'recess' ? styles.tableCellRecess : ''}`}>
+                    {entry.docente || ''}
                   </td>
                 </tr>
               ))
@@ -190,13 +162,10 @@ export default function DiarioPage() {
         </table>
       )}
 
-      {/* Progress */}
-      <ProgressBar current={progressInfo.current} total={progressInfo.total} />
-
-      {/* Estado Motor */}
-      {estado && (
-        <div style={{ marginTop: '1rem', fontSize: '0.75rem', color: '#6b6b80' }}>
-          Estado motores: {Object.entries(estado).map(([k, v]) => `${k}: ${v}`).join(', ')}
+      {/* Estado Sistema indicator */}
+      {estadoData && (
+        <div className={styles.estadoIndicator}>
+          📊 Estado: {Object.keys(estadoData.motors || {}).length} motores activos
         </div>
       )}
     </div>

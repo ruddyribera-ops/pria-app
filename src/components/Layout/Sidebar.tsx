@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useHealthCheck } from '../../hooks/useHealthCheck';
-import { MOTORS, getEstadoSistema } from '../../api/admin';
+import { useEstadoSistema } from '../../hooks/useAdmin';
+import { MOTORS } from '../../api/admin';
+import styles from './Sidebar.module.css';
 
 interface SidebarProps {
   nivel: string;
@@ -12,30 +13,11 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ nivel, grado, onNivelChange, onGradoChange }: SidebarProps) {
-  const { user, logout, isAuthenticated, isAdmin } = useAuth();
-  const navigate = useNavigate();
+  const { user, logout, isAdmin } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [estadoOpen, setEstadoOpen] = useState(false);
-  const [estado, setEstado] = useState<Record<string, string> | null>(null);
-  const health = useHealthCheck();
-
-  // Poll estado-sistema every 5s when authenticated and dropdown open
-  useEffect(() => {
-    if (!isAuthenticated || !estadoOpen) return;
-
-    const fetchEstado = async () => {
-      try {
-        const data = await getEstadoSistema();
-        setEstado(data.motors);
-      } catch {
-        setEstado(null);
-      }
-    };
-
-    fetchEstado();
-    const interval = setInterval(fetchEstado, 5000);
-    return () => clearInterval(interval);
-  }, [isAuthenticated, estadoOpen]);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { data: estadoData } = useEstadoSistema();
+  const motors = estadoData?.motors ?? {};
 
   const initials = user?.nombre
     ?.split(' ')
@@ -46,298 +28,291 @@ export default function Sidebar({ nivel, grado, onNivelChange, onGradoChange }: 
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    setMobileOpen(false);
   };
 
-
-  const navLinkStyle = (isActive: boolean): React.CSSProperties => ({
-    display: 'flex', alignItems: 'center', gap: '0.625rem',
-    padding: '0.55rem 1.25rem', fontSize: '0.8125rem',
-    color: isActive ? '#ffffff' : '#b3b3cc',
-    cursor: 'pointer', transition: 'all .15s',
-    borderLeft: isActive ? '2px solid #3A9E5E' : '2px solid transparent',
-    background: isActive ? '#3a3b4e' : 'transparent',
-    fontWeight: isActive ? 500 : 400,
-    textDecoration: 'none',
-  });
+  const closeMobile = () => setMobileOpen(false);
 
   return (
-    <aside style={{
-      position: 'fixed', top: 0, left: 0, width: '260px', height: '100vh',
-      background: '#1c1e24', color: '#b3b3cc', display: 'flex', flexDirection: 'column',
-      zIndex: 100, overflowY: 'auto',
-    }}>
-      {/* Brand */}
-      <div style={{ padding: '1.25rem 1.25rem 0.75rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', fontSize: '1.0625rem', fontWeight: 600, color: '#fff' }}>
-          <div style={{
-            width: '32px', height: '32px', background: '#3A9E5E', borderRadius: '6px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '0.875rem', fontWeight: 700, color: '#fff', flexShrink: 0,
-          }}>
-            PR
-          </div>
-          <div>
-            PRIA <span style={{ fontSize: '0.625rem', fontWeight: 400, color: '#b3b3cc', display: 'block', marginTop: '-2px' }}>v10</span>
-          </div>
-        </div>
-      </div>
-
-      {/* User Profile */}
-      <div
-        style={{
-          padding: '0.875rem 1.25rem', borderBottom: '1px solid rgba(255,255,255,0.06)',
-          display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer',
-          transition: 'background .15s', position: 'relative',
-        }}
-        onClick={() => setProfileOpen(!profileOpen)}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#2e2f3e'; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+    <>
+      {/* Mobile hamburger */}
+      <button
+        className={styles.hamburger}
+        onClick={() => setMobileOpen(true)}
+        aria-label="Abrir menú"
+        aria-expanded={mobileOpen}
       >
-        <div style={{
-          width: '36px', height: '36px', background: '#3A9E5E', borderRadius: '50%',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '0.8125rem', fontWeight: 700, color: '#fff', flexShrink: 0,
-        }}>
-          {initials}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {user?.nombre || 'Usuario'} <span style={{ fontSize: '0.55rem', color: '#b3b3cc', display: 'inline-block', transition: 'transform .2s', transform: profileOpen ? 'rotate(180deg)' : 'none' }}>▼</span>
-          </div>
-          <div style={{ fontSize: '0.6875rem', color: '#b3b3cc', display: 'flex', alignItems: 'center', gap: '0.375rem', marginTop: '1px' }}>
-            👑 {user?.role === 'admin' ? 'Administrador' : 'Docente'} · {user?.nombre || ''}
-          </div>
-        </div>
+        ☰
+      </button>
 
-        {/* Profile dropdown */}
-        {profileOpen && (
-          <div style={{
-            position: 'absolute', top: '100%', left: '0.5rem', right: '0.5rem',
-            background: '#fff', borderRadius: '8px', border: '1px solid #e6e6eb',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '0.75rem', zIndex: 300,
-            minWidth: '200px',
-          }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ padding: '0.35rem 0', fontSize: '0.75rem', color: '#1e1e2f' }}>
-              <div style={{ fontSize: '0.625rem', color: '#6b6b80', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '1px' }}>Nombre</div>
-              <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: '#1e1e2f' }}>{user?.nombre}</div>
-            </div>
-            <div style={{ padding: '0.35rem 0', fontSize: '0.75rem', color: '#1e1e2f' }}>
-              <div style={{ fontSize: '0.625rem', color: '#6b6b80', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '1px' }}>Rol</div>
-              <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: '#1e1e2f' }}>{user?.role}</div>
-            </div>
-            <div style={{ borderTop: '1px solid #e6e6eb', margin: '0.5rem 0' }} />
-            <div
-              onClick={handleLogout}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.625rem',
-                borderRadius: '4px', fontSize: '0.75rem', color: '#ef4444', fontWeight: 600,
-                cursor: 'pointer', transition: 'background .15s',
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#fef2f2'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-            >
-              🚪 Cerrar Sesión
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div
+          className={styles.overlay}
+          onClick={closeMobile}
+          role="presentation"
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`${styles.sidebar} ${mobileOpen ? styles.sidebarOpen : ''}`}>
+        {/* Brand */}
+        <div className={styles.brand}>
+          <div className={styles.brandInner}>
+            <div className={styles.brandLogo}>PR</div>
+            <div>
+              PRIA <span className={styles.brandVersion}>v10</span>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Navigation */}
-      <nav style={{ paddingBottom: '0.5rem' }}>
-        {/* Section: Generación */}
-        <div style={{ padding: '0.75rem 1.25rem 0.375rem', fontSize: '0.625rem', fontWeight: 600, color: '#b3b3cc', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          🎨 Generación
         </div>
-        <NavLink to="/slides" style={({ isActive }) => navLinkStyle(isActive)}>
-          <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center', flexShrink: 0 }}>🖼️</span>
-          <span>Diapositivas</span>
-        </NavLink>
 
-        {/* Section: Planificación */}
-        <div style={{ padding: '0.75rem 1.25rem 0.375rem', fontSize: '0.625rem', fontWeight: 600, color: '#b3b3cc', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          📅 Planificación
-        </div>
-        <NavLink to="/diario" style={({ isActive }) => navLinkStyle(isActive)}>
-          <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center', flexShrink: 0 }}>🌅</span>
-          <span>Diario</span>
-        </NavLink>
-        <NavLink to="/semanal" style={({ isActive }) => navLinkStyle(isActive)}>
-          <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center', flexShrink: 0 }}>📅</span>
-          <span>Semanal</span>
-        </NavLink>
-        <NavLink to="/trimestral" style={({ isActive }) => navLinkStyle(isActive)}>
-          <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center', flexShrink: 0 }}>📆</span>
-          <span>Trimestral</span>
-        </NavLink>
-
-        {/* Section: Recursos */}
-        <div style={{ padding: '0.75rem 1.25rem 0.375rem', fontSize: '0.625rem', fontWeight: 600, color: '#b3b3cc', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          📦 Recursos
-        </div>
-        <NavLink to="/materiales" style={({ isActive }) => navLinkStyle(isActive)}>
-          <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center', flexShrink: 0 }}>📚</span>
-          <span>Materiales</span>
-        </NavLink>
-        <NavLink to="/historial" style={({ isActive }) => navLinkStyle(isActive)}>
-          <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center', flexShrink: 0 }}>📁</span>
-          <span>Historial</span>
-        </NavLink>
-        <NavLink to="/diagnosticos" style={({ isActive }) => navLinkStyle(isActive)}>
-          <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center', flexShrink: 0 }}>🩺</span>
-          <span>Diagnósticos</span>
-        </NavLink>
-
-        {/* Section: Administración (solo admin) */}
-        {isAdmin && (
-          <>
-            <div style={{ padding: '0.75rem 1.25rem 0.375rem', fontSize: '0.625rem', fontWeight: 600, color: '#b3b3cc', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              ⚙️ Administración
+        {/* User Profile */}
+        <div
+          className={styles.profile}
+          onClick={() => setProfileOpen(!profileOpen)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && setProfileOpen(!profileOpen)}
+          aria-expanded={profileOpen}
+          aria-label="Perfil de usuario"
+        >
+          <div className={styles.profileAvatar}>{initials}</div>
+          <div className={styles.profileInfo}>
+            <div className={styles.profileName}>
+              {user?.nombre || 'Usuario'}{' '}
+              <span className={`${styles.profileChevron} ${profileOpen ? styles.profileChevronOpen : ''}`}>▼</span>
             </div>
-            <NavLink to="/admin" style={({ isActive }) => navLinkStyle(isActive)}>
-              <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center', flexShrink: 0 }}>⚙️</span>
-              <span>Panel Admin</span>
-            </NavLink>
-          </>
-        )}
+            <div className={styles.profileRole}>
+              👑 {user?.role === 'admin' ? 'Administrador' : 'Docente'} · {user?.nombre || ''}
+            </div>
+          </div>
 
-        {/* Nivel Educativo (global selector) */}
-        <div style={{ padding: '0.5rem 1.25rem 0.625rem', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: '0.25rem', marginTop: '0.5rem' }}>
-          <div style={{ fontSize: '0.625rem', fontWeight: 600, color: '#b3b3cc', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.5rem' }}>
-            🎓 Nivel Educativo
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
-            <label style={{ fontSize: '0.625rem', color: '#b3b3cc', minWidth: '2.5rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Nivel:</label>
-            <select
-              value={nivel}
-              onChange={(e) => onNivelChange(e.target.value)}
-              style={{
-                flex: 1, padding: '0.3rem 0.4rem', border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '4px', background: '#2e2f3e', color: '#f1f5f9',
-                fontSize: '0.6875rem', outline: 'none', cursor: 'pointer',
-              }}
-            >
-              <option>Primaria</option>
-              <option>Secundaria</option>
-            </select>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
-            <label style={{ fontSize: '0.625rem', color: '#b3b3cc', minWidth: '2.5rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Grado:</label>
-            <select
-              value={grado}
-              onChange={(e) => onGradoChange(e.target.value)}
-              style={{
-                flex: 1, padding: '0.3rem 0.4rem', border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '4px', background: '#2e2f3e', color: '#f1f5f9',
-                fontSize: '0.6875rem', outline: 'none', cursor: 'pointer',
-              }}
-            >
-              <option>5to primaria</option>
-              <option>4to primaria</option>
-              <option>3ro primaria</option>
-              <option>2do primaria</option>
-              <option>1ro primaria</option>
-            </select>
-          </div>
-        </div>
-      </nav>
-
-      {/* Footer */}
-      <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        {/* Estado del Sistema */}
-        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0.25rem 0' }}>
-          <div
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '0.4rem 1.25rem', fontSize: '0.625rem', fontWeight: 600,
-              color: '#b3b3cc', textTransform: 'uppercase', letterSpacing: '0.06em',
-              cursor: 'pointer', userSelect: 'none', transition: 'color .15s',
-            }}
-            onClick={() => setEstadoOpen(!estadoOpen)}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#ffffff'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#b3b3cc'; }}
-          >
-            <span>📊 Estado del Sistema</span>
-            <span style={{
-              fontSize: '0.5rem', color: '#b3b3cc', transition: 'transform .2s',
-              display: 'inline-block', transform: estadoOpen ? 'rotate(90deg)' : 'none',
-            }}>▶</span>
-          </div>
-          <div style={{
-            overflow: 'hidden', maxHeight: estadoOpen ? '320px' : '0',
-            transition: 'max-height .3s ease',
-          }}>
-            {MOTORS.map((motor) => (
-              <div key={motor.key} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '0.22rem 1.25rem 0.22rem 1.75rem', fontSize: '0.6875rem', color: '#b3b3cc',
-              }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <span style={{ fontSize: '0.7rem' }}>{motor.icon}</span>
-                  {motor.label}
-                </span>
-                <span style={{ fontSize: '0.85rem', lineHeight: 1, color: estado?.[motor.key] === 'done' ? '#3A9E5E' : estado?.[motor.key] === 'generating' ? '#f59e0b' : estado?.[motor.key] === 'error' ? '#ef4444' : '#b3b3cc' }}>
-                  ○
-                </span>
+          {/* Profile dropdown */}
+          {profileOpen && (
+            <div className={styles.profileDropdown} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.dropdownItem}>
+                <div className={styles.dropdownLabel}>Nombre</div>
+                <div className={styles.dropdownValue}>{user?.nombre}</div>
               </div>
-            ))}
+              <div className={styles.dropdownItem}>
+                <div className={styles.dropdownLabel}>Rol</div>
+                <div className={styles.dropdownValue}>{user?.role}</div>
+              </div>
+              <div className={styles.dropdownDivider} />
+              <div
+                className={styles.dropdownLogout}
+                onClick={handleLogout}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && handleLogout()}
+              >
+                🚪 Cerrar Sesión
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <nav className={styles.nav}>
+          {/* Section: Generación */}
+          <div className={styles.navSection}>🎨 Generación</div>
+          <NavLink
+            to="/slides"
+            className={({ isActive }) =>
+              `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
+            }
+            onClick={closeMobile}
+          >
+            <span className={styles.navIcon}>🖼️</span>
+            <span>Diapositivas</span>
+          </NavLink>
+
+          {/* Section: Planificación */}
+          <div className={styles.navSection}>📅 Planificación</div>
+          <NavLink
+            to="/diario"
+            className={({ isActive }) =>
+              `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
+            }
+            onClick={closeMobile}
+          >
+            <span className={styles.navIcon}>🌅</span>
+            <span>Diario</span>
+          </NavLink>
+          <NavLink
+            to="/semanal"
+            className={({ isActive }) =>
+              `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
+            }
+            onClick={closeMobile}
+          >
+            <span className={styles.navIcon}>📅</span>
+            <span>Semanal</span>
+          </NavLink>
+          <NavLink
+            to="/trimestral"
+            className={({ isActive }) =>
+              `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
+            }
+            onClick={closeMobile}
+          >
+            <span className={styles.navIcon}>📆</span>
+            <span>Trimestral</span>
+          </NavLink>
+
+          {/* Section: Recursos */}
+          <div className={styles.navSection}>📦 Recursos</div>
+          <NavLink
+            to="/materiales"
+            className={({ isActive }) =>
+              `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
+            }
+            onClick={closeMobile}
+          >
+            <span className={styles.navIcon}>📚</span>
+            <span>Materiales</span>
+          </NavLink>
+          <NavLink
+            to="/historial"
+            className={({ isActive }) =>
+              `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
+            }
+            onClick={closeMobile}
+          >
+            <span className={styles.navIcon}>📁</span>
+            <span>Historial</span>
+          </NavLink>
+          <NavLink
+            to="/diagnosticos"
+            className={({ isActive }) =>
+              `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
+            }
+            onClick={closeMobile}
+          >
+            <span className={styles.navIcon}>🩺</span>
+            <span>Diagnósticos</span>
+          </NavLink>
+
+          {/* Section: Administración (solo admin) */}
+          {isAdmin && (
+            <>
+              <div className={styles.navSection}>⚙️ Administración</div>
+              <NavLink
+                to="/admin"
+                className={({ isActive }) =>
+                  `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
+                }
+                onClick={closeMobile}
+              >
+                <span className={styles.navIcon}>⚙️</span>
+                <span>Panel Admin</span>
+              </NavLink>
+            </>
+          )}
+
+          {/* Nivel Educativo */}
+          <div className={styles.nivelSelector}>
+            <div className={styles.nivelSelectorLabel}>🎓 Nivel Educativo</div>
+            <div className={styles.nivelRow}>
+              <label className={styles.nivelLabel} htmlFor="nivel-select">Nivel:</label>
+              <select
+                id="nivel-select"
+                className={styles.nivelSelect}
+                value={nivel}
+                onChange={(e) => onNivelChange(e.target.value)}
+              >
+                <option>Primaria</option>
+                <option>Secundaria</option>
+              </select>
+            </div>
+            <div className={styles.nivelRow}>
+              <label className={styles.nivelLabel} htmlFor="grado-select">Grado:</label>
+              <select
+                id="grado-select"
+                className={styles.nivelSelect}
+                value={grado}
+                onChange={(e) => onGradoChange(e.target.value)}
+              >
+                <option>5to primaria</option>
+                <option>4to primaria</option>
+                <option>3ro primaria</option>
+                <option>2do primaria</option>
+                <option>1ro primaria</option>
+              </select>
+            </div>
+          </div>
+        </nav>
+
+        {/* Footer */}
+        <div className={styles.footer}>
+          {/* Estado del Sistema */}
+          <div className={styles.estadoSection}>
+            <EstadoToggle motors={motors} />
+          </div>
+
+          {/* Health indicator */}
+          <div className={styles.healthIndicator}>
+            <span>🟢</span>
+            <span>Sistema operativo</span>
+          </div>
+
+          <div
+            className={styles.actionButton}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && handleLogout()}
+            onClick={handleLogout}
+          >
+            <span className={styles.navIcon}>🚪</span>
+            <span>Cerrar Sesión</span>
           </div>
         </div>
+      </aside>
+    </>
+  );
+}
 
-        {/* Health indicator */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '0.375rem',
-          padding: '0.45rem 1.25rem', fontSize: '0.6875rem',
-          color: health.status === 'healthy' ? '#3A9E5E' : health.status === 'degraded' ? '#f59e0b' : '#ef4444',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
-        }}>
-          <span style={{ fontSize: '0.6rem' }}>{health.status === 'healthy' ? '🟢' : health.status === 'degraded' ? '🟡' : '🔴'}</span>
-          <span>{(health.status === 'healthy' ? 'Sistema operativo' : health.status === 'degraded' ? 'Sistema degradado' : 'Sistema no disponible')}</span>
-        </div>
+function EstadoToggle({ motors }: { motors: Record<string, string> }) {
+  const [estadoOpen, setEstadoOpen] = useState(false);
 
-        <div
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.625rem',
-            padding: '0.55rem 1.25rem', fontSize: '0.8125rem',
-            color: '#ef4444', cursor: 'pointer', transition: 'all .15s',
-            borderLeft: '2px solid transparent',
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = '#2e2f3e';
-            (e.currentTarget as HTMLElement).style.color = '#f87171';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = 'transparent';
-            (e.currentTarget as HTMLElement).style.color = '#ef4444';
-          }}
-        >
-          <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center', flexShrink: 0 }}>🧹</span>
-          <span>Reiniciar Todo</span>
-        </div>
-
-        <div
-          onClick={handleLogout}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.625rem',
-            padding: '0.55rem 1.25rem', fontSize: '0.8125rem',
-            color: '#ef4444', cursor: 'pointer', transition: 'all .15s',
-            borderLeft: '2px solid transparent',
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = '#2e2f3e';
-            (e.currentTarget as HTMLElement).style.color = '#f87171';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = 'transparent';
-            (e.currentTarget as HTMLElement).style.color = '#ef4444';
-          }}
-        >
-          <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center', flexShrink: 0 }}>🚪</span>
-          <span>Cerrar Sesión</span>
-        </div>
+  return (
+    <>
+      <div
+        className={styles.estadoToggle}
+        onClick={() => setEstadoOpen(!estadoOpen)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && setEstadoOpen(!estadoOpen)}
+        aria-expanded={estadoOpen}
+        aria-label="Estado del sistema"
+      >
+        <span>📊 Estado del Sistema</span>
+        <span className={`${styles.estadoChevron} ${estadoOpen ? styles.estadoChevronOpen : ''}`}>▶</span>
       </div>
-    </aside>
+      <div className={`${styles.estadoContent} ${estadoOpen ? styles.estadoContentOpen : ''}`}>
+        {MOTORS.map((motor) => (
+          <div key={motor.key} className={styles.estadoRow}>
+            <span className={styles.estadoLabel}>
+              <span className={styles.estadoIcon}>{motor.icon}</span>
+              {motor.label}
+            </span>
+            <span
+              className={`${styles.estadoDot} ${
+                motors[motor.key] === 'done'
+                  ? styles.dotDone
+                  : motors[motor.key] === 'generating'
+                  ? styles.dotGenerating
+                  : motors[motor.key] === 'error'
+                  ? styles.dotError
+                  : styles.dotIdle
+              }`}
+            >
+              ○
+            </span>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }

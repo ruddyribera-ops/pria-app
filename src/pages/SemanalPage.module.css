@@ -1,0 +1,343 @@
+/* SemanalPage.module.css */
+.hintBanner {
+  padding: 0.75rem 1rem;
+  background: #f0fdf4;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.75rem;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hintLink {
+  color: #3A9E5E;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.hintLink:hover {
+  text-decoration: underline;
+}
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  background: #fff;
+  border: 1px solid #e6e6eb;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  align-items: flex-end;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.filterLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #6b6b80;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.filterSelect,
+.filterInput {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d4d4e0;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  outline: none;
+  background: #f8f8ff;
+}
+
+.filterSelect:focus,
+.filterInput:focus {
+  border-color: #3A9E5E;
+  box-shadow: 0 0 0 2px rgba(58, 158, 94, 0.1);
+}
+
+.textareaInput {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d4d4e0;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  outline: none;
+  background: #f8f8ff;
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.textareaInput:focus {
+  border-color: #3A9E5E;
+  box-shadow: 0 0 0 2px rgba(58, 158, 94, 0.1);
+}
+
+.checkboxField {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.checkboxInput {
+  width: 18px;
+  height: 18px;
+  accent-color: #3A9E5E;
+  cursor: pointer;
+}
+
+.checkboxLabel {
+  font-size: 0.8125rem;
+  color: #1e1e2f;
+}
+
+.fieldMarginTop {
+  margin-top: 0.375rem;
+}
+
+.weekGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+}
+
+.dayCard {
+  background: #fff;
+  border: 1px solid #e6e6eb;
+  border-radius: 8px;
+  padding: 1rem;
+  min-height: 220px;
+}
+
+.dayTitle {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #1e1e2f;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e6e6eb;
+  text-align: center;
+}
+
+.dayEntry {
+  padding: 0.5rem;
+  margin-bottom: 0.375rem;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  background: #f8f8ff;
+  border-left: 3px solid #3A9E5E;
+}
+
+.entryMateria {
+  font-weight: 600;
+  color: #1e1e2f;
+}
+
+.entryHora {
+  font-size: 0.625rem;
+  color: #6b6b80;
+}
+
+.dayEmpty {
+  font-size: 0.75rem;
+  color: #6b6b80;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.dayActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+}
+
+.dayActionBtn {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #e6e6eb;
+  background: #fff;
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: #6b6b80;
+  cursor: pointer;
+}
+
+.dayActionBtn:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.dayActionBtn:not(:disabled):hover {
+  background: #f0fdf4;
+  border-color: #3A9E5E;
+  color: #3A9E5E;
+}
+
+/* Multi-phase panel */
+.genPanel {
+  margin-top: 1.5rem;
+  background: #fff;
+  border: 1px solid #e6e6eb;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.genPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.genPanelMeta {
+  font-size: 0.75rem;
+  color: #6b6b80;
+}
+
+.genPanelTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e1e2f;
+}
+
+.cancelBtn {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #e6e6eb;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: #6b6b80;
+}
+
+.cancelBtn:hover {
+  background: #fef2f2;
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.phaseMetaInfo {
+  font-size: 0.75rem;
+  color: #6b6b80;
+  margin-bottom: 0.25rem;
+}
+
+.phaseTitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #1e1e2f;
+  margin: 0 0 0.25rem;
+}
+
+.phaseDesc {
+  font-size: 0.75rem;
+  color: #6b6b80;
+  margin: 0 0 1rem;
+}
+
+.fieldList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.fieldItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.genSubmitBtn {
+  padding: 0.6rem 1.5rem;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.genSubmitBtn:disabled {
+  background: #b3b3cc;
+  cursor: not-allowed;
+}
+
+.genSubmitBtn:not(:disabled) {
+  background: #3A9E5E;
+}
+
+.genSubmitBtn:not(:disabled):hover {
+  background: #2d7a4a;
+}
+
+.phaseResult {
+  padding: 0.75rem;
+  background: #f0fdf4;
+  border-radius: 4px;
+  border: 1px solid #bbf7d0;
+  margin-bottom: 0.75rem;
+}
+
+.phaseResultTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #166534;
+  margin-bottom: 0.375rem;
+}
+
+.completeCard {
+  padding: 1rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.completeTitle {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: #166534;
+}
+
+.completeSubtitle {
+  font-size: 0.75rem;
+  color: #6b6b80;
+}
+
+.openEditorBtn {
+  padding: 0.5rem 1rem;
+  background: #3A9E5E;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.openEditorBtn:hover {
+  background: #2d7a4a;
+}
+
+.openEditorBtn:focus-visible {
+  outline: 2px solid #3A9E5E;
+  outline-offset: 2px;
+}

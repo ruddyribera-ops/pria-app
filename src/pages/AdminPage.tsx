@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Header from '../components/Layout/Header';
 import { adminTheme } from '../styles/adminTheme';
+import styles from './AdminPage.module.css';
 import { useToast } from '../components/UI/Toast';
 import AdminArchivosPanel from './AdminArchivosPanel';
 import AdminUsuariosPanel from './AdminUsuariosPanel';
@@ -29,7 +30,7 @@ export default function AdminPage() {
       <Header title="⚙️ Panel de Administración" subtitle="Gestión del sistema, usuarios y archivos fuente" />
 
       {/* Tab bar */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.25rem' }}>
+      <div className={styles.tabBar}>
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={adminTheme.tabBtn(activeTab === tab.id)}>
             {tab.label}

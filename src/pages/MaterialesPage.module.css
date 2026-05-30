@@ -1,0 +1,110 @@
+/* MaterialesPage.module.css */
+.simulatedBanner {
+  margin: 0 1rem 1rem;
+  padding: 0.5rem 1rem;
+  background: #FFF3CD;
+  border: 1px solid #FFC107;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: #856404;
+}
+
+.studentBookToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  background: #fff;
+  border: 1px solid #e6e6eb;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.studentBookLabel {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #1e1e2f;
+}
+
+.toggleSwitch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggleSwitchOff {
+  background: #e6e6eb;
+}
+
+.toggleSwitchOn {
+  background: #3A9E5E;
+}
+
+.toggleKnob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: all 0.25s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.toggleKnobOn {
+  left: 22px;
+}
+
+.studentBookStatus {
+  font-size: 0.75rem;
+  color: #6b6b80;
+}
+
+.ingestProgress {
+  padding: 1rem;
+  text-align: center;
+  color: #6b6b80;
+  font-size: 0.8125rem;
+  background: #f8f8fa;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+.progressBar {
+  margin-top: 0.5rem;
+  height: 4px;
+  background: #e6e6eb;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: #3A9E5E;
+  transition: width 0.3s ease;
+}
+
+.ingestWarnings {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #FEF3C7;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: #92400E;
+}
+
+.warningTitle {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 700;
+}
+
+.warningItem {
+  margin-left: 0.5rem;
+}
