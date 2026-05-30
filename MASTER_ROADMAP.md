@@ -67,6 +67,7 @@
 | **Sprint 9** | ✅ DONE | 2026-05-28 | 2026-05-28 | M2.7 | PPTX partial warning, Blob API, type cleanup, prompt mapping |
 | **Sprint 10** | ✅ DONE | 2026-05-29 | 2026-05-29 | M2.7 | Testing & Observability: 127 tests, 11 E2E, pino-http, 6 admin component tests |
 | **Sprint 11** | ✅ DONE | 2026-05-29 | 2026-05-29 | M2.7 | Frontend Architecture: CSS Modules (10 files), React Query hooks, responsive breakpoints, accessibility WCAG 2.1 AA |
+| **Sprint 12** | ⏳ PENDING | 2026-05-29 | — | — | Prompts & Data: eliminate prompt duplication (backend API), prompt versioning (git SHA), history output endpoint, CSRF protection, complete .env.example |
 
 ---
 
