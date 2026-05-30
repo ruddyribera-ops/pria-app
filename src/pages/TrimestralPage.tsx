@@ -222,12 +222,12 @@ export default function TrimestralPage() {
           </div>
         )}
 
-        {isDone && mpg.currentResult && (
+        {(isDone && mpg.currentResult) ? (
           <div className={styles.phaseResult}>
             <div className={styles.resultTitle}>✅ {currentPhaseDef?.label} generado</div>
             <ResultPreview data={mpg.currentResult as Record<string, unknown>} />
           </div>
-        )}
+        ) : null}
 
         {mpg.phaseStatuses.some(s => s !== 'idle') && (
           <PhaseNavigation

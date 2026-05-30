@@ -20,6 +20,7 @@ import { generateMockOutput } from '../motores/mocks.js';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
+import { execSync } from 'child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROMPTS_DIR = path.resolve(__dirname, '../motores/prompts');
@@ -41,6 +42,16 @@ const PROMPTS_DIR = path.resolve(__dirname, '../motores/prompts');
 // Copied to: server/src/motores/prompts/<motortype>.md
 
 const promptCache = new Map<string, string>();
+
+function getPromptVersion(motorType: string): string {
+  try {
+    const filePath = path.join(PROMPTS_DIR, `${motorType}.md`);
+    return execSync(`git hash-object ${filePath}`, { encoding: 'utf-8' }).trim().slice(0, 8);
+  } catch {
+    return 'unknown';
+  }
+}
+
 function loadSystemPrompt(motorType: string): string {
   if (promptCache.has(motorType)) return promptCache.get(motorType)!;
   const filePath = path.join(PROMPTS_DIR, `${motorType}.md`);
@@ -209,9 +220,10 @@ router.post('/:type', motorLimiter, async (req: any, res) => {
 
     // Store in DB
     if (curriculum_id) {
+      const promptVersion = getPromptVersion(type);
       await dbRun(
-        'INSERT INTO motor_results (user_id, curriculum_id, motor_type, result_json, status, simulated) VALUES ($1, $2, $3, $4, $5, $6)',
-        [req.user.id, curriculum_id, type, JSON.stringify(validated), 'done', isSimulated]
+        'INSERT INTO motor_results (user_id, curriculum_id, motor_type, result_json, status, simulated, prompt_version) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        [req.user.id, curriculum_id, type, JSON.stringify(validated), 'done', isSimulated, promptVersion]
       );
     }
 

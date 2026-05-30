@@ -13,6 +13,7 @@ import scheduleRouter from './routes/schedule.js';
 import diagnosticosRouter from './routes/diagnosticos.js';
 import curriculumsRouter from './routes/curriculums.js';
 import aiRouter from './routes/ai.js';
+import promptsRouter from './routes/prompts.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 // Init Sentry if DSN is provided
@@ -65,6 +66,7 @@ export async function createApp() {
   app.use('/api/diagnosticos', diagnosticosRouter);
   app.use('/api/curriculums', curriculumsRouter);
   app.use('/api/ai', aiRouter);
+  app.use('/api/prompts', promptsRouter);
 
   // Error handler
   app.use(errorHandler);

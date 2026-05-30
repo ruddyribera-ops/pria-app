@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { config } from '../config.js';
 import { dbAll, dbGet, dbRun } from '../db/schema.js';
 import { authMiddleware } from '../middleware/auth.js';
@@ -22,6 +23,13 @@ router.post('/login', authLimiter, validateBody(LoginSchema), async (req, res) =
     return res.status(401).json({ error: 'Credenciales inválidas' });
   }
   const token = jwt.sign({ sub: user.id, role: user.role }, config.JWT_SECRET, { expiresIn: config.JWT_EXPIRY });
+  const csrfToken = crypto.randomUUID();
+  res.cookie('csrf_token', csrfToken, {
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 86400000,
+  });
   res.json({
     data: {
       token,

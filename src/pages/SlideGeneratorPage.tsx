@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import Header from '../components/Layout/Header';
 import PhaseStepper from '../components/Motores/PhaseStepper';
 import PhaseNavigation from '../components/Motores/PhaseNavigation';
