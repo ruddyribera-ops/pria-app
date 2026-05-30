@@ -87,6 +87,17 @@ router.get('/cache/stats', authMiddleware, adminOnly, async (_req, res) => {
   }
 });
 
+router.delete('/cache', authMiddleware, adminOnly, async (_req, res) => {
+  try {
+    // Clear motor results cache (most impactful cache)
+    await dbRun('DELETE FROM motor_results WHERE DATE(created_at) < CURRENT_DATE');
+    res.json({ data: { cleared: true } });
+  } catch (err) {
+    console.error('[/admin/cache DELETE]', err);
+    res.status(500).json({ error: 'Error al limpiar cache' });
+  }
+});
+
 router.post('/reset-day', authMiddleware, adminOnly, async (req, res) => {
   try {
     const userId = req.user?.id;

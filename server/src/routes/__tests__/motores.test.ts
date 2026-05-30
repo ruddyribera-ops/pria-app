@@ -95,4 +95,49 @@ describe('Motores routes', () => {
     });
     expect(res.status).toBe(401);
   });
+
+  // === Bug B6: Motor routes must NOT crash without curriculum_id ===
+  test('POST /motores/synthesis without curriculum_id does NOT crash (Bug B6)', async () => {
+    const res = await fetch(`http://127.0.0.1:${port}/api/motores/synthesis`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ alpha2: validAlpha2, grado_nivel: '5to Primaria' }),
+    });
+    // Must NOT return 500 (crash) - should return 200, 422, or 429
+    expect(res.status).not.toBe(500);
+    expect([200, 422, 429]).toContain(res.status);
+  });
+
+  test('POST /motores/plan without curriculum_id does NOT crash (Bug B6)', async () => {
+    const res = await fetch(`http://127.0.0.1:${port}/api/motores/plan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ alpha2: validAlpha2, grado_nivel: '5to Primaria' }),
+    });
+    // Must NOT return 500 (crash) - should return 200, 422, or 429
+    expect(res.status).not.toBe(500);
+    expect([200, 422, 429]).toContain(res.status);
+  });
+
+  test('POST /motores/abp without curriculum_id does NOT crash (Bug B6)', async () => {
+    const res = await fetch(`http://127.0.0.1:${port}/api/motores/abp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ alpha2: validAlpha2, grado_nivel: '5to Primaria' }),
+    });
+    // Must NOT return 500 (crash) - should return 200, 422, or 429
+    expect(res.status).not.toBe(500);
+    expect([200, 422, 429]).toContain(res.status);
+  });
+
+  test('POST /motores/assessment without curriculum_id does NOT crash (Bug B6)', async () => {
+    const res = await fetch(`http://127.0.0.1:${port}/api/motores/assessment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ alpha2: validAlpha2, grado_nivel: '5to Primaria' }),
+    });
+    // Must NOT return 500 (crash) - should return 200, 422, or 429
+    expect(res.status).not.toBe(500);
+    expect([200, 422, 429]).toContain(res.status);
+  });
 });
