@@ -335,6 +335,17 @@ export function mockQuizOutput(params: Record<string, unknown>): Record<string, 
 /** Tutor (M2b): panel de control docente */
 export function mockTutorOutput(params: Record<string, unknown>): Record<string, unknown> {
   const tema = (params.tema_clase as string) || 'el tema';
+  const diagnosticos = (params.diagnosticos as string) || '';
+  const adaptaciones_rapidas: { diagnostico: string; senial: string; intervencion: string }[] = [];
+  if (diagnosticos.toLowerCase().includes('tdah')) {
+    adaptaciones_rapidas.push({ diagnostico: 'TDAH', senial: 'Inquietud motora', intervencion: 'Pausa activa de 2 min' });
+  }
+  if (diagnosticos.toLowerCase().includes('tea')) {
+    adaptaciones_rapidas.push({ diagnostico: 'TEA', senial: 'Ansiedad ante cambio', intervencion: 'Mostrar agenda visual y anticipar' });
+  }
+  if (diagnosticos.toLowerCase().includes('dislexia')) {
+    adaptaciones_rapidas.push({ diagnostico: 'DISLEXIA', senial: 'Evita leer en voz alta', intervencion: 'Aceptar respuesta oral o dibujada' });
+  }
   return {
     panel_tutor: {
       resumen_clase: 'Clase sobre ' + tema,
@@ -344,10 +355,7 @@ export function mockTutorOutput(params: Record<string, unknown>): Record<string,
         { momento: 'Mitad del desarrollo', accion: 'Pausa activa de 2 min', senial: 'Inquietud motora general' },
       ],
       checklist_pre_clase: ['Material impreso', 'Proyector listo', 'Fichas de trabajo', 'Marcadores'],
-      adaptaciones_rapidas: [
-        { diagnostico: 'TDAH', senial: 'Inquietud motora', intervencion: 'Pausa activa de 2 min' },
-        { diagnostico: 'TEA', senial: 'Ansiedad ante cambio', intervencion: 'Mostrar agenda visual y anticipar' },
-      ],
+      adaptaciones_rapidas: adaptaciones_rapidas.length > 0 ? adaptaciones_rapidas : undefined,
       preguntas_frecuentes: [
         { pregunta: '¿Qué hago si un estudiante no entiende?', respuesta_breve: 'Reformular con ejemplo concreto y verificar' },
         { pregunta: '¿Cómo manejar el ritmo de la clase?', respuesta_breve: 'Tener actividad de extensión y de refuerzo listas' },
@@ -380,7 +388,15 @@ export function mockPDCOutput(params: Record<string, unknown>): Record<string, u
 }
 
 /** Recalibrate: recalibración pedagógica post-evaluación */
-export function mockRecalibrateOutput(_params: Record<string, unknown>): Record<string, unknown> {
+export function mockRecalibrateOutput(params: Record<string, unknown>): Record<string, unknown> {
+  const diagnosticos = (params.diagnosticos as string) || '';
+  const adaptaciones_refinadas: { diagnostico: string; ajuste: string }[] = [];
+  if (diagnosticos.toLowerCase().includes('tdah')) {
+    adaptaciones_refinadas.push({ diagnostico: 'TDAH', ajuste: 'Checklist visual de pasos + pausas programadas cada 12 min' });
+  }
+  if (diagnosticos.toLowerCase().includes('tea')) {
+    adaptaciones_refinadas.push({ diagnostico: 'TEA', ajuste: 'Agenda visual con pictogramas + anticipación de transiciones' });
+  }
   return {
     recalibracion: {
       diagnostico_general: 'Resultados satisfactorios. 70% alcanzó nivel suficiente o superior.',
@@ -391,34 +407,43 @@ export function mockRecalibrateOutput(_params: Record<string, unknown>): Record<
         { area: 'Vocabulario técnico', accion: 'Glosario visual semanal', impacto_esperado: 'Incorporar 5-10 términos por unidad' },
       ],
       recomendaciones_proximo_trimestre: ['Aumentar práctica oral', 'Incorporar glosario visual', 'Añadir rúbricas de autoevaluación'],
-      adaptaciones_refinadas: [
-        { diagnostico: 'TDAH', ajuste: 'Checklist visual de pasos + pausas programadas cada 12 min' },
-        { diagnostico: 'TEA', ajuste: 'Agenda visual con pictogramas + anticipación de transiciones' },
-      ],
+      adaptaciones_refinadas: adaptaciones_refinadas.length > 0 ? adaptaciones_refinadas : undefined,
     },
   };
 }
 
 /** Micro: micro-objetivos diarios */
 export function mockMicroOutput(params: Record<string, unknown>): Record<string, unknown> {
-  const unidad = (params.unidad_real as string) || 'Unidad';
+  const unidad = (params.unidad_real as string) || (params.unidad as string) || 'Unidad';
+  const temasRaw = params.temas;
+  const temas: string[] = Array.isArray(temasRaw)
+    ? temasRaw as string[]
+    : typeof temasRaw === 'string'
+      ? (temasRaw as string).split(/[,\n]/).map(t => t.trim()).filter(Boolean)
+      : ['Tema 1'];
+  const semanas_trimestre = (params.semanas_trimestre as number) || 4;
+
+  const semanas = temas.slice(0, semanas_trimestre).map((tema, i) => ({
+    semana: i + 1,
+    tema,
+    objetivos_diarios: [
+      { dia: 1, objetivo: `Identificar conceptos clave de ${tema}`, criterio_logro: 'Nombra 3 conceptos correctamente', actividad_clave: 'Lluvia de ideas guiada' },
+      { dia: 2, objetivo: `Comprender relaciones entre conceptos de ${tema}`, criterio_logro: 'Explica conexiones con ejemplos', actividad_clave: 'Mapa conceptual en parejas' },
+      { dia: 3, objetivo: `Aplicar ${tema} en ejercicios prácticos`, criterio_logro: 'Resuelve 3 de 4 ejercicios', actividad_clave: 'Ficha de trabajo individual' },
+      { dia: 4, objetivo: `Analizar casos prácticos de ${tema}`, criterio_logro: 'Identifica patrones en 2 casos', actividad_clave: 'Análisis grupal de casos' },
+      { dia: 5, objetivo: `Evaluar comprensión de ${tema}`, criterio_logro: 'Responde correctamente 70% del quiz', actividad_clave: 'Quiz rápido + reflexión' },
+    ],
+  }));
+
   return {
     micro_objetivos: {
       unidad,
-      semanas: [
-        {
-          semana: 1,
-          tema: 'Tema 1: Introducción',
-          objetivos_diarios: [
-            { dia: 1, objetivo: 'Identificar conceptos clave del tema', criterio_logro: 'Nombra 3 conceptos correctamente', actividad_clave: 'Lluvia de ideas guiada' },
-            { dia: 2, objetivo: 'Comprender relaciones entre conceptos', criterio_logro: 'Explica conexiones con ejemplos', actividad_clave: 'Mapa conceptual en parejas' },
-            { dia: 3, objetivo: 'Aplicar conceptos en ejercicios', criterio_logro: 'Resuelve 3 de 4 ejercicios', actividad_clave: 'Ficha de trabajo individual' },
-            { dia: 4, objetivo: 'Analizar casos prácticos', criterio_logro: 'Identifica patrones en 2 casos', actividad_clave: 'Análisis grupal de casos' },
-            { dia: 5, objetivo: 'Evaluar comprensión de la semana', criterio_logro: 'Responde correctamente 70% del quiz', actividad_clave: 'Quiz rápido + reflexión' },
-          ],
-        },
-      ],
-      evaluacion_semanal: [{ semana: 1, indicadores: ['Comprensión conceptual', 'Aplicación práctica'], instrumento: 'Ticket de salida + Quiz semanal' }],
+      semanas,
+      evaluacion_semanal: semanas.map((s, i) => ({
+        semana: i + 1,
+        indicadores: ['Comprensión conceptual', 'Aplicación práctica'],
+        instrumento: 'Ticket de salida + Quiz semanal',
+      })),
     },
   };
 }

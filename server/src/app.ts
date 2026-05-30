@@ -17,6 +17,7 @@ import aiRouter from './routes/ai.js';
 import blocksRouter from './routes/blocks.js';
 import promptsRouter from './routes/prompts.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { authMiddleware } from './middleware/auth.js';
 
 // Init Sentry if DSN is provided
 if (process.env.SENTRY_DSN) {

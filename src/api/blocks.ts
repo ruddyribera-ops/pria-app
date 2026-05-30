@@ -3,17 +3,17 @@ import client from './client';
 
 export async function listBlocks(): Promise<BloqueResponse[]> {
   const response = await client.get('/blocks/');
-  return response.data;
+  return response.data.data;
 }
 
 export async function createBlock(data: BloqueCreate): Promise<BloqueResponse> {
   const response = await client.post('/blocks/', data);
-  return response.data;
+  return response.data.data;
 }
 
 export async function updateBlock(blockId: number, data: BloqueUpdate): Promise<BloqueResponse> {
   const response = await client.put(`/blocks/${blockId}`, data);
-  return response.data;
+  return response.data.data;
 }
 
 export async function deleteBlock(blockId: number): Promise<void> {

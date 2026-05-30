@@ -66,18 +66,40 @@ router.delete('/users/:id', authMiddleware, adminOnly, async (req, res) => {
   res.json({ data: { id: parseInt(id), deleted: new Date().toISOString() } });
 });
 
-router.get('/cache/stats', authMiddleware, adminOnly, (req, res) => {
-  res.json({
-    data: {
-      entries: 0,
-      motores_cache: 0,
-      pdfs_cache: 0,
-    },
-  });
+router.get('/cache/stats', authMiddleware, adminOnly, async (_req, res) => {
+  try {
+    const [mats, diags, results, bloques] = await Promise.all([
+      dbAll('SELECT COUNT(*)::int as c FROM materials'),
+      dbAll('SELECT COUNT(*)::int as c FROM diagnosticos'),
+      dbAll('SELECT COUNT(*)::int as c FROM motor_results'),
+      dbAll('SELECT COUNT(*)::int as c FROM bloques'),
+    ]);
+    const entries = (mats[0]?.c ?? 0) + (diags[0]?.c ?? 0) + (results[0]?.c ?? 0) + (bloques[0]?.c ?? 0);
+    res.json({
+      data: {
+        entries,
+        motores_cache: results[0]?.c ?? 0,
+        pdfs_cache: mats[0]?.c ?? 0,
+      },
+    });
+  } catch {
+    res.json({ data: { entries: 0, motores_cache: 0, pdfs_cache: 0 } });
+  }
 });
 
-router.delete('/cache', authMiddleware, adminOnly, (req, res) => {
-  res.json({ data: { cleared: true } });
+router.post('/reset-day', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'No autenticado' });
+    await dbRun(
+      `DELETE FROM motor_results WHERE user_id = $1 AND DATE(created_at) = CURRENT_DATE`,
+      [userId]
+    );
+    res.json({ data: { reset: true } });
+  } catch (err) {
+    console.error('[/admin/reset-day]', err);
+    res.status(500).json({ error: 'Error al reiniciar datos' });
+  }
 });
 
 export default router;
