@@ -218,14 +218,12 @@ router.post('/:type', motorLimiter, async (req: any, res) => {
     // Validate the output
     const validated = validator(rawOutput);
 
-    // Store in DB
-    if (curriculum_id) {
-      const promptVersion = getPromptVersion(type);
-      await dbRun(
-        'INSERT INTO motor_results (user_id, curriculum_id, motor_type, result_json, status, simulated, prompt_version) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-        [req.user.id, curriculum_id, type, JSON.stringify(validated), 'done', isSimulated, promptVersion]
-      );
-    }
+    // Store in DB (always insert, using NULL when curriculum_id is falsy)
+    const promptVersion = getPromptVersion(type);
+    await dbRun(
+      'INSERT INTO motor_results (user_id, curriculum_id, motor_type, result_json, status, simulated, prompt_version) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      [req.user.id, curriculum_id || null, type, JSON.stringify(validated), 'done', isSimulated, promptVersion]
+    );
 
     res.json({ data: { jobId: uuidv4(), status: 'done', output: validated, simulated: isSimulated } });
   } catch (err) {

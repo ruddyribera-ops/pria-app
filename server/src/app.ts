@@ -14,6 +14,7 @@ import scheduleRouter from './routes/schedule.js';
 import diagnosticosRouter from './routes/diagnosticos.js';
 import curriculumsRouter from './routes/curriculums.js';
 import aiRouter from './routes/ai.js';
+import blocksRouter from './routes/blocks.js';
 import promptsRouter from './routes/prompts.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -66,6 +67,7 @@ export async function createApp() {
   app.use('/api/schedule', scheduleRouter);
   app.use('/api/diagnosticos', diagnosticosRouter);
   app.use('/api/curriculums', curriculumsRouter);
+  app.use('/api/blocks', authMiddleware, blocksRouter);
   app.use('/api/ai', aiRouter);
   app.use('/api/prompts', promptsRouter);
 
