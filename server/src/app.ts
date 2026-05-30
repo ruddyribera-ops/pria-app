@@ -40,7 +40,19 @@ export async function createApp() {
     next();
   });
 
-  app.use(cors({ origin: config.CORS_ORIGIN }));
+  // Support comma-separated list of origins: "http://localhost:5173,https://myapp.com"
+  const rawOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || 'http://localhost:5173') as string;
+  const origins = rawOrigins.split(',').map(o => o.trim()).filter(Boolean);
+  app.use(cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (curl, Postman, server-to-server)
+      if (!origin || origins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin ${origin} not allowed`));
+      }
+    },
+  }));
   app.use(express.json({ limit: '10mb' }));
 
   // Structured request logging
