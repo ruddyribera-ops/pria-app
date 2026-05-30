@@ -158,6 +158,8 @@ CORS_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 
 | Date | Session | What was done |
 |------|---------|---------------|
+| 2026-05-30 | `d6d5eca` | P1-6: CORS multi-origin via CORS_ORIGINS env. P1-1/P1-3 verified working (MiniMax key present + API 200, /ai/generate exists). multer added. TypeScript 0err, build 0err, 127/127 tests pass. |
+| 2026-05-30 | `36e1196` | External agent: fixed users.ts/admin paths, blocks.ts response unwrap, cache/stats real DB counts, schedule real from bloques, mock improvements (tutor/recalibrate/micro). MiniMax API verified 200. |
 | 2026-05-30 | `6465f76` | Fixed B3–B6 (users route mismatch, blocks no-backend, cache stats missing, motor null crash). Wrote `PRODUCTION_ROADMAP.md`. |
 | 2026-05-30 | `5be01a9` | Fixed `materials.ts` `response.data.data` unwrapping bug |
 | 2026-05-30 | `1b99f2b` | Fixed `diagnosticos.ts` same `response.data.data` bug |
@@ -183,7 +185,7 @@ Copy this section for each session and mark completed:
 ### After any code change
 - [ ] TypeScript check: npx tsc --noEmit → 0 errors
 - [ ] Build: npm run build → 0 errors
-- [ ] Tests: npm test -- --run → 127/127 (allow 7 pre-existing fails)
+- [ ] Tests: npm test -- --run → 127/127 (allow 1 pre-existing timeout in motores.test.ts)
 - [ ] Commit with message describing what was done
 - [ ] Update this file's session log table
 
