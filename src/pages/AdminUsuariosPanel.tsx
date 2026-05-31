@@ -63,12 +63,11 @@ export default function AdminUsuariosPanel({ showToast }: Props) {
       await loadUsers();
       setEditingUser(null);
       showToast('Usuario actualizado correctamente.', 'success');
-    } catch {
-      setUsers(prev => prev.map(u => u.id === editingUser.id ? { ...u, nombre: editUserData.nombre, correo: editUserData.correo, rol: editUserData.rol, estado: editUserData.estado } : u));
-      setEditingUser(null);
-      showToast('Usuario actualizado correctamente.', 'success');
+    } catch (error) {
+      showToast('⚠️ Error al actualizar el usuario.', 'error');
+    } finally {
+      setEditUserLoading(false);
     }
-    setEditUserLoading(false);
   };
 
   const handleEditUser = (u: UsuarioResponse) => {

@@ -14,8 +14,8 @@ export default function AdminResetPanel({ teacherCode }: Props) {
     try {
       await resetDay(teacherCode);
       setMessage('✅ Datos del día reiniciados correctamente.');
-    } catch {
-      setMessage('✅ Datos del día reiniciados correctamente. (mock)');
+    } catch (error) {
+      setMessage('❌ Error al reiniciar los datos: ' + (error instanceof Error ? error.message : 'Error desconocido'));
     }
     setLoading(false);
   };
