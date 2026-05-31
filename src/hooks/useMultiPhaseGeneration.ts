@@ -92,22 +92,10 @@ export function useMultiPhaseGeneration(motorType: MotorType): MultiPhaseReturn 
       });
     });
 
-    // Use FULL_AI mode (MiniMax M2.7 API key is configured)
-    const mode: PromptMode = 'FULL_AI';
-
-    try {
-      const apiFn = getApiFunction(motorType);
-      const payload = {
-        ...params,
-        fase: phaseId,
-        contexto_anterior: JSON.stringify(currentResults),
-      };
-      await apiFn(payload);
-    } catch {
-      // API down — use local prompt runner with MOCK mode
-    }
-
     // Execute via promptRunner (MOCK mode = structured template output)
+    // Note: The server's /api/motores/:type endpoint only handles single-shot generation.
+    // There is no multi-phase submit endpoint — the API call above was dead code.
+    // Multi-phase uses local promptRunner exclusively for structured outputs.
     const context = {
       motorType,
       phaseId,
@@ -193,14 +181,17 @@ export function useMultiPhaseGeneration(motorType: MotorType): MultiPhaseReturn 
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyPayload = Record<string, any>;
+
 function getApiFunction(type: MotorType) {
-  const map: Record<string, (data: Record<string, unknown>) => Promise<unknown>> = {
-    synthesis: (d) => motores.motorSynthesis(d as any),
-    plan: (d) => motores.motorPlan(d as any),
-    slides: (d) => motores.motorSlides(d as any),
-    ficha: (d) => motores.motorFicha(d as any),
-    quiz: (d) => motores.motorQuiz(d as any),
-    pdc: (d) => motores.motorPdc(d as any),
+  const map: Record<string, (data: AnyPayload) => Promise<unknown>> = {
+    synthesis: (d) => motores.motorSynthesis(d),
+    plan: (d) => motores.motorPlan(d),
+    slides: (d) => motores.motorSlides(d),
+    ficha: (d) => motores.motorFicha(d),
+    quiz: (d) => motores.motorQuiz(d),
+    pdc: (d) => motores.motorPdc(d),
   };
   return map[type] || (() => Promise.resolve({}));
 }
