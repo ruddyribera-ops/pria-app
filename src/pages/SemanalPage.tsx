@@ -58,7 +58,9 @@ export default function SemanalPage() {
   const effectiveMotorType = activeMotorType || 'slides';
   const mpg = useMultiPhaseGeneration(effectiveMotorType);
 
-  const weekData: Record<string, any> = {};
+  // TODO: Wire to /api/schedule/week endpoint when backend provides weekly schedule data
+  // Populated via: const data = await getWeekSchedule(nivel, grado, materia); setWeekData(data);
+  const weekData: Record<string, ScheduleEntry[]> = {};
 
   const getMateriaIcon = (name: string): string => {
     if (name.includes('Matemáticas')) return '📐';

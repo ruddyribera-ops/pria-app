@@ -76,8 +76,9 @@ export function useMotorGeneration() {
         setState({ status: 'error', result: null, error: 'Error en la generación del motor', motorKey });
       }
       // If 'generating' or 'pending' or undefined, keep polling
-    } catch {
-      // Keep polling on network error — don't interrupt
+    } catch (error) {
+      // Network error during polling — log and continue, don't stop polling
+      console.warn('[useMotorGeneration] Health check polling failed, keeping retry:', error instanceof Error ? error.message : String(error));
     }
   }, [stopPolling]);
 

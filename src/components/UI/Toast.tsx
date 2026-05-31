@@ -1,10 +1,10 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useId, type ReactNode } from 'react';
 import styles from './Toast.module.css';
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface Toast {
-  id: number;
+  id: string;
   message: string;
   type: ToastType;
 }
@@ -15,20 +15,23 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | null>(null);
 
-let toastId = 0;
+// useId generates unique IDs per render — safe in concurrent mode + StrictMode
+let toastIdCounter = 0;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const baseId = useId(); // stable per component instance
 
   const showToast = useCallback((message: string, type: ToastType = 'info') => {
-    const id = ++toastId;
+    // prefix with baseId (stable) + counter (unique per call) to avoid collisions
+    const id = `${baseId}-${++toastIdCounter}`;
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 4000);
   }, []);
 
-  const removeToast = (id: number) => {
+  const removeToast = (id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 

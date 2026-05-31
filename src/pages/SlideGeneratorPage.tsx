@@ -23,8 +23,7 @@ export default function SlideGeneratorPage() {
 
   const currentDef = phaseDefs[currentPhase];
   const currentResult = currentDef ? results[currentDef.id] : null;
-  const isDone = phaseStatus === 'done';
-  const canGoNext = isDone;
+  const canGoNext = phaseStatus === 'done';
   const isFirst = currentPhase === 0;
   const isLast = currentPhase >= totalPhases - 1;
 

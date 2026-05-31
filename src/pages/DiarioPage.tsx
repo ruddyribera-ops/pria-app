@@ -56,6 +56,9 @@ export default function DiarioPage() {
     setCurrentDate(new Date());
   };
 
+  // TODO: Wire to /api/teachers endpoint when backend provides teacher list
+  // const [teachers, setTeachers] = useState<{code: string; name: string}[]>([]);
+  // Populated via: const data = await listTeachers(); setTeachers(data);
   const teachers: {code: string; name: string}[] = [];
 
   return (

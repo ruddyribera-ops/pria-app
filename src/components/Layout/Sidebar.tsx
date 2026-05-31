@@ -251,10 +251,22 @@ export default function Sidebar({ nivel, grado, onNivelChange, onGradoChange }: 
             <EstadoToggle motors={motors} />
           </div>
 
-          {/* Health indicator */}
+          {/* Health indicator — derived from motor statuses */}
           <div className={styles.healthIndicator}>
-            <span>🟢</span>
-            <span>Sistema operativo</span>
+            {(() => {
+              const motorEntries = Object.values(motors);
+              const hasError = motorEntries.some(s => s === 'error');
+              const hasGenerating = motorEntries.some(s => s === 'generating');
+              const status = hasError ? 'error' : hasGenerating ? 'generating' : 'operativo';
+              return (
+                <>
+                  <span>{status === 'error' ? '🔴' : status === 'generating' ? '🟡' : '🟢'}</span>
+                  <span>
+                    {status === 'error' ? 'Error en motor' : status === 'generating' ? 'Generando...' : 'Sistema operativo'}
+                  </span>
+                </>
+              );
+            })()}
           </div>
 
           <div

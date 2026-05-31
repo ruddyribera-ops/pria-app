@@ -1,7 +1,8 @@
 import MotorButton from '../Materials/MotorButton';
+import type { CurriculumResult } from '../../lib/ingest/types';
 
 interface Props {
-  curriculumPreview?: any;
+  curriculumPreview?: CurriculumResult;
   onGenerateSlides?: () => void;
   slidesLoading: boolean;
   onGenerateFicha?: () => void;
