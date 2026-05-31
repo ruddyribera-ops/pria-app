@@ -1,11 +1,13 @@
+import type { ABPOutput } from '../../types/motor-types';
+
 interface Props {
-  result: any;
+  result: ABPOutput | null;
 }
 
 export default function MotorSection_ABP({ result }: Props) {
   if (!result) return null;
   try {
-    const p = (result as any)?.proyecto;
+    const p = result.proyecto;
     if (!p) return null;
     return (
       <div style={{ borderTop: '1px solid #e6e6eb', padding: '1rem' }}>
@@ -21,16 +23,16 @@ export default function MotorSection_ABP({ result }: Props) {
         <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1e1e2f', marginBottom: '0.25rem' }}>
           Fases ({(p.fases || []).length}):
         </div>
-        {(p.fases || []).map((f: any, j: number) => (
+        {(p.fases || []).map((f, j) => (
           <div key={j} style={{ marginBottom: '0.5rem', paddingLeft: '0.5rem', borderLeft: '2px solid #2563EB', fontSize: '0.75rem' }}>
             <div style={{ fontWeight: 600 }}>{f.nombre} — {f.duracion}</div>
-            {(f.actividades || []).map((a: string, k: number) => (
+            {(f.actividades || []).map((a, k) => (
               <div key={k} style={{ color: '#4a4a5a' }}>• {a}</div>
             ))}
           </div>
         ))}
         <div style={{ fontSize: '0.75rem', fontWeight: 600, marginTop: '0.5rem' }}>Productos:</div>
-        {(p.productos || []).map((pr: string, j: number) => (
+        {(p.productos || []).map((pr, j) => (
           <div key={j} style={{ fontSize: '0.75rem', color: '#4a4a5a' }}>📦 {pr}</div>
         ))}
         {p.evaluacion && (

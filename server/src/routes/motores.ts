@@ -271,6 +271,22 @@ async function tryMinimaxStream(
 const router = Router();
 router.use(authMiddleware);
 
+function translateZodMessage(msg: string): string {
+  if (/expected (string|text),? received undefined/i.test(msg)) return 'falta un texto requerido';
+  if (/expected number,? received undefined/i.test(msg)) return 'falta un valor numérico';
+  if (/expected array,? received object/i.test(msg)) return 'formato inesperado en la lista';
+  if (/expected array,? received undefined/i.test(msg)) return 'falta una lista';
+  if (/received undefined/i.test(msg)) return 'valor no proporcionado';
+  if (/string must be at least \d+ characters/i.test(msg)) return 'texto muy corto';
+  if (/string must be at most \d+ characters/i.test(msg)) return 'texto muy largo';
+  if (/number must be/i.test(msg)) return 'valor numérico fuera de rango';
+  if (/expected (boolean|true|false),? received/i.test(msg)) return 'valor lógico esperado';
+  if (/expected object,? received/i.test(msg)) return 'formato inesperado';
+  return msg;
+}
+
+// ─── Motor route handlers ────────────────────────────────────────────
+
 const VALIDATORS: Record<string, (data: unknown) => any> = {
   alpha2: validateAlpha2,
   synthesis: validateSynthesis,
@@ -332,13 +348,46 @@ router.post('/:type', motorLimiter, async (req: any, res) => {
     res.json({ data: { jobId: uuidv4(), status: 'done', output: validated, simulated: isSimulated } });
   } catch (err) {
     if (err instanceof z.ZodError) {
+      const fieldLabels: Record<string, string> = {
+        temas_desarrollados: 'temas desarrollados',
+        conceptos_clave: 'conceptos clave',
+        inteligencias_sugeridas: 'inteligencias sugeridas',
+        actividades: 'actividades',
+        objetivo_general: 'objetivo general',
+        rubrica: 'rúbrica de evaluación',
+        criterios: 'criterios de evaluación',
+        niveles: 'niveles de desempeño',
+        preguntas: 'preguntas de evaluación',
+        tipo: 'tipo de actividad',
+        titulo: 'título',
+        descripcion: 'descripción',
+        duracion: 'duración',
+        recursos: 'recursos',
+        evaluacion: 'evaluación',
+        competencias: 'competencias',
+        actividades_previas: 'actividades previas',
+        contenidos: 'contenidos',
+        secuencia_didactica: 'secuencia didáctica',
+        orientaciones: 'orientaciones',
+        actividades_refuerzo: 'actividades de refuerzo',
+        actividades_ampliacion: 'actividades de ampliación',
+        criterios_evaluacion: 'criterios de evaluación',
+        instrumentos: 'instrumentos',
+        sesiones: 'sesiones',
+        materiales: 'materiales',
+        procedimiento: 'procedimiento',
+      };
+      const friendlyErrors = err.errors.map((e: any) => {
+        const received = e.input;
+        return {
+          campo: fieldLabels[e.path.join('.')] || e.path.join('.'),
+          problema: translateZodMessage(e.message),
+          recibido: typeof received === 'object' && received !== null ? 'valor recibido' : `tipo ${typeof received}`,
+        };
+      });
       res.status(422).json({
-        error: 'El motor devolvió datos con formato inválido',
-        details: err.errors.map((e: any) => ({
-          campo: e.path.join('.'),
-          problema: e.message,
-          recibido: typeof e.input === 'object' ? 'objeto' : typeof e.input,
-        })),
+        error: 'La estructura del contenido generado no es válida. Intenta con parámetros diferentes.',
+        details: friendlyErrors,
       });
     } else {
       res.status(500).json({ error: 'Error generando contenido' });
@@ -394,7 +443,44 @@ router.post('/:type/stream', motorLimiter, async (req: any, res: any) => {
     sendEvent({ status: 'done', output: validated, simulated: false });
   } catch (err: any) {
     if (err instanceof z.ZodError) {
-      sendEvent({ status: 'error', error: 'El motor devolvió datos con formato inválido' });
+      const fieldLabels: Record<string, string> = {
+        temas_desarrollados: 'temas desarrollados',
+        conceptos_clave: 'conceptos clave',
+        inteligencias_sugeridas: 'inteligencias sugeridas',
+        actividades: 'actividades',
+        objetivo_general: 'objetivo general',
+        rubrica: 'rúbrica de evaluación',
+        criterios: 'criterios de evaluación',
+        niveles: 'niveles de desempeño',
+        preguntas: 'preguntas de evaluación',
+        tipo: 'tipo de actividad',
+        titulo: 'título',
+        descripcion: 'descripción',
+        duracion: 'duración',
+        recursos: 'recursos',
+        evaluacion: 'evaluación',
+        competencias: 'competencias',
+        actividades_previas: 'actividades previas',
+        contenidos: 'contenidos',
+        secuencia_didactica: 'secuencia didáctica',
+        orientaciones: 'orientaciones',
+        actividades_refuerzo: 'actividades de refuerzo',
+        actividades_ampliacion: 'actividades de ampliación',
+        criterios_evaluacion: 'criterios de evaluación',
+        instrumentos: 'instrumentos',
+        sesiones: 'sesiones',
+        materiales: 'materiales',
+        procedimiento: 'procedimiento',
+      };
+      const friendlyErrors = err.errors.map((e: any) => {
+        const received = e.input;
+        return {
+          campo: fieldLabels[e.path.join('.')] || e.path.join('.'),
+          problema: translateZodMessage(e.message),
+          recibido: typeof received === 'object' && received !== null ? 'valor recibido' : `tipo ${typeof received}`,
+        };
+      });
+      sendEvent({ status: 'error', error: 'La estructura del contenido generado no es válida.', details: friendlyErrors });
     } else {
       console.error('[motores/stream]', err);
       sendEvent({ status: 'error', error: 'Error generando contenido' });

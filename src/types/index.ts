@@ -127,6 +127,17 @@ export interface ScheduleEntry {
   tipo?: string;
 }
 
+// Raw DB row from /schedule endpoint
+export interface ScheduleBloqueRow {
+  teacher_code: string;
+  dia: string;
+  hora_inicio: string;
+  hora_fin: string;
+  tipo?: string;
+  materia: string;
+  nivel_grado: string;
+}
+
 // ===== Form State =====
 export type RequestState<T> =
   | { status: 'idle' }

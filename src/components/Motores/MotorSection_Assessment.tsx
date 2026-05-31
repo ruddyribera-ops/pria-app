@@ -1,11 +1,13 @@
+import type { AssessmentOutput } from '../../types/motor-types';
+
 interface Props {
-  result: any;
+  result: AssessmentOutput | null;
 }
 
 export default function MotorSection_Assessment({ result }: Props) {
   if (!result) return null;
   try {
-    const e = (result as any)?.evaluacion;
+    const e = result.evaluacion;
     if (!e) return null;
     return (
       <div style={{ borderTop: '1px solid #e6e6eb', padding: '1rem' }}>
@@ -18,7 +20,7 @@ export default function MotorSection_Assessment({ result }: Props) {
         <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
           Criterios ({(e.rubrica?.criterios || []).length}):
         </div>
-        {(e.rubrica?.criterios || []).map((c: any, j: number) => (
+        {(e.rubrica?.criterios || []).map((c, j) => (
           <div key={j} style={{ marginBottom: '0.5rem', paddingLeft: '0.5rem', borderLeft: '2px solid #9333EA', fontSize: '0.6875rem' }}>
             <div style={{ fontWeight: 600 }}>{c.nombre} ({c.peso})</div>
             <div style={{ color: '#4a4a5a' }}>Excelente: {c.niveles?.excelente?.slice(0, 100)}</div>

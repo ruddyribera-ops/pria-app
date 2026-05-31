@@ -1,5 +1,7 @@
+import type { PDCOutput } from '../../types/motor-types';
+
 interface Props {
-  result: any;
+  result: PDCOutput | null;
 }
 
 export default function MotorSection_PDC({ result }: Props) {
@@ -9,16 +11,14 @@ export default function MotorSection_PDC({ result }: Props) {
       <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#1e1e2f', marginBottom: '0.5rem' }}>
         📆 Currículo PDC Trimestral
       </div>
-      {(result as any)?.pdc ? (() => {
-        const p = (result as any).pdc;
-        return (
+      {result.pdc ? (
           <div style={{ fontSize: '0.75rem', color: '#4a4a5a' }}>
-            {p.encabezado && (
+            {result.pdc.encabezado && (
               <div style={{ background: '#f5f3ff', borderRadius: '4px', padding: '0.5rem', marginBottom: '0.5rem' }}>
-                <strong>{p.encabezado.materia}</strong> — {p.encabezado.nivel} {p.encabezado.grado} | Trimestre {p.encabezado.trimestre}
+                <strong>{result.pdc.encabezado.materia}</strong> — {result.pdc.encabezado.nivel} {result.pdc.encabezado.grado} | Trimestre {result.pdc.encabezado.trimestre}
               </div>
             )}
-            {(p.unidades || []).map((u: any, i: number) => (
+            {(result.pdc.unidades || []).map((u, i) => (
               <div key={i} style={{ marginBottom: '0.5rem', padding: '0.5rem', borderLeft: '3px solid #6D28D9' }}>
                 <strong>Unidad {u.numero}: {u.titulo}</strong>
                 <div style={{ color: '#6b6b80' }}>{u.semanas} — {u.horas} horas | {u.objetivo_holistico?.slice(0, 120)}</div>
@@ -33,8 +33,7 @@ export default function MotorSection_PDC({ result }: Props) {
               </div>
             ))}
           </div>
-        );
-      })() : typeof result === 'object' ? (
+      ) : typeof result === 'object' ? (
         <div style={{ fontSize: '0.75rem' }}>
           <pre style={{ whiteSpace: 'pre-wrap', maxHeight: '200px', overflow: 'auto' }}>
             {JSON.stringify(result, null, 2).slice(0, 1000)}

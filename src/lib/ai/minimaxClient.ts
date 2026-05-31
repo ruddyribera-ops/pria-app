@@ -124,6 +124,7 @@ export async function callMinimax(
       data?: {
         status?: string;
         output?: unknown;
+        simulated?: boolean;
       };
       error?: string;
     };
@@ -133,7 +134,7 @@ export async function callMinimax(
     }
 
     const output = data.data?.output;
-    const simulated = (data.data as any)?.simulated === true;
+    const simulated = data.data?.simulated === true;
     if (!output) {
       return { ok: false, text: '', error: 'Backend no devolvi�� output' };
     }

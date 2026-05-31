@@ -1,18 +1,19 @@
 import MotorResult from '../Materials/MotorResult';
 import MotorButton from '../Materials/MotorButton';
+import type { SynthesisOutput } from '../../types/motor-types';
 
 interface Props {
-  result: any;
+  result: SynthesisOutput | null;
   loading: boolean;
   onGenerate?: () => void;
   showToast: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
-  curriculumPreview?: any;
+  curriculumPreview?: unknown;
 }
 
 export default function MotorSection_Synthesis({ result, curriculumPreview, loading, onGenerate, showToast }: Props) {
   if (!curriculumPreview || !result) return null;
   try {
-    const s = (result as any)?.unidad_sintetizada;
+    const s = result.unidad_sintetizada;
     if (!s || typeof s !== 'object') {
       return <MotorResult title="🧠 Síntesis Neuro-Inclusiva"><span style={{ color: '#6b6b80' }}>Síntesis generada — formato inesperado.</span></MotorResult>;
     }

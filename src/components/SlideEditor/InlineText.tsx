@@ -54,9 +54,9 @@ export default function InlineText({
 
     return (
       <Tag
-        ref={inputRef as any}
+        ref={inputRef}
         value={local}
-        onChange={(e: any) => setLocal(e.target.value)}
+        onChange={(e) => setLocal(e.target.value)}
         onBlur={handleFinish}
         onKeyDown={handleKeyDown}
         autoFocus
@@ -71,8 +71,8 @@ export default function InlineText({
           width: isLong ? '100%' : undefined,
           minHeight: isLong ? 60 : undefined,
           resize: isLong ? 'vertical' : undefined,
-          fontFamily: (style as any)?.fontFamily || 'inherit',
-        } as any}
+          fontFamily: style?.fontFamily ?? 'inherit',
+        }}
       />
     );
   }
