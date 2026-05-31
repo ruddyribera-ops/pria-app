@@ -269,7 +269,7 @@ export default function SemanalPage() {
             onPhaseClick={(i) => { if (mpg.phaseStatuses[i] === 'done') mpg.goToPhase(i); }}
           />
 
-          {!mpg.phaseStatuses[mpg.currentPhase]?.includes('done') && currentPhaseDef && (
+          {mpg.phaseStatuses[mpg.currentPhase] !== 'done' && currentPhaseDef && (
             <div>
               <div className={styles.phaseMetaInfo}>{currentPhaseDef.subtitle}</div>
               <h4 className={styles.phaseTitle}>{currentPhaseDef.label}</h4>

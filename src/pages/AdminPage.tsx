@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import Header from '../components/Layout/Header';
 import { adminTheme } from '../styles/adminTheme';
 import styles from './AdminPage.module.css';
@@ -20,7 +21,7 @@ const TABS: { id: AdminTab; label: string }[] = [
 ];
 
 export default function AdminPage() {
-  const { user } = (window as any).__useAuth?.() || {};
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<AdminTab>('archivos');
   const teacherCode = user?.teacher_code || 'ADMIN';
