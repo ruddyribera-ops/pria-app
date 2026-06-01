@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { listBlocks, createBlock } from '../api/blocks';
+import { listBlocks, createBlock, updateBlock, deleteBlock } from '../api/blocks';
 import { adminTheme } from '../styles/adminTheme';
+import Modal from '../components/UI/Modal';
 import type { BloqueResponse } from '../types';
 
 interface Props {
@@ -8,9 +9,21 @@ interface Props {
   showToast: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
+interface EditState {
+  id: number;
+  dia: string;
+  hora_inicio: string;
+  hora_fin: string;
+  tipo: string;
+  materia: string;
+  nivel_grado: string;
+  ubicacion: string;
+}
+
 export default function AdminBloquesPanel({ teacherCode, showToast }: Props) {
   const [blocks, setBlocks] = useState<BloqueResponse[]>([]);
   const [loading, setLoading] = useState(false);
+  const [editingBlock, setEditingBlock] = useState<EditState | null>(null);
   const [newBlock, setNewBlock] = useState({
     dia: 'LUNES', hora_inicio: '', hora_fin: '', tipo: 'clase',
     materia: '', nivel_grado: '', ubicacion: '',
@@ -28,6 +41,37 @@ export default function AdminBloquesPanel({ teacherCode, showToast }: Props) {
   }, []);
 
   useEffect(() => { loadBlocks(); }, [loadBlocks]);
+
+  const handleSaveEdit = async () => {
+    if (!editingBlock) return;
+    try {
+      await updateBlock(editingBlock.id, {
+        dia: editingBlock.dia,
+        hora_inicio: editingBlock.hora_inicio,
+        hora_fin: editingBlock.hora_fin,
+        tipo: editingBlock.tipo,
+        materia: editingBlock.materia || null,
+        nivel_grado: editingBlock.nivel_grado || null,
+        ubicacion: editingBlock.ubicacion || null,
+      });
+      setEditingBlock(null);
+      await loadBlocks();
+      showToast('Bloque actualizado.', 'success');
+    } catch {
+      showToast('Error al actualizar el bloque.', 'error');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('¿Eliminar este bloque horario?')) return;
+    try {
+      await deleteBlock(id);
+      await loadBlocks();
+      showToast('Bloque eliminado.', 'success');
+    } catch {
+      showToast('Error al eliminar bloque.', 'error');
+    }
+  };
 
   const handleCreate = async () => {
     if (!newBlock.hora_inicio || !newBlock.hora_fin) {
@@ -164,18 +208,31 @@ export default function AdminBloquesPanel({ teacherCode, showToast }: Props) {
                   </td>
                   <td style={cellStyle(b)}>{b.ubicacion || '\u2014'}</td>
                   <td style={cellStyle(b)}>
-                    {b.tipo !== 'recreo' && (
-                      <button
-                        onClick={() => showToast('Editar bloque (simulacion).', 'info')}
-                        style={{
-                          padding: '0.25rem 0.5rem', border: 'none', borderRadius: '4px',
-                          fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer',
-                          background: 'rgba(92,106,196,0.08)', color: '#5c6ac4',
-                        }}
-                      >
-                        Editar
-                      </button>
-                    )}
+                    <button
+                      onClick={() => setEditingBlock({
+                        id: b.id, dia: b.dia, hora_inicio: b.hora_inicio,
+                        hora_fin: b.hora_fin, tipo: b.tipo, materia: b.materia || '',
+                        nivel_grado: b.nivel_grado || '', ubicacion: b.ubicacion || '',
+                      })}
+                      style={{
+                        padding: '0.25rem 0.5rem', border: 'none', borderRadius: '4px',
+                        fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer',
+                        background: 'rgba(92,106,196,0.08)', color: '#5c6ac4',
+                      }}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(b.id)}
+                      style={{
+                        marginLeft: '0.25rem',
+                        padding: '0.25rem 0.5rem', border: 'none', borderRadius: '4px',
+                        fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer',
+                        background: '#fef2f2', color: '#dc2626',
+                      }}
+                    >
+                      Eliminar
+                    </button>
                   </td>
                 </tr>
               ))
@@ -183,6 +240,76 @@ export default function AdminBloquesPanel({ teacherCode, showToast }: Props) {
           </tbody>
         </table>
       </div>
+
+      {/* Edit Modal */}
+      <Modal
+        isOpen={!!editingBlock}
+        onClose={() => setEditingBlock(null)}
+        title="Editar Bloque"
+      >
+        {editingBlock && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div>
+                <label style={adminTheme.label}>Dia</label>
+                <select
+                  value={editingBlock.dia}
+                  onChange={e => setEditingBlock({ ...editingBlock, dia: e.target.value })}
+                  style={adminTheme.input}
+                >
+                  {['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'].map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={adminTheme.label}>Tipo</label>
+                <select
+                  value={editingBlock.tipo}
+                  onChange={e => setEditingBlock({ ...editingBlock, tipo: e.target.value })}
+                  style={adminTheme.input}
+                >
+                  <option value="clase">Clase</option>
+                  <option value="recreo">Recreo</option>
+                </select>
+              </div>
+              <div>
+                <label style={adminTheme.label}>Hora Inicio</label>
+                <input type="time" value={editingBlock.hora_inicio}
+                  onChange={e => setEditingBlock({ ...editingBlock, hora_inicio: e.target.value })}
+                  style={adminTheme.input} />
+              </div>
+              <div>
+                <label style={adminTheme.label}>Hora Fin</label>
+                <input type="time" value={editingBlock.hora_fin}
+                  onChange={e => setEditingBlock({ ...editingBlock, hora_fin: e.target.value })}
+                  style={adminTheme.input} />
+              </div>
+              <div>
+                <label style={adminTheme.label}>Materia</label>
+                <input value={editingBlock.materia}
+                  onChange={e => setEditingBlock({ ...editingBlock, materia: e.target.value })}
+                  placeholder="Opcional" style={adminTheme.input} />
+              </div>
+              <div>
+                <label style={adminTheme.label}>Nivel / Grado</label>
+                <input value={editingBlock.nivel_grado}
+                  onChange={e => setEditingBlock({ ...editingBlock, nivel_grado: e.target.value })}
+                  placeholder="Ej: 3er ano" style={adminTheme.input} />
+              </div>
+            </div>
+            <div>
+              <label style={adminTheme.label}>Ubicacion</label>
+              <input value={editingBlock.ubicacion}
+                onChange={e => setEditingBlock({ ...editingBlock, ubicacion: e.target.value })}
+                placeholder="Ej: Aula 101" style={adminTheme.input} />
+            </div>
+            <button onClick={handleSaveEdit} style={adminTheme.greenBtn}>
+              💾 Guardar cambios
+            </button>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
