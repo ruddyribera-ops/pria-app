@@ -320,42 +320,6 @@ export default function SemanalPage() {
           );
         })}
       </div>
-      </div>
-
-      {/* Week Grid */}
-      <div className={styles.weekGrid}>
-        {DAYS.map((day) => {
-          const dayEntries = weekData[day] || [];
-          return (
-            <div key={day} className={styles.dayCard}>
-              <h4 className={styles.dayTitle}>{DAY_LABELS[day] || day}</h4>
-              {dayEntries.filter((e: ScheduleEntry) => e.tipo !== 'recess').map((entry: ScheduleEntry, i: number) => (
-                <div key={i} className={styles.dayEntry}>
-                  <div className={styles.entryMateria}>{getMateriaIcon(entry.materia)} {entry.materia}</div>
-                  <div className={styles.entryHora}>{entry.hora}</div>
-                </div>
-              ))}
-              {dayEntries.length === 0 && (
-                <div className={styles.dayEmpty}>Sin clases</div>
-              )}
-              <div className={styles.dayActions}>
-                {['📄 Plan', '🖼️ Diapositivas', '📋 Ficha', '📝 Quiz'].map((action, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleDayAction(day, action)}
-                    disabled={mpg.isActive}
-                    className={styles.dayActionBtn}
-                    aria-busy={mpg.isActive}
-                    aria-label={`Generar ${action.replace('📄 ', '').replace('🖼️ ', '').replace('📋 ', '').replace('📝 ', '')} para ${day}`}
-                  >
-                    {action}
-                  </button>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
 
       {/* Multi-phase generation panel */}
       {activeMotorType && (
