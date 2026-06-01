@@ -4,7 +4,6 @@ import { getPhaseDefs, TOTAL_PHASES } from '../lib/pptx/phaseDefinitions';
 import type { PhaseDef } from '../lib/pptx/phaseDefinitions';
 import { generatePhaseContent } from '../lib/pptx/multiPhaseContent';
 import { executePrompt, type PromptMode } from '../lib/pptx/promptRunner';
-import * as motores from '../api/motores';
 
 export type PhaseStatus = 'idle' | 'generating' | 'done' | 'error';
 
@@ -180,19 +179,4 @@ export function useMultiPhaseGeneration(motorType: MotorType): MultiPhaseReturn 
     reset,
     isPhaseDone,
   };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyPayload = Record<string, any>;
-
-function getApiFunction(type: MotorType) {
-  const map: Record<string, (data: AnyPayload) => Promise<unknown>> = {
-    synthesis: (d) => motores.motorSynthesis(d),
-    plan: (d) => motores.motorPlan(d),
-    slides: (d) => motores.motorSlides(d),
-    ficha: (d) => motores.motorFicha(d),
-    quiz: (d) => motores.motorQuiz(d),
-    pdc: (d) => motores.motorPdc(d),
-  };
-  return map[type] || (() => Promise.resolve({}));
 }
