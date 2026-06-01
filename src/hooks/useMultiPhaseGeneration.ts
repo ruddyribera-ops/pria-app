@@ -96,6 +96,7 @@ export function useMultiPhaseGeneration(motorType: MotorType): MultiPhaseReturn 
     // Note: The server's /api/motores/:type endpoint only handles single-shot generation.
     // There is no multi-phase submit endpoint — the API call above was dead code.
     // Multi-phase uses local promptRunner exclusively for structured outputs.
+    const mode: PromptMode = 'FULL_AI';
     const context = {
       motorType,
       phaseId,

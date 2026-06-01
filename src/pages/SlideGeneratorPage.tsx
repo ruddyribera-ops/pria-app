@@ -143,7 +143,7 @@ export default function SlideGeneratorPage() {
               {currentDef?.description}
             </p>
           </div>
-          {isDone && (
+          {phaseStatus === 'done' && (
             <span className={styles.doneBadge}>
               ✅ Completado
             </span>
@@ -152,7 +152,7 @@ export default function SlideGeneratorPage() {
 
         {/* Phase body: fields or result */}
         <div className={styles.phaseBody}>
-          {isDone ? (
+          {phaseStatus === 'done' ? (
             currentResult ? (
               <ResultPreview data={currentResult} />
             ) : null
