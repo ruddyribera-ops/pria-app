@@ -1,16 +1,18 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Header from '../components/Layout/Header';
-import { DAYS } from '../api/schedule';
+import { DAYS, getScheduleByDay } from '../api/schedule';
+import { getAdminUsers } from '../api/admin';
 import { useCurriculum } from '../hooks/useCurriculum';
 import type { ScheduleEntry } from '../types';
 import { useMultiPhaseGeneration } from '../hooks/useMultiPhaseGeneration';
-import type { MotorType } from '../hooks/useMotorGeneration';
+import type { MotorType } from '../hooks/useMotorGenerator';
 import PhaseStepper from '../components/Motores/PhaseStepper';
 import PhaseNavigation from '../components/Motores/PhaseNavigation';
 import SlideEditorPanel from '../components/SlideEditor/SlideEditorPanel';
 import ResultPreview from '../components/SlideEditor/ResultPreview';
 import { mergePhaseResults } from '../lib/pptx/multiPhaseContent';
 import type { PhaseField } from '../lib/pptx/phaseDefinitions';
+import { useAuth } from '../context/AuthContext';
 import styles from './SemanalPage.module.css';
 
 const DAY_LABELS: Record<string, string> = {
@@ -44,23 +46,65 @@ const MOTOR_LABELS: Record<MotorType, string> = {
 };
 
 export default function SemanalPage() {
+  const { user } = useAuth();
   const [nivel, setNivel] = useState('Secundaria');
   const [grado, setGrado] = useState('3er año');
   const [materia, setMateria] = useState('Todas las materias');
   const [paginas, setPaginas] = useState('45-62');
+  const [teacherCode, setTeacherCode] = useState(user?.teacher_code || 'ADMIN');
   const [activeMotorType, setActiveMotorType] = useState<MotorType | null>(null);
   const [activeDay, setActiveDay] = useState<string>('');
   const [activeLabel, setActiveLabel] = useState('');
   const [params, setParams] = useState<Record<string, unknown>>({});
   const [showEditor, setShowEditor] = useState(false);
+  const [teachers, setTeachers] = useState<{code: string; name: string}[]>([]);
+  const [teachersLoading, setTeachersLoading] = useState(true);
+  const [weekData, setWeekData] = useState<Record<string, ScheduleEntry[]>>({});
+  const [scheduleLoading, setScheduleLoading] = useState(false);
 
   const { curriculum: curriculumFromMaterials } = useCurriculum();
   const effectiveMotorType = activeMotorType || 'slides';
   const mpg = useMultiPhaseGeneration(effectiveMotorType);
 
-  // TODO: Wire to /api/schedule/week endpoint when backend provides weekly schedule data
-  // Populated via: const data = await getWeekSchedule(nivel, grado, materia); setWeekData(data);
-  const weekData: Record<string, ScheduleEntry[]> = {};
+  // Load teachers list
+  useEffect(() => {
+    getAdminUsers()
+      .then(users => {
+        const docentes = ((users as {teacher_code?: string; role?: string; nombre?: string}[]) || [])
+          .filter(u => u.role === 'docente')
+          .map(u => ({ code: u.teacher_code || '', name: u.nombre || u.teacher_code || 'Docente' }));
+        setTeachers(docentes);
+        // Set current user as selected teacher if they're a docente
+        if (user?.teacher_code && docentes.some(d => d.code === user.teacher_code)) {
+          setTeacherCode(user.teacher_code);
+        }
+      })
+      .catch(() => setTeachers([]))
+      .finally(() => setTeachersLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load schedule for all days when teacher changes
+  const loadWeekSchedule = useCallback(async (tCode: string) => {
+    setScheduleLoading(true);
+    const results: Record<string, ScheduleEntry[]> = {};
+    await Promise.allSettled(
+      DAYS.map(async (day) => {
+        try {
+          const blocks = await getScheduleByDay(tCode, day);
+          results[day] = blocks;
+        } catch {
+          results[day] = [];
+        }
+      })
+    );
+    setWeekData(results);
+    setScheduleLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadWeekSchedule(teacherCode);
+  }, [teacherCode, loadWeekSchedule]);
 
   const getMateriaIcon = (name: string): string => {
     if (name.includes('Matemáticas')) return '📐';
@@ -210,9 +254,72 @@ export default function SemanalPage() {
           </select>
         </div>
         <div className={styles.filterGroup}>
-          <label htmlFor="sem-paginas" className={styles.filterLabel}>Páginas del Libro</label>
+          <label htmlFor="sem-teacher" className={styles.filterLabel}>Docente</label>
+          <select
+            id="sem-teacher"
+            value={teacherCode}
+            onChange={(e) => setTeacherCode(e.target.value)}
+            disabled={mpg.isActive || teachersLoading}
+            className={styles.filterSelect}
+          >
+            {teachersLoading ? (
+              <option>Cargando docentes...</option>
+            ) : teachers.length === 0 ? (
+              <option value={teacherCode}>{user?.nombre || teacherCode}</option>
+            ) : (
+              teachers.map((t) => (
+                <option key={t.code} value={t.code}>{t.name} ({t.code})</option>
+              ))
+            )}
+          </select>
+        </div>
+        <div className={styles.filterGroup}>
+          <label htmlFor="sem-paginas" className={styles.filterLabel}>Paginas del Libro</label>
           <input id="sem-paginas" type="text" value={paginas} onChange={(e) => setPaginas(e.target.value)} disabled={mpg.isActive} placeholder="Ej: 45-62" className={styles.filterInput} />
         </div>
+      </div>
+
+      {/* Schedule Loading + Week Grid */}
+      {scheduleLoading && (
+        <div style={{ textAlign: 'center', padding: '1rem', color: '#6b6b80', fontSize: '0.875rem' }}>
+          Cargando horarios...
+        </div>
+      )}
+
+      {/* Week Grid */}
+      <div className={styles.weekGrid}>
+        {DAYS.map((day) => {
+          const dayEntries = weekData[day] || [];
+          return (
+            <div key={day} className={styles.dayCard}>
+              <h4 className={styles.dayTitle}>{DAY_LABELS[day] || day}</h4>
+              {dayEntries.filter((e: ScheduleEntry) => e.tipo !== 'recess').map((entry: ScheduleEntry, i: number) => (
+                <div key={i} className={styles.dayEntry}>
+                  <div className={styles.entryMateria}>{getMateriaIcon(entry.materia)} {entry.materia}</div>
+                  <div className={styles.entryHora}>{entry.hora}</div>
+                </div>
+              ))}
+              {dayEntries.length === 0 && !scheduleLoading && (
+                <div className={styles.dayEmpty}>Sin clases</div>
+              )}
+              <div className={styles.dayActions}>
+                {['📄 Plan', '🖼️ Diapositivas', '📋 Ficha', '📝 Quiz'].map((action, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleDayAction(day, action)}
+                    disabled={mpg.isActive}
+                    className={styles.dayActionBtn}
+                    aria-busy={mpg.isActive}
+                    aria-label={`Generar ${action.replace('📄 ', '').replace('🖼️ ', '').replace('📋 ', '').replace('📝 ', '')} para ${day}`}
+                  >
+                    {action}
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
       </div>
 
       {/* Week Grid */}

@@ -4,6 +4,7 @@ import Header from '../components/Layout/Header';
 import ProgressBar from '../components/UI/ProgressBar';
 import LoadingSkeleton from '../components/UI/LoadingSkeleton';
 import { getScheduleByDay } from '../api/schedule';
+import { getAdminUsers } from '../api/admin';
 import { useEstadoSistema } from '../hooks/useAdmin';
 import type { ScheduleEntry } from '../types';
 import styles from './DiarioPage.module.css';
@@ -27,8 +28,23 @@ export default function DiarioPage() {
   const [schedule, setSchedule] = useState<ScheduleEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [teacherCode, setTeacherCode] = useState(user?.teacher_code || 'ADMIN');
+  const [teachers, setTeachers] = useState<{code: string; name: string}[]>([]);
+  const [teachersLoading, setTeachersLoading] = useState(true);
   const [progressInfo] = useState({ current: 33, total: 51 });
   const { data: estadoData } = useEstadoSistema();
+
+  // Load teachers list (docentes only)
+  useEffect(() => {
+    getAdminUsers()
+      .then(users => {
+        const docentes = (users as {teacher_code?: string; role?: string; nombre?: string}[])
+          .filter(u => u.role === 'docente')
+          .map(u => ({ code: u.teacher_code || '', name: u.nombre || u.teacher_code || 'Docente' }));
+        setTeachers(docentes);
+      })
+      .catch(() => setTeachers([]))
+      .finally(() => setTeachersLoading(false));
+  }, []);
 
   const loadSchedule = useCallback(async (code: string, date: Date) => {
     setLoading(true);
@@ -55,11 +71,6 @@ export default function DiarioPage() {
   const goToday = () => {
     setCurrentDate(new Date());
   };
-
-  // TODO: Wire to /api/teachers endpoint when backend provides teacher list
-  // const [teachers, setTeachers] = useState<{code: string; name: string}[]>([]);
-  // Populated via: const data = await listTeachers(); setTeachers(data);
-  const teachers: {code: string; name: string}[] = [];
 
   return (
     <div>
@@ -102,10 +113,17 @@ export default function DiarioPage() {
           value={teacherCode}
           onChange={(e) => setTeacherCode(e.target.value)}
           className={styles.teacherSelect}
+          disabled={teachersLoading}
         >
-          {teachers.map((t) => (
-            <option key={t.code} value={t.code}>{t.name}</option>
-          ))}
+          {teachersLoading ? (
+            <option>Cargando...</option>
+          ) : teachers.length === 0 ? (
+            <option value={teacherCode}>{user?.nombre || user?.teacher_code || 'ADMIN'}</option>
+          ) : (
+            teachers.map((t) => (
+              <option key={t.code} value={t.code}>{t.name} ({t.code})</option>
+            ))
+          )}
         </select>
       </div>
 
