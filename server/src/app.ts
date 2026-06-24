@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import * as Sentry from '@sentry/node';
+import * as fs from 'fs';
 import { sentryBeforeSend } from './lib/sentry-scrubber.js';
 import { pinoHttp as pinoHttpFn } from 'pino-http';
 import { config } from './config.js';
@@ -122,8 +123,7 @@ export async function createApp() {
 
   // Serve frontend dist (production builds — present when `npm run build` ran from root)
   const distDir = path.resolve(process.cwd(), 'dist');
-  const fsSync = require('fs');
-  if (fsSync.existsSync(distDir)) {
+  if (fs.existsSync(distDir)) {
     app.use(express.static(distDir));
     // SPA fallback — serve index.html for any non-API route
     app.get(/^\/(?!api|uploads|.*\..*).*/, (_req, res) => {

@@ -165,6 +165,12 @@ const MINIMAX_API_URL = 'https://api.minimax.io/v1/chat/completions';
 const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY || '';
 const MINIMAX_MODEL = process.env.MINIMAX_MODEL || 'MiniMax-M2.7';
 
+// P0 FIX: AbortController timeout for MiniMax API calls.
+// Without this, a slow/hanging MiniMax API would block the route handler forever,
+// preventing mock fallback from triggering and leaving motor state stuck at 'generating'.
+// Slides motor uses longer timeout due to larger output (8192 tokens).
+const MINIMAX_TIMEOUT_MS = (motorType: string): number => motorType === 'slides' ? 60_000 : 45_000;
+
 const MOTOR_TEMPS: Record<string, number> = {
   synthesis: 0.7,
   abp: 0.8,
@@ -224,6 +230,12 @@ async function tryMinimax(
     max_tokens: motorType === 'slides' ? 8192 : 4096,
     response_format: { type: 'json_object' },
   };
+  const timeoutMs = MINIMAX_TIMEOUT_MS(motorType);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    console.warn(`[motores] MiniMax ${motorType} timeout after ${timeoutMs}ms, aborting`);
+    controller.abort();
+  }, timeoutMs);
   try {
     const response = await fetch(MINIMAX_API_URL, {
       method: 'POST',
@@ -232,6 +244,7 @@ async function tryMinimax(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
     if (!response.ok) {
       console.warn('[motores] MiniMax error status:', response.status);
@@ -281,9 +294,15 @@ async function tryMinimax(
       }
     }
     return parsed;
-  } catch (err) {
-    console.warn('[motores] MiniMax fetch falló:', String(err));
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      console.warn(`[motores] MiniMax ${motorType} aborted (timeout ${timeoutMs}ms), falling back to mock`);
+    } else {
+      console.warn('[motores] MiniMax fetch falló:', String(err));
+    }
     return null;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -320,6 +339,13 @@ async function tryMinimaxStream(
     stream: true,
   };
 
+  const streamTimeoutMs = MINIMAX_TIMEOUT_MS(motorType);
+  const streamController = new AbortController();
+  const streamTimeoutId = setTimeout(() => {
+    console.warn(`[motores] MiniMax stream ${motorType} timeout after ${streamTimeoutMs}ms, aborting`);
+    streamController.abort();
+  }, streamTimeoutMs);
+
   try {
     const response = await fetch(MINIMAX_API_URL, {
       method: 'POST',
@@ -328,6 +354,7 @@ async function tryMinimaxStream(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      signal: streamController.signal,
     });
 
     if (!response.ok) {
@@ -396,9 +423,15 @@ async function tryMinimaxStream(
     }
 
     return { chunks, output: parsed };
-  } catch (err) {
-    console.warn('[motores] MiniMax stream fetch falló:', String(err));
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      console.warn(`[motores] MiniMax stream ${motorType} aborted (timeout ${streamTimeoutMs}ms), falling back to mock`);
+    } else {
+      console.warn('[motores] MiniMax stream fetch falló:', String(err));
+    }
     return null;
+  } finally {
+    clearTimeout(streamTimeoutId);
   }
 }
 
