@@ -59,14 +59,26 @@ export async function createApp() {
   // Support comma-separated list of origins: "http://localhost:5173,https://myapp.com"
   const rawOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || 'http://localhost:5173') as string;
   const origins = rawOrigins.split(',').map(o => o.trim()).filter(Boolean);
+  // Tunneling domains (any subdomain accepted)
+  const tunnelPatterns = [/^https?:\/\/.*\.loca\.lt$/, /^https?:\/\/.*\.ngrok(-free)?\.app$/, /^https?:\/\/.*\.ngrok\.io$/];
   app.use(cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (curl, Postman, server-to-server)
-      if (!origin || origins.includes(origin)) {
+      if (!origin) {
         callback(null, true);
-      } else {
-        callback(new Error(`CORS: origin ${origin} not allowed`));
+        return;
       }
+      // Allow exact match from env var list
+      if (origins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      // Allow tunneling domains (dynamic subdomains)
+      if (tunnelPatterns.some(p => p.test(origin))) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`CORS: origin ${origin} not allowed`));
     },
   }));
   app.use(express.json({ limit: '10mb' }));
@@ -107,6 +119,17 @@ export async function createApp() {
 
   // Serve uploaded files
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+  // Serve frontend dist (production builds — present when `npm run build` ran from root)
+  const distDir = path.resolve(process.cwd(), 'dist');
+  const fsSync = require('fs');
+  if (fsSync.existsSync(distDir)) {
+    app.use(express.static(distDir));
+    // SPA fallback — serve index.html for any non-API route
+    app.get(/^\/(?!api|uploads|.*\..*).*/, (_req, res) => {
+      res.sendFile(path.join(distDir, 'index.html'));
+    });
+  }
 
   // Error handler
   app.use(errorHandler);
