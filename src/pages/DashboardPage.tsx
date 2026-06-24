@@ -30,16 +30,19 @@ function extractTitle(preview: string | null | undefined, motorType: string): st
   if (!preview) return MOTOR_CONFIG[motorType]?.label || motorType;
   try {
     const parsed = JSON.parse(preview);
-    // Try common title fields based on motor type
-    if (parsed.titulo) return parsed.titulo;
-    if (parsed.tema_clase) return parsed.tema_clase;
-    if (parsed.tema) return parsed.tema;
-    if (parsed.unidad_sintetizada?.temas_desarrollados?.[0]?.nombre) {
-      return parsed.unidad_sintetizada.temas_desarrollados[0].nombre;
+    // New format: {fidelity: {...}, output: {...}}
+    const output = parsed.output || parsed;
+    // Try common title fields based on motor type (look inside output)
+    if (output.titulo) return output.titulo;
+    if (output.tema_clase) return output.tema_clase;
+    if (output.tema) return output.tema;
+    if (output.unidad_sintetizada?.temas_desarrollados?.[0]?.nombre) {
+      return output.unidad_sintetizada.temas_desarrollados[0].nombre;
     }
-    if (parsed.proyecto?.titulo) return parsed.proyecto.titulo;
-    if (parsed.slides?.[0]?.titulo) return `Clase: ${parsed.slides[0].titulo}`;
-    if (Array.isArray(parsed) && parsed[0]?.titulo) return `Tema: ${parsed[0].titulo}`;
+    if (output.proyecto?.titulo) return output.proyecto.titulo;
+    if (output.slides?.[0]?.titulo) return `Clase: ${output.slides[0].titulo}`;
+    if (Array.isArray(output) && output[0]?.titulo) return `Tema: ${output[0].titulo}`;
+    // Fallback: try motor_type as generic label
     return MOTOR_CONFIG[motorType]?.label || motorType;
   } catch {
     return MOTOR_CONFIG[motorType]?.label || motorType;
@@ -53,7 +56,10 @@ function extractFidelity(preview: string | null | undefined): number | null {
   if (!preview) return null;
   try {
     const parsed = JSON.parse(preview);
+    // New format: {fidelity: {score, ...}, output: {...}}
     if (typeof parsed.fidelity?.score === 'number') return parsed.fidelity.score;
+    // Legacy: {output: {fidelity: ...}}
+    if (typeof parsed.output?.fidelity?.score === 'number') return parsed.output.fidelity.score;
     return null;
   } catch {
     return null;
