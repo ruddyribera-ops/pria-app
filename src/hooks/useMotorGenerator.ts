@@ -1,4 +1,4 @@
-﻿import { useState, useCallback, useEffect } from 'react';
+﻿import { useState, useCallback, useEffect, useRef } from 'react';
 import { executePrompt, executePromptStreaming } from '../lib/pptx/promptRunner';
 import { streamMotor, getMotorResult } from '../api/motores';
 import type { FidelityReport } from '../lib/ai/minimaxClient';
@@ -12,6 +12,17 @@ export function useMotorGenerator<T = unknown>(
   const [error, setError] = useState<string | null>(null);
   const [simulated, setSimulated] = useState(false);
   const [fidelity, setFidelity] = useState<FidelityReport | null>(null);
+
+  const abortRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      abortRef.current?.abort();
+    };
+  }, []);
 
   // Hydrate from motor history on mount
   useEffect(() => {
@@ -55,6 +66,8 @@ export function useMotorGenerator<T = unknown>(
     params: Record<string, unknown>,
     onStream?: (text: string) => void,
   ) => {
+    abortRef.current = new AbortController();
+    if (!isMountedRef.current) return;
     setLoading(true);
     setError(null);
     setResult(null);
@@ -73,6 +86,7 @@ export function useMotorGenerator<T = unknown>(
         ? await executePromptStreaming(context as Parameters<typeof executePromptStreaming>[0], 'FULL_AI', onStream)
         : await executePrompt(context as Parameters<typeof executePrompt>[0], 'FULL_AI');
 
+      if (!isMountedRef.current) return;
       if (res.error) {
         setError(res.error);
         showToast(res.error.slice(0, 100));
@@ -86,10 +100,13 @@ export function useMotorGenerator<T = unknown>(
         showToast('¡Generado!');
       }
     } catch (err) {
+      if (!isMountedRef.current) return;
+      if (err instanceof Error && err.name === 'AbortError') return;
       setError(String(err));
       showToast('Error al generar.');
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
+      abortRef.current = null;
     }
   }, [motorType, showToast]);
 
@@ -101,6 +118,8 @@ export function useMotorGenerator<T = unknown>(
     params: Record<string, unknown>,
     onStream?: (text: string) => void,
   ) => {
+    abortRef.current = new AbortController();
+    if (!isMountedRef.current) return;
     setLoading(true);
     setError(null);
     setResult(null);
@@ -112,12 +131,14 @@ export function useMotorGenerator<T = unknown>(
         { params },
         (chunk) => onStream?.(chunk),
         (status, data) => {
+          if (!isMountedRef.current) return;
           if (status === 'done') {
             setSimulated(Boolean((data as { simulated?: boolean })?.simulated));
           }
         },
       );
 
+      if (!isMountedRef.current) return;
       if (finalResult.status === 'error') {
         const errMsg = (finalResult.error as string) || 'Error en streaming';
         setError(errMsg);
@@ -131,11 +152,14 @@ export function useMotorGenerator<T = unknown>(
         showToast('¡Generado!');
       }
     } catch (err) {
+      if (!isMountedRef.current) return;
+      if (err instanceof Error && err.name === 'AbortError') return;
       const errMsg = err instanceof Error ? err.message : String(err);
       setError(errMsg);
       showToast(`Error de conexión: ${errMsg.slice(0, 80)}`, 'error');
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
+      abortRef.current = null;
     }
   }, [motorType, showToast]);
 

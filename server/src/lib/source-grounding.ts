@@ -180,8 +180,9 @@ export function validateSourceFidelity(
         });
     });
 
-    // Score: 100 if no issues, drop with each HIGH flag
-    const score = totalChecks === 0 ? 100 : Math.max(0, 100 - (totalChecks - passedChecks) * 15);
+    // Score: penalize each unique flagged phrase once, not per instance
+    const uniqueFlags = new Set(warnings.map(w => (w.flagged_text || '').toLowerCase().trim()).filter(Boolean));
+    const score = Math.max(0, 100 - uniqueFlags.size * 20);
 
     return {
         score,

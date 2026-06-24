@@ -6,6 +6,26 @@ import {
   type ClientFidelityWarning,
 } from '../../lib/fidelity/client-validator';
 
+const SIZE_LIMIT = 4_500_000; // 4.5MB safety margin (browsers cap at 5MB)
+
+function saveSlides(jobKey: string, slides: unknown): { ok: boolean; reason?: 'size_limit_exceeded' | 'quota_exceeded' } {
+  const storeData = JSON.stringify(slides);
+  if (storeData.length > SIZE_LIMIT) {
+    console.warn(`[InlineSlideEditor] Slides too large: ${(storeData.length / 1024 / 1024).toFixed(2)}MB`);
+    return { ok: false, reason: 'size_limit_exceeded' };
+  }
+  try {
+    localStorage.setItem(`pria-slides-edit-${jobKey}`, storeData);
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'QuotaExceededError') {
+      console.warn('[InlineSlideEditor] localStorage quota exceeded');
+      return { ok: false, reason: 'quota_exceeded' };
+    }
+    throw err;
+  }
+}
+
 interface Props {
   result: SlidesOutput | null;
   fullText?: string;
@@ -75,7 +95,16 @@ export default function InlineSlideEditor({ result, fullText, showToast }: Props
   const handleSave = useCallback(() => {
     if (!editedSlides) return;
     const jobKey = getJobKey(editedSlides);
-    localStorage.setItem(`pria-slides-edit-${jobKey}`, JSON.stringify(editedSlides));
+    const saved = saveSlides(jobKey, editedSlides);
+    if (!saved.ok) {
+      showToast?.(
+        saved.reason === 'size_limit_exceeded'
+          ? 'Las diapositivas son demasiado grandes para guardar localmente.'
+          : 'No se pudo guardar: almacenamiento local lleno.',
+        'error',
+      );
+      return;
+    }
     setIsDirty(false);
     setSavedAt(new Date());
     showToast?.('✓ Cambios guardados', 'success');

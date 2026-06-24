@@ -127,12 +127,9 @@ export function validateSlidesClient(
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
   const warnings: ClientFidelityWarning[] = [];
-  let totalChecks = 0;
-  let passedChecks = 0;
 
   slides.forEach(slide => {
     const text = `${slide.titulo || ''} ${slide.texto_pantalla || ''} ${slide.guion_docente || ''} ${slide.callout || ''}`;
-    const textLower = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
     HIGH_RISK_PATTERNS.forEach(({ pattern, category, reason, suggestion }) => {
       const matches = text.match(pattern);
@@ -140,7 +137,6 @@ export function validateSlidesClient(
         matches.forEach(match => {
           const matchLower = match.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
           if (!sourceTextLower.includes(matchLower)) {
-            totalChecks++;
             warnings.push({
               slide_number: slide.numero,
               severity: 'HIGH',
@@ -149,15 +145,15 @@ export function validateSlidesClient(
               reason,
               suggestion,
             });
-          } else {
-            passedChecks++;
           }
         });
       }
     });
   });
 
-  const score = totalChecks === 0 ? 100 : Math.max(0, 100 - (totalChecks - passedChecks) * 15);
+  // Score: penalize each unique flagged phrase once, not per instance
+  const uniqueFlags = new Set(warnings.map(w => (w.flagged_text || '').toLowerCase().trim()).filter(Boolean));
+  const score = Math.max(0, 100 - uniqueFlags.size * 20);
   return {
     score,
     total_flags: warnings.length,

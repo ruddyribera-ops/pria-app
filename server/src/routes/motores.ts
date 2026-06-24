@@ -2,7 +2,7 @@
 import type { Response } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import type { AuthRequest } from '../types/express.js';
-import { motorLimiter } from '../middleware/rateLimiter.js';
+import { motorLimiterHourly, motorLimiterDaily } from '../middleware/rateLimiter.js';
 import { dbAll, dbGet, dbRun } from '../db/schema.js';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
@@ -540,7 +540,7 @@ router.get('/history', authMiddleware, async (req: AuthRequest, res: Response) =
 });
 
 // Apply rate limiter to POST /:type
-router.post('/:type', motorLimiter, async (req: AuthRequest, res: Response) => {
+router.post('/:type', motorLimiterHourly, motorLimiterDaily, async (req: AuthRequest, res: Response) => {
   const type = req.params.type as string;
   const validator = VALIDATORS[type];
 
@@ -677,7 +677,7 @@ router.post('/:type', motorLimiter, async (req: AuthRequest, res: Response) => {
 });
 
 // POST /api/motores/:type/stream — SSE streaming variant
-router.post('/:type/stream', motorLimiter, async (req: AuthRequest, res: Response) => {
+router.post('/:type/stream', motorLimiterHourly, motorLimiterDaily, async (req: AuthRequest, res: Response) => {
   const type = req.params.type as string;
   const validator = VALIDATORS[type];
   if (!validator) {

@@ -52,7 +52,11 @@ export function createRateLimiter(
       if (count > maxReqs) {
         const retryAfter = Math.ceil(windowMs / 1000);
         res.setHeader('Retry-After', String(retryAfter));
-        return res.status(429).json({ error: 'Too many requests' });
+        return res.status(429).json({
+          error: 'Too many requests',
+          retryAfter,
+          retryAt: new Date(Date.now() + windowMs).toISOString(),
+        });
       }
     } catch (err) {
       // Fail open — don't block requests if DB has an issue
@@ -64,7 +68,10 @@ export function createRateLimiter(
 }
 
 /** Motor generation limiter: 60 req/hour per user */
-export const motorLimiter = createRateLimiter(60, 60 * 60 * 1000);
+export const motorLimiterHourly = createRateLimiter(60, 60 * 60 * 1000);
+
+/** Motor generation limiter: 200 req/day per user — caps daily API spend */
+export const motorLimiterDaily = createRateLimiter(200, 24 * 60 * 60 * 1000);
 
 /** Auth rate limiter: 5 req/min per IP — prevents brute-force login attacks */
 export const authLimiter = createRateLimiter(5, 60 * 1000);
@@ -76,8 +83,8 @@ export function startRateLimiterCleanup(intervalMs = 3600 * 1000) {
   if (cleanupTimer) return;
   cleanupTimer = setInterval(async () => {
     try {
-      // Delete buckets older than the longest window we use (1 hour)
-      const cutoff = new Date(Date.now() - 60 * 60 * 1000);
+      // Delete buckets older than the longest active window (24h for daily limiter)
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
       await dbRun('DELETE FROM rate_limit_buckets WHERE window_start < $1', [cutoff]);
       console.log('[rateLimiter] Cleanup: removed old buckets');
     } catch (err) {
