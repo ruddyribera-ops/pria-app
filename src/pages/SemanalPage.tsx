@@ -1,48 +1,22 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import Header from '../components/Layout/Header';
-import { DAYS, getScheduleByDay } from '../api/schedule';
 import { getAdminUsers } from '../api/admin';
 import { useCurriculum } from '../hooks/useCurriculum';
-import type { ScheduleEntry } from '../types';
+import type { ScheduleEntry, MotorType } from '../types';
 import { useMultiPhaseGeneration } from '../hooks/useMultiPhaseGeneration';
-import type { MotorType } from '../hooks/useMotorGenerator';
-import PhaseStepper from '../components/Motores/PhaseStepper';
-import PhaseNavigation from '../components/Motores/PhaseNavigation';
-import SlideEditorPanel from '../components/SlideEditor/SlideEditorPanel';
-import ResultPreview from '../components/SlideEditor/ResultPreview';
+import SemanalScheduleGrid from '../components/Semanal/SemanalScheduleGrid';
+import SemanalGeneratorPanel from '../components/Semanal/SemanalGeneratorPanel';
 import { mergePhaseResults } from '../lib/pptx/multiPhaseContent';
-import type { PhaseField } from '../lib/pptx/phaseDefinitions';
+import { createMotorResult, updateMotorResult } from '../api/motores';
+import type { MergedData } from '../components/SlideEditor/SlideEditorPanel';
 import { useAuth } from '../context/AuthContext';
 import styles from './SemanalPage.module.css';
-
-const DAY_LABELS: Record<string, string> = {
-  LUNES: 'LUNES',
-  MARTES: 'MARTES',
-  MIÉRCOLES: 'MIÉRCOLES',
-  JUEVES: 'JUEVES',
-  VIERNES: 'VIERNES',
-};
 
 const ACTION_MOTOR_MAP: Record<string, MotorType> = {
   '📄 Plan': 'plan',
   '🖼️ Diapositivas': 'slides',
   '📋 Ficha': 'ficha',
   '📝 Quiz': 'quiz',
-};
-
-const MOTOR_LABELS: Record<MotorType, string> = {
-  plan: 'Plan de Clase',
-  slides: 'Diapositivas',
-  ficha: 'Ficha Gamificada',
-  quiz: 'Pop Quiz',
-  synthesis: 'Síntesis',
-  pdc: 'PDC',
-  alpha2: '',
-  abp: '',
-  assessment: '',
-  tutor: '',
-  recalibrate: '',
-  micro: '',
 };
 
 export default function SemanalPage() {
@@ -57,10 +31,28 @@ export default function SemanalPage() {
   const [activeLabel, setActiveLabel] = useState('');
   const [params, setParams] = useState<Record<string, unknown>>({});
   const [showEditor, setShowEditor] = useState(false);
-  const [teachers, setTeachers] = useState<{code: string; name: string}[]>([]);
+  const [teachers, setTeachers] = useState<{ code: string; name: string }[]>([]);
   const [teachersLoading, setTeachersLoading] = useState(true);
   const [weekData, setWeekData] = useState<Record<string, ScheduleEntry[]>>({});
   const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [currentResultId, setCurrentResultId] = useState<number | null>(() => {
+    try {
+      const stored = sessionStorage.getItem('currentResultId');
+      return stored ? Number(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const updateResultId = (id: number | null) => {
+    setCurrentResultId(id);
+    try {
+      if (id !== null) sessionStorage.setItem('currentResultId', String(id));
+      else sessionStorage.removeItem('currentResultId');
+    } catch {
+      // sessionStorage unavailable (SSR/private mode) — silently ignore
+    }
+  };
 
   const { curriculum: curriculumFromMaterials } = useCurriculum();
   const effectiveMotorType = activeMotorType || 'slides';
@@ -70,11 +62,10 @@ export default function SemanalPage() {
   useEffect(() => {
     getAdminUsers()
       .then(users => {
-        const docentes = ((users as {teacher_code?: string; role?: string; nombre?: string}[]) || [])
+        const docentes = ((users as { teacher_code?: string; role?: string; nombre?: string }[]) || [])
           .filter(u => u.role === 'docente')
           .map(u => ({ code: u.teacher_code || '', name: u.nombre || u.teacher_code || 'Docente' }));
         setTeachers(docentes);
-        // Set current user as selected teacher if they're a docente
         if (user?.teacher_code && docentes.some(d => d.code === user.teacher_code)) {
           setTeacherCode(user.teacher_code);
         }
@@ -88,6 +79,8 @@ export default function SemanalPage() {
   const loadWeekSchedule = useCallback(async (tCode: string) => {
     setScheduleLoading(true);
     const results: Record<string, ScheduleEntry[]> = {};
+    const DAYS = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES'];
+    const { getScheduleByDay } = await import('../api/schedule');
     await Promise.allSettled(
       DAYS.map(async (day) => {
         try {
@@ -106,15 +99,6 @@ export default function SemanalPage() {
     loadWeekSchedule(teacherCode);
   }, [teacherCode, loadWeekSchedule]);
 
-  const getMateriaIcon = (name: string): string => {
-    if (name.includes('Matemáticas')) return '📐';
-    if (name.includes('Lenguaje')) return '📖';
-    if (name.includes('Ciencias')) return '🔬';
-    if (name.includes('Historia')) return '📜';
-    if (name.includes('Educación')) return '⚽';
-    return '📝';
-  };
-
   const handleDayAction = (day: string, action: string) => {
     const motorType = ACTION_MOTOR_MAP[action];
     if (!motorType) return;
@@ -131,11 +115,12 @@ export default function SemanalPage() {
     });
   };
 
-  const handleSubmit = async () => { await mpg.submit(params); };
+  const handleRunMultiPhase = async () => { await mpg.runMultiPhase(params); };
   const handleRegenerate = async () => { await mpg.regenerate(params); };
   const handleClearEditor = () => { setShowEditor(false); };
 
   const handleReset = () => {
+    mpg.cancel();
     mpg.reset();
     setActiveMotorType(null);
     setActiveDay('');
@@ -143,72 +128,24 @@ export default function SemanalPage() {
     setShowEditor(false);
   };
 
+  const handleSave = useCallback(async (resultId: number, data: Record<string, unknown>) => {
+    const jsonData = JSON.stringify(data);
+    if (resultId && currentResultId) {
+      await updateMotorResult(resultId, jsonData);
+    } else {
+      const created = await createMotorResult({
+        motor_type: activeMotorType || 'slides',
+        result_json: jsonData,
+        simulated: mpg.simulated,
+      });
+      updateResultId(created.id);
+    }
+  }, [activeMotorType, currentResultId, mpg.simulated]);
+
   const mergedData = useMemo(() => {
     if (!mpg.allPhasesDone || !activeMotorType) return null;
-    return mergePhaseResults(activeMotorType, mpg.results, params) as any;
+    return mergePhaseResults(activeMotorType, mpg.results, params) as MergedData;
   }, [mpg.allPhasesDone, mpg.results, activeMotorType, params]);
-
-  const renderField = (field: PhaseField, val: unknown) => {
-    const value = (val !== undefined && val !== '') ? val : field.default ?? '';
-
-    if (field.type === 'select') {
-      return (
-        <select
-          value={value as string}
-          onChange={(e) => setParams(p => ({ ...p, [field.name]: e.target.value }))}
-          disabled={mpg.isActive}
-          className={styles.filterSelect}
-          aria-label={field.label}
-        >
-          {(field.options || []).map(opt => (
-            <option key={opt} value={opt}>{opt}</option>
-          ))}
-        </select>
-      );
-    }
-
-    if (field.type === 'checkbox') {
-      return (
-        <div className={styles.checkboxField}>
-          <input
-            type="checkbox"
-            id={`sem-field-${field.name}`}
-            checked={value === true || value === 'true'}
-            onChange={(e) => setParams(p => ({ ...p, [field.name]: e.target.checked }))}
-            disabled={mpg.isActive}
-            className={styles.checkboxInput}
-            aria-label={field.label}
-          />
-          <label htmlFor={`sem-field-${field.name}`} className={styles.checkboxLabel}>{field.label}</label>
-        </div>
-      );
-    }
-
-    if (field.type === 'textarea') {
-      return (
-        <textarea
-          value={value as string}
-          onChange={(e) => setParams(p => ({ ...p, [field.name]: e.target.value }))}
-          disabled={mpg.isActive}
-          placeholder={field.placeholder}
-          className={styles.textareaInput}
-          aria-label={field.label}
-        />
-      );
-    }
-
-    return (
-      <input
-        type="text"
-        value={value as string}
-        onChange={(e) => setParams(p => ({ ...p, [field.name]: e.target.value }))}
-        disabled={mpg.isActive}
-        placeholder={field.placeholder}
-        className={styles.filterInput}
-        aria-label={field.label}
-      />
-    );
-  };
 
   const currentPhaseDef = mpg.phaseDefs[mpg.currentPhase];
 
@@ -233,185 +170,44 @@ export default function SemanalPage() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className={styles.filterBar}>
-        <div className={styles.filterGroup}>
-          <label htmlFor="sem-nivel" className={styles.filterLabel}>Nivel</label>
-          <select id="sem-nivel" value={nivel} onChange={(e) => setNivel(e.target.value)} disabled={mpg.isActive} className={styles.filterSelect}>
-            <option>Secundaria</option><option>Primaria</option>
-          </select>
-        </div>
-        <div className={styles.filterGroup}>
-          <label htmlFor="sem-grado" className={styles.filterLabel}>Grado</label>
-          <select id="sem-grado" value={grado} onChange={(e) => setGrado(e.target.value)} disabled={mpg.isActive} className={styles.filterSelect}>
-            <option>3er año</option><option>2do año</option><option>1er año</option>
-          </select>
-        </div>
-        <div className={styles.filterGroup}>
-          <label htmlFor="sem-materia" className={styles.filterLabel}>Materia</label>
-          <select id="sem-materia" value={materia} onChange={(e) => setMateria(e.target.value)} disabled={mpg.isActive} className={styles.filterSelect}>
-            <option>Todas las materias</option><option>Matemáticas</option><option>Lenguaje</option><option>Cs. Naturales</option>
-          </select>
-        </div>
-        <div className={styles.filterGroup}>
-          <label htmlFor="sem-teacher" className={styles.filterLabel}>Docente</label>
-          <select
-            id="sem-teacher"
-            value={teacherCode}
-            onChange={(e) => setTeacherCode(e.target.value)}
-            disabled={mpg.isActive || teachersLoading}
-            className={styles.filterSelect}
-          >
-            {teachersLoading ? (
-              <option>Cargando docentes...</option>
-            ) : teachers.length === 0 ? (
-              <option value={teacherCode}>{user?.nombre || teacherCode}</option>
-            ) : (
-              teachers.map((t) => (
-                <option key={t.code} value={t.code}>{t.name} ({t.code})</option>
-              ))
-            )}
-          </select>
-        </div>
-        <div className={styles.filterGroup}>
-          <label htmlFor="sem-paginas" className={styles.filterLabel}>Paginas del Libro</label>
-          <input id="sem-paginas" type="text" value={paginas} onChange={(e) => setPaginas(e.target.value)} disabled={mpg.isActive} placeholder="Ej: 45-62" className={styles.filterInput} />
-        </div>
-      </div>
+      <SemanalScheduleGrid
+        nivel={nivel}
+        grado={grado}
+        materia={materia}
+        paginas={paginas}
+        teacherCode={teacherCode}
+        teachers={teachers}
+        teachersLoading={teachersLoading}
+        weekData={weekData}
+        scheduleLoading={scheduleLoading}
+        isGenerating={mpg.isActive}
+        user={user}
+        onNivelChange={setNivel}
+        onGradoChange={setGrado}
+        onMateriaChange={setMateria}
+        onTeacherCodeChange={setTeacherCode}
+        onPaginasChange={setPaginas}
+        onDayAction={handleDayAction}
+      />
 
-      {/* Schedule Loading + Week Grid */}
-      {scheduleLoading && (
-        <div style={{ textAlign: 'center', padding: '1rem', color: '#6b6b80', fontSize: '0.875rem' }}>
-          Cargando horarios...
-        </div>
-      )}
-
-      {/* Week Grid */}
-      <div className={styles.weekGrid}>
-        {DAYS.map((day) => {
-          const dayEntries = weekData[day] || [];
-          return (
-            <div key={day} className={styles.dayCard}>
-              <h4 className={styles.dayTitle}>{DAY_LABELS[day] || day}</h4>
-              {dayEntries.filter((e: ScheduleEntry) => e.tipo !== 'recess').map((entry: ScheduleEntry, i: number) => (
-                <div key={i} className={styles.dayEntry}>
-                  <div className={styles.entryMateria}>{getMateriaIcon(entry.materia)} {entry.materia}</div>
-                  <div className={styles.entryHora}>{entry.hora}</div>
-                </div>
-              ))}
-              {dayEntries.length === 0 && !scheduleLoading && (
-                <div className={styles.dayEmpty}>Sin clases</div>
-              )}
-              <div className={styles.dayActions}>
-                {['📄 Plan', '🖼️ Diapositivas', '📋 Ficha', '📝 Quiz'].map((action, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleDayAction(day, action)}
-                    disabled={mpg.isActive}
-                    className={styles.dayActionBtn}
-                    aria-busy={mpg.isActive}
-                    aria-label={`Generar ${action.replace('📄 ', '').replace('🖼️ ', '').replace('📋 ', '').replace('📝 ', '')} para ${day}`}
-                  >
-                    {action}
-                  </button>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Multi-phase generation panel */}
       {activeMotorType && (
-        <div className={styles.genPanel}>
-          <div className={styles.genPanelHeader}>
-            <div>
-              <div className={styles.genPanelMeta}>Generación activa · {activeLabel}</div>
-              <div className={styles.genPanelTitle}>{MOTOR_LABELS[activeMotorType]} en {mpg.totalPhases} fases</div>
-            </div>
-            <button onClick={handleReset} className={styles.cancelBtn} aria-label="Cancelar generación">
-              ✕ Cancelar
-            </button>
-          </div>
-
-          <PhaseStepper
-            phases={mpg.phaseDefs}
-            currentPhase={mpg.currentPhase}
-            phaseStatuses={mpg.phaseStatuses}
-            allPhasesDone={mpg.allPhasesDone}
-            onPhaseClick={(i) => { if (mpg.phaseStatuses[i] === 'done') mpg.goToPhase(i); }}
-          />
-
-          {mpg.phaseStatuses[mpg.currentPhase] !== 'done' && currentPhaseDef && (
-            <div>
-              <div className={styles.phaseMetaInfo}>{currentPhaseDef.subtitle}</div>
-              <h4 className={styles.phaseTitle}>{currentPhaseDef.label}</h4>
-              <p className={styles.phaseDesc}>{currentPhaseDef.description}</p>
-
-              <div className={styles.fieldList}>
-                {currentPhaseDef.fields.map(field => (
-                  <div key={field.name} className={styles.fieldItem}>
-                    {field.type !== 'checkbox' && (
-                      <label className={styles.filterLabel}>{field.label}</label>
-                    )}
-                    <div className={field.type !== 'checkbox' ? styles.fieldMarginTop : ''}>
-                      {renderField(field, params[field.name])}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <button onClick={handleSubmit} disabled={mpg.isActive} className={styles.genSubmitBtn} aria-busy={mpg.isActive}>
-                {mpg.isActive ? '⏳ Generando...' : `⚡ Generar ${currentPhaseDef.label}`}
-              </button>
-            </div>
-          )}
-
-          {mpg.phaseStatuses[mpg.currentPhase] === 'done' && mpg.currentResult && (
-            <div className={styles.phaseResult}>
-              <div className={styles.phaseResultTitle}>✅ {currentPhaseDef?.label} completado</div>
-              <ResultPreview data={mpg.currentResult} />
-            </div>
-          )}
-
-          <PhaseNavigation
-            currentPhase={mpg.currentPhase}
-            totalPhases={mpg.totalPhases}
-            phaseStatus={mpg.phaseStatus}
-            isFirst={mpg.currentPhase === 0}
-            isLast={mpg.currentPhase >= mpg.totalPhases - 1}
-            canGoNext={mpg.phaseStatus === 'done'}
-            isActive={mpg.isActive}
-            onPrev={mpg.prevPhase}
-            onNext={mpg.nextPhase}
-            onRegenerate={handleRegenerate}
-            onReset={handleReset}
-          />
-
-          {mpg.allPhasesDone && mergedData && (
-            <div>
-              {!showEditor ? (
-                <div className={styles.completeCard}>
-                  <div>
-                    <div className={styles.completeTitle}>🎉 {MOTOR_LABELS[activeMotorType]} completo</div>
-                    <div className={styles.completeSubtitle}>{mpg.totalPhases} fases generadas para {activeLabel}</div>
-                  </div>
-                  <button onClick={() => setShowEditor(true)} className={styles.openEditorBtn}>
-                    🎬 Abrir Editor Visual
-                  </button>
-                </div>
-              ) : (
-                <SlideEditorPanel
-                  mergedData={mergedData}
-                  typeLabel={MOTOR_LABELS[activeMotorType!]}
-                  motorType={activeMotorType! as 'slides' | 'plan' | 'ficha' | 'quiz' | 'pdc' | 'synthesis'}
-                  filenameExtra={activeDay}
-                  onClear={handleClearEditor}
-                />
-              )}
-            </div>
-          )}
-        </div>
+        <SemanalGeneratorPanel
+          activeMotorType={activeMotorType}
+          activeDay={activeDay}
+          activeLabel={activeLabel}
+          params={params}
+          showEditor={showEditor}
+          currentResultId={currentResultId}
+          mergedData={mergedData}
+          currentPhaseDef={currentPhaseDef}
+          mpg={mpg}
+          onReset={handleReset}
+          onRunMultiPhase={handleRunMultiPhase}
+          onRegenerate={handleRegenerate}
+          onClearEditor={handleClearEditor}
+          onSave={handleSave}
+          onParamsChange={(name, val) => setParams(p => ({ ...p, [name]: val }))}
+        />
       )}
     </div>
   );

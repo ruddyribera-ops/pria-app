@@ -11,7 +11,7 @@
  * handles prompt substitution internally.
  */
 
-import type { MotorType } from '../../hooks/useMotorGeneration';
+import type { MotorType } from '../ai/minimaxClient';
 import { callMinimax, callMinimaxStream } from '../ai/minimaxClient';
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -34,6 +34,7 @@ export interface PromptResult {
   structuredOutput?: unknown;
   error?: string;
   simulated?: boolean;
+  fidelity?: import('../ai/minimaxClient').FidelityReport;
 }
 
 
@@ -520,6 +521,24 @@ export function mockMicroOutput(params: Record<string, unknown>): Record<string,
     },
   };
 }
+
+/** Source Narrator (M0.5): extracción narrativa del texto fuente */
+export function mockSourceNarratorOutput(params: Record<string, unknown>): Record<string, unknown> {
+  const tema_clase = (params.tema_clase as string) || 'el tema';
+  const full_text = (params.full_text as string) || '';
+  return {
+    narrative_summary: 'Narrativa extraída del texto sobre ' + tema_clase + '. ' + (full_text.slice(0, 200) || 'Contenido del texto fuente.'),
+    characters: [],
+    sequence: [
+      { order: 1, event: 'Evento principal del tema ' + tema_clase, significance: 'Introduce el concepto central' },
+    ],
+    examples: [
+      { type: 'cultural', content: 'Ejemplo cultural relacionado con ' + tema_clase, source_quote: full_text.slice(0, 100) || undefined },
+    ],
+    cultural_anchors: [],
+    vivid_details: ['Detalle vívido sobre ' + tema_clase],
+  };
+}
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Main executor â€” route to appropriate mock generator
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -540,6 +559,7 @@ export function generateMockOutput(context: PromptContext): unknown {
     case 'pdc':         return mockPDCOutput(params);
     case 'recalibrate': return mockRecalibrateOutput(params);
     case 'micro':       return mockMicroOutput(params);
+    case 'source_narrator': return mockSourceNarratorOutput(params);
     default:           return {};
   }
 }
@@ -581,7 +601,7 @@ export async function executePrompt(
     }
 
     const motorOptions = {
-      motorType: motorType as 'synthesis' | 'alpha2' | 'abp' | 'assessment' | 'plan' | 'slides' | 'ficha' | 'quiz' | 'tutor' | 'pdc' | 'recalibrate' | 'micro',
+      motorType: motorType as 'synthesis' | 'alpha2' | 'abp' | 'assessment' | 'plan' | 'slides' | 'ficha' | 'quiz' | 'tutor' | 'pdc' | 'recalibrate' | 'micro' | 'source_narrator',
       params: normalizedParams,
     };
 
@@ -599,7 +619,7 @@ export async function executePrompt(
         // Parse and return
         try {
           const parsed = JSON.parse(result.text);
-          return { mode: 'FULL_AI', rawOutput: result.text, simulated: result.simulated, structuredOutput: parsed };
+          return { mode: 'FULL_AI', rawOutput: result.text, simulated: result.simulated, structuredOutput: parsed, fidelity: result.fidelity };
         } catch {
           return {
             mode: 'FULL_AI',
@@ -671,8 +691,8 @@ export async function executePromptStreaming(
       }
     }
 
-    const motorOptions = {
-      motorType: motorType as Parameters<typeof callMinimaxStream>[4]['motorType'],
+    const motorOptions: { motorType: MotorType; params: Record<string, unknown> } = {
+      motorType,
       params: normalizedParams,
     };
 
@@ -690,15 +710,15 @@ export async function executePromptStreaming(
         // Parse the final JSON output accumulated from chunks
         try {
           const parsed = JSON.parse(result.text);
-          return { mode: 'FULL_AI', rawOutput: result.text, simulated: false, structuredOutput: parsed };
+          return { mode: 'FULL_AI', rawOutput: result.text, simulated: result.simulated ?? false, structuredOutput: parsed };
         } catch {
-          return {
-            mode: 'FULL_AI',
-            error: 'Failed to parse SSE output as JSON',
-            rawOutput: result.text,
-            simulated: true,
-            structuredOutput: generateMockOutput(context),
-          };
+        return {
+          mode: 'FULL_AI',
+          error: 'Failed to parse SSE output as JSON',
+          rawOutput: result.text,
+          simulated: result.simulated ?? false,
+          structuredOutput: generateMockOutput(context),
+        };
         }
       }
 
@@ -725,4 +745,7 @@ export async function executePromptStreaming(
       structuredOutput: mockOutput,
     };
   }
+
+  // Should never reach here — PromptMode only has SKIP and FULL_AI in streaming
+  return { mode: 'SKIP', structuredOutput: {} };
 }

@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { getEstadoSistema } from '../api/admin';
 import type { EstadoSistema } from '../types';
 
 export function useEstadoSistema() {

@@ -10,10 +10,15 @@
   --pria-dark: #1e1e2f;
   --pria-sidebar: #181825;
   --pria-text: #e6e6eb;
+  --pria-text-inverse: #ffffff;
   --pria-text-muted: #6b6b80;
   --pria-accent: #3A9E5E;
   --pria-accent-hover: #2d7a4a;
+  --pria-primary: #3A9E5E;
+  --pria-primary-hover: #2d7a4a;
   --pria-border: #2a2a3c;
+  --pria-border-strong: #d4d4e0;
+  --pria-input-bg: #f8f8ff;
   --pria-danger: #e53e3e;
   --pria-warning: #dd6b20;
   --pria-bg: #ffffff;
@@ -25,6 +30,8 @@
   --font-xs: 0.6875rem;
   --font-heading: 1rem;
   --font-lg: 1.125rem;
+  --pria-text-xs: 0.6875rem;
+  --pria-text-sm: 0.8125rem;
 
   /* Spacing */
   --space-1: 0.25rem;
@@ -33,6 +40,11 @@
   --space-4: 1rem;
   --space-6: 1.5rem;
   --space-8: 2rem;
+  --pria-space-xs: 0.25rem;
+  --pria-space-sm: 0.5rem;
+  --pria-space-md: 1rem;
+  --pria-space-lg: 1.5rem;
+  --pria-space-xl: 2rem;
 
   /* Layout */
   --sidebar-width: 260px;
@@ -40,6 +52,9 @@
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
+  --pria-radius-sm: 4px;
+  --pria-radius-md: 8px;
+  --pria-radius-lg: 12px;
 
   /* Transitions */
   --transition-fast: 150ms ease;

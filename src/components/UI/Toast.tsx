@@ -29,7 +29,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 4000);
-  }, []);
+  }, [baseId]);
 
   const removeToast = (id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
@@ -68,6 +68,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <span className={styles.icon} aria-hidden="true">{colors.icon}</span>
               <span className={styles.message}>{toast.message}</span>
               <button
+                type="button"
                 onClick={() => removeToast(toast.id)}
                 className={styles.closeBtn}
                 aria-label="Cerrar notificación"

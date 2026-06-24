@@ -57,13 +57,14 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
 
   return (
     <div
-      role="presentation"
+      // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- modal backdrop click-to-close is standard pattern
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'rgba(0,0,0,0.5)',
       }}
       onClick={onClose}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
     >
       <div
         ref={modalRef}
@@ -76,16 +77,20 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
           border: '1px solid #e6e6eb', boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
         }}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => { if (e.key === 'Escape') e.stopPropagation(); }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h3 id="modal-title" style={{ fontSize: '1rem', fontWeight: 600, color: '#1e1e2f', margin: 0 }}>{title}</h3>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Cerrar modal"
             style={{
               background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer',
-              color: '#6b6b80', padding: '0.25rem',
+              color: '#6b6b80', padding: '0.25rem', outline: 'none',
             }}
+            onFocus={(e) => { e.currentTarget.style.outline = '2px solid #3A9E5E'; e.currentTarget.style.outlineOffset = '2px'; }}
+            onBlur={(e) => { e.currentTarget.style.outline = 'none'; }}
           >
             ✕
           </button>

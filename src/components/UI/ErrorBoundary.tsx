@@ -1,4 +1,5 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react';
+import * as Sentry from '@sentry/react';
 
 interface Props {
   children: ReactNode;
@@ -21,7 +22,18 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error(`[ErrorBoundary:${this.props.pageName || 'unknown'}]`, error, info.componentStack);
+    if (import.meta.env.DEV) {
+      console.error(`[ErrorBoundary:${this.props.pageName || 'unknown'}]`, error, info.componentStack);
+    }
+    // Scrub email addresses from error message before sending
+    const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+    const scrubbedMessage = error.message.replace(emailPattern, '[EMAIL REDACTED]');
+    const scrubbedError = new Error(scrubbedMessage);
+    // Report to Sentry if initialized (graceful no-op if DSN not set)
+    Sentry.withScope((scope) => {
+      scope.setExtra('componentStack', info.componentStack);
+      Sentry.captureException(scrubbedError);
+    });
   }
 
   handleRetry = () => {
@@ -67,6 +79,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           )}
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button
+              type="button"
               onClick={this.handleRetry}
               style={{
                 padding: '0.5rem 1.25rem', background: '#3A9E5E', color: '#fff',
@@ -77,6 +90,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               🔄 Reintentar
             </button>
             <button
+              type="button"
               onClick={() => window.location.href = '/'}
               style={{
                 padding: '0.5rem 1.25rem', background: '#fff', color: '#6b6b80',

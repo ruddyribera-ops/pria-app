@@ -48,31 +48,26 @@ export default function InlineText({
     }
   }, [value]);
 
-  if (editing) {
+if (editing) {
     const isLong = (local?.length ?? 0) > 60 || multiline;
-    const Tag = isLong ? 'textarea' : 'input';
 
-    return (
-      <Tag
-        ref={inputRef}
+    return isLong ? (
+      <textarea
+        ref={inputRef as React.RefObject<HTMLTextAreaElement>}
         value={local}
         onChange={(e) => setLocal(e.target.value)}
         onBlur={handleFinish}
         onKeyDown={handleKeyDown}
         autoFocus
-        style={{
-          ...style,
-          outline: `2px solid ${accentColor}`,
-          outlineOffset: 1,
-          background: '#fff',
-          border: 'none',
-          borderRadius: 2,
-          padding: '1px 3px',
-          width: isLong ? '100%' : undefined,
-          minHeight: isLong ? 60 : undefined,
-          resize: isLong ? 'vertical' : undefined,
-          fontFamily: style?.fontFamily ?? 'inherit',
-        }}
+      />
+    ) : (
+      <input
+        ref={inputRef as React.RefObject<HTMLInputElement>}
+        value={local}
+        onChange={(e) => setLocal(e.target.value)}
+        onBlur={handleFinish}
+        onKeyDown={handleKeyDown}
+        autoFocus
       />
     );
   }

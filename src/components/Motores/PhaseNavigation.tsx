@@ -40,6 +40,7 @@ export default function PhaseNavigation({
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         {!isFirst && (
           <button
+            type="button"
             onClick={onPrev}
             disabled={isActive}
             style={{
@@ -55,6 +56,7 @@ export default function PhaseNavigation({
 
         {isDone && (
           <button
+            type="button"
             onClick={onRegenerate}
             disabled={isActive}
             style={{
@@ -73,6 +75,7 @@ export default function PhaseNavigation({
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         {!isLast && (
           <button
+            type="button"
             onClick={onNext}
             disabled={isActive || !canGoNext}
             style={{
@@ -89,6 +92,7 @@ export default function PhaseNavigation({
 
         {isLast && isDone && (
           <button
+            type="button"
             onClick={onReset}
             style={{
               padding: '0.5rem 1.25rem', border: '1px solid #e6e6eb', borderRadius: '4px',

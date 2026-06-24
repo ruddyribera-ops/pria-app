@@ -1,0 +1,28 @@
+UNIDAD 1: Números y Operaciones
+
+Tema 1: Números enteros
+- Números positivos y negativos
+- Recta numérica
+- Comparación de enteros
+
+Tema 2: Suma y resta
+- Suma de enteros positivos
+- Resta con números negativos
+- Ejercicios prácticos
+
+Tema 3: Multiplicación
+- Tablas de multiplicar
+- Propiedad distributiva
+- Problemas de aplicación
+
+UNIDAD 2: Geometría
+
+Tema 4: Figuras planas
+- Triángulos y cuadriláteros
+- Perímetro y área
+- Clasificación de ángulos
+
+Tema 5: Perímetro
+- Cálculo de perímetros
+- Problemas del mundo real
+- Ejercicios de medición

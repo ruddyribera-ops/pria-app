@@ -79,6 +79,7 @@ export default function DiarioPage() {
       {/* Date Navigation */}
       <div className={styles.dateNav}>
         <button
+          type="button"
           onClick={() => navigateDay(-1)}
           className={styles.navBtn}
           aria-label="Día anterior"
@@ -89,6 +90,7 @@ export default function DiarioPage() {
           {formatDate(currentDate)}
         </span>
         <button
+          type="button"
           onClick={() => navigateDay(1)}
           className={styles.navBtn}
           aria-label="Día siguiente"
@@ -96,6 +98,7 @@ export default function DiarioPage() {
           Mañana ▶
         </button>
         <button
+          type="button"
           onClick={goToday}
           className={`${styles.navBtn} ${styles.todayBtn}`}
         >
@@ -159,8 +162,8 @@ export default function DiarioPage() {
                 </td>
               </tr>
             ) : (
-              schedule.map((entry, i) => (
-                <tr key={i} style={entry.tipo === 'recess' ? { background: '#fffbeb' } : undefined}>
+              schedule.map((entry) => (
+                <tr key={`${entry.hora}-${entry.materia}`} style={entry.tipo === 'recess' ? { background: '#fffbeb' } : undefined}>
                   <td className={`${styles.tableCell} ${entry.tipo === 'recess' ? styles.tableCellRecess : ''}`}>
                     {entry.hora}
                   </td>

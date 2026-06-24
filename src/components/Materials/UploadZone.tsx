@@ -24,8 +24,8 @@ export default function UploadZone({ onUpload, ingesting }: UploadZoneProps) {
       <p style={{ fontSize: '0.875rem', color: '#1e1e2f', marginBottom: '0.25rem' }}>
         <strong>Libro de Texto (PDF)</strong>
       </p>
-      <p style={{ fontSize: '0.75rem', color: '#6b6b80' }}>
-        Arrastra un archivo PDF aquí o haz clic para seleccionar
+<p style={{ fontSize: '0.75rem', color: '#6b6b80' }}>
+        Formatos aceptados: PDF, DOCX, TXT · Máx: 50MB
       </p>
       <p style={{ fontSize: '0.75rem', color: '#6b6b80', marginTop: '0.25rem' }}>
         Formatos aceptados: PDF · Máx: 50MB

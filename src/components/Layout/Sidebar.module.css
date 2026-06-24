@@ -187,6 +187,25 @@
   background: #3a3b4e;
   font-weight: 500;
 }
+.navLinkPrimary {
+  color: #ffffff;
+  background: linear-gradient(135deg, #3A9E5E 0%, #2d7a4a 100%);
+  font-weight: 600;
+  border-left: 2px solid #5abd78;
+  margin: 0.25rem 0.75rem 0.25rem 0.5rem;
+  border-radius: 6px;
+  padding: 0.6rem 1rem;
+}
+.navLinkPrimary:hover {
+  background: linear-gradient(135deg, #4ab86d 0%, #3A9E5E 100%);
+  color: #ffffff;
+}
+.navLinkPrimaryActive {
+  color: #ffffff;
+  border-left: 2px solid #5abd78;
+  background: linear-gradient(135deg, #3A9E5E 0%, #2d7a4a 100%);
+  font-weight: 600;
+}
 .navIcon {
   font-size: 1rem;
   width: 20px;

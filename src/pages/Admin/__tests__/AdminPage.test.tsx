@@ -8,7 +8,8 @@ import { ToastProvider } from '../../../components/UI/Toast';
 import { AuthProvider } from '../../../context/AuthContext';
 import AdminPage from '../../AdminPage';
 
-const mockUser = { id: 1, username: 'admin', nombre: 'Admin Test', teacher_code: 'ADMIN', nivel: 'Secundaria', grado: '3er año', role: 'admin' as const };
+// mockUser intentionally unused — reserved for future test scenarios
+void ({ id: 1, username: 'admin', nombre: 'Admin Test', teacher_code: 'ADMIN', nivel: 'Secundaria', grado: '3er año', role: 'admin' as const });
 
 const renderWithProviders = (ui: React.ReactElement) => {
   return render(

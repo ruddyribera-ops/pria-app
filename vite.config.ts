@@ -62,5 +62,31 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['@anthropic-akai/sdk'],
+    include: ['buffer'],
+  },
+  resolve: {
+    alias: {
+      buffer: 'buffer/',
+    },
+  },
+  define: {
+    // Polyfill for browser environments — buffer package handles Buffer global
+    global: 'globalThis',
+    'globalThis.global': 'globalThis',
+    'process.env': {},
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // Split pdfjs-dist into its own chunk (1.2MB worker)
+          if (id.includes('pdfjs-dist')) return 'pdf-worker';
+          // Split promptRunner (LLM orchestration) for better caching
+          if (id.includes('promptRunner')) return 'vendor-promptrunner';
+          // Vendor chunk for React ecosystem
+          if (id.includes('react') || id.includes('react-dom')) return 'vendor-react';
+        },
+      },
+    },
   },
 })

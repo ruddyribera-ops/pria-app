@@ -64,8 +64,8 @@ function RenderString({ text }: { text: string }) {
   if (text.includes('\n')) {
     return (
       <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-        {text.split('\n').map((line, i) => (
-          <div key={i} style={{ marginBottom: i < text.split('\n').length - 1 ? '0.25rem' : 0 }}>
+        {text.split('\n').map((line, i, arr) => (
+          <div key={line || `newline-${i}`} style={{ marginBottom: i < arr.length - 1 ? '0.25rem' : 0 }}>
             {formatInline(line)}
           </div>
         ))}
@@ -105,9 +105,9 @@ function formatInline(text: string): React.ReactNode {
 
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
+      return <strong key={part}>{part.slice(2, -2)}</strong>;
     }
-    return part;
+    return <span key={part || `plain-${i}`}>{part}</span>;
   });
 }
 
@@ -123,8 +123,8 @@ function RenderArray({ items, depth, maxItems }: { items: unknown[]; depth: numb
   if (items.every(item => typeof item === 'string')) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-        {(items as string[]).map((item, i) => (
-          <div key={i} style={{ display: 'flex', gap: '0.375rem', alignItems: 'flex-start' }}>
+        {(items as string[]).map((item) => (
+          <div key={item} style={{ display: 'flex', gap: '0.375rem', alignItems: 'flex-start' }}>
             <span style={{ color: '#3A9E5E', fontSize: '0.625rem', marginTop: '0.25rem' }}>●</span>
             <RenderString text={item} />
           </div>
@@ -148,7 +148,7 @@ function RenderArray({ items, depth, maxItems }: { items: unknown[]; depth: numb
           const icon = obj.icon as string || '';
 
           return (
-            <div key={i} style={{
+            <div key={title || `card-${i}`} style={{
               padding: '0.5rem 0.625rem',
               background: '#f8f8ff',
               border: '1px solid #e6e6eb',
@@ -186,7 +186,7 @@ function RenderArray({ items, depth, maxItems }: { items: unknown[]; depth: numb
           const qText = obj.text as string || '';
           const opts = obj.options as string[] | undefined;
           return (
-            <div key={i} style={{
+            <div key={qText || `question-${i}`} style={{
               padding: '0.5rem 0.625rem',
               background: '#fff',
               border: '1px solid #e6e6eb',
@@ -197,8 +197,8 @@ function RenderArray({ items, depth, maxItems }: { items: unknown[]; depth: numb
               </div>
               {opts && opts.length > 0 && (
                 <div style={{ marginLeft: '1rem', fontSize: '0.625rem', color: '#6b6b80' }}>
-                  {opts.map((opt, oi) => (
-                    <div key={oi}>{String.fromCharCode(65 + oi)}) {opt}</div>
+                  {opts.map((opt) => (
+                    <div key={opt}>{String.fromCharCode(65 + opts.indexOf(opt))}) {opt}</div>
                   ))}
                 </div>
               )}
@@ -213,7 +213,7 @@ function RenderArray({ items, depth, maxItems }: { items: unknown[]; depth: numb
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
       {visible.map((item, i) => (
-        <div key={i} style={{ paddingLeft: '0.5rem', borderLeft: '2px solid #e6e6eb' }}>
+        <div key={String(item) || `generic-${i}`} style={{ paddingLeft: '0.5rem', borderLeft: '2px solid #e6e6eb' }}>
           <RenderValue value={item} depth={depth + 1} maxItems={maxItems} />
         </div>
       ))}
@@ -291,8 +291,8 @@ function RenderObject({ obj, depth, maxItems }: { obj: Record<string, unknown>; 
   if (copyKey && Array.isArray(copyKey[1])) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        {(copyKey[1] as string[]).map((box, i) => (
-          <CopyBox key={i} text={box} />
+        {(copyKey[1] as string[]).map((box) => (
+          <CopyBox key={box} text={box} />
         ))}
       </div>
     );
@@ -318,8 +318,8 @@ function RenderObject({ obj, depth, maxItems }: { obj: Record<string, unknown>; 
           return (
             <Section key={key} icon={special?.icon || '📌'} label={special?.label || formatKey(key)}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
-                {(value as string[]).map((item, i) => (
-                  <span key={i} style={{
+                {(value as string[]).map((item) => (
+                  <span key={item} style={{
                     padding: '0.125rem 0.5rem', background: '#e8f5e9',
                     borderRadius: '12px', fontSize: '0.6875rem',
                     color: '#166534', fontWeight: 500,
@@ -350,8 +350,8 @@ function RenderObject({ obj, depth, maxItems }: { obj: Record<string, unknown>; 
         if (COPY_KEYS.includes(key) && Array.isArray(value)) {
           return (
             <div key={key}>
-              {(value as string[]).map((box, i) => (
-                <CopyBox key={i} text={box} />
+              {(value as string[]).map((box) => (
+                <CopyBox key={box} text={box} />
               ))}
             </div>
           );
@@ -490,7 +490,7 @@ function BloomList({ items }: { items: string[] }) {
         const color = BLOOM_COLORS[Math.min(i, BLOOM_COLORS.length - 1)];
         const level = BLOOM_LABELS[Math.min(i, BLOOM_LABELS.length - 1)];
         return (
-          <div key={i} style={{
+          <div key={item} style={{
             display: 'flex', alignItems: 'center', gap: '0.5rem',
             padding: '0.375rem 0.5rem', background: '#f8f8ff',
             borderRadius: '4px', border: '1px solid #e6e6eb',
@@ -523,8 +523,8 @@ function BloomList({ items }: { items: string[] }) {
 function TagList({ items, color }: { items: string[]; color: string }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
-      {items.map((item, i) => (
-        <span key={i} style={{
+      {items.map((item) => (
+        <span key={item} style={{
           padding: '0.125rem 0.5rem', background: `${color}12`,
           borderRadius: '12px', fontSize: '0.6875rem',
           color, fontWeight: 500, border: `1px solid ${color}30`,

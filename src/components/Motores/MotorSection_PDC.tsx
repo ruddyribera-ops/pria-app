@@ -18,8 +18,8 @@ export default function MotorSection_PDC({ result }: Props) {
                 <strong>{result.pdc.encabezado.materia}</strong> — {result.pdc.encabezado.nivel} {result.pdc.encabezado.grado} | Trimestre {result.pdc.encabezado.trimestre}
               </div>
             )}
-            {(result.pdc.unidades || []).map((u, i) => (
-              <div key={i} style={{ marginBottom: '0.5rem', padding: '0.5rem', borderLeft: '3px solid #6D28D9' }}>
+            {(result.pdc.unidades || []).map((u, idx) => (
+              <div key={u.numero ?? `unidad-${idx}`} style={{ marginBottom: '0.5rem', padding: '0.5rem', borderLeft: '3px solid #6D28D9' }}>
                 <strong>Unidad {u.numero}: {u.titulo}</strong>
                 <div style={{ color: '#6b6b80' }}>{u.semanas} — {u.horas} horas | {u.objetivo_holistico?.slice(0, 120)}</div>
                 {u.contenidos && (

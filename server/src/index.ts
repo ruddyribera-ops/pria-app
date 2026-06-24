@@ -1,21 +1,31 @@
 import { config } from './config.js';
 import { initDatabase } from './db/connection.js';
 import { initDB } from './db/schema.js';
-import { seed } from './db/seed.js';
+import { seed, shouldRunSeed } from './db/seed.js';
 import { createApp } from './app.js';
 import { closePool } from './db/connection.js';
-import { stopRateLimiterCleanup } from './middleware/rateLimiter.js';
+import { startRateLimiterCleanup, stopRateLimiterCleanup } from './middleware/rateLimiter.js';
 
 async function start() {
   await initDatabase();
   await initDB();
-  await seed();
+
+  const seedDecision = shouldRunSeed();
+  console.log(`[SEED] ${seedDecision.reason}`);
+  if (seedDecision.run) {
+    await seed();
+  } else {
+    console.log('[SEED] Skipping seed.');
+  }
 
   const app = await createApp();
 
   const server = app.listen(config.PORT, () => {
     console.log(`✅ PRIA backend on :${config.PORT}`);
   });
+
+  // Start the hourly cleanup of stale rate limit buckets
+  startRateLimiterCleanup();
 
   function gracefulShutdown(signal: string) {
     console.log(`\n⏳ ${signal} received — shutting down gracefully...`);
@@ -43,6 +53,19 @@ async function start() {
 
   process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
   process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+  // Safety nets for unhandled errors that escape Express
+  process.on('unhandledRejection', (reason: unknown) => {
+    console.error('[FATAL] Unhandled Promise Rejection:', reason);
+    // Don't exit — log and continue. Let health check / monitoring flag the issue.
+  });
+
+  process.on('uncaughtException', (err: Error) => {
+    console.error('[FATAL] Uncaught Exception:', err);
+    // For uncaughtException, the process is in an undefined state. Log and exit.
+    // Railway will restart the container.
+    process.exit(1);
+  });
 }
 
 start().catch(console.error);

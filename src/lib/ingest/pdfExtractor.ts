@@ -24,12 +24,12 @@ export async function ingestPdf(
   const pageCount = pdf.numPages;
   console.log('[ingestPdf] Loaded PDF with ' + pageCount + ' pages');
 
-  const MAX_PDF_PAGES = 50;
+  const MAX_PDF_PAGES = 200;
   const pagesToProcess = Math.min(pageCount, MAX_PDF_PAGES);
 
   if (pageCount > MAX_PDF_PAGES && onProgress) {
     onProgress('PDF tiene ' + pageCount + ' paginas. Procesando primeras ' + pagesToProcess + '...', 0);
-    warnings.push({ code: 'PARTIAL_CONTENT', message: 'PDF tiene ' + pageCount + ' paginas. Solo se procesaron las primeras ' + pagesToProcess + '.' });
+    warnings.push({ code: 'PARTIAL_CONTENT', message: 'PDF tiene ' + pageCount + ' paginas. Solo se procesaron las primeras ' + pagesToProcess + ' paginas.' });
   }
 
   for (let i = 1; i <= pagesToProcess; i++) {

@@ -1,8 +1,18 @@
 /**
  * @vitest-environment node
+ *
+ * Integration tests for /api/health — require a live PostgreSQL connection.
+ *
+ * Setup:   docker start pria-pg  (or set DATABASE_URL to your local PostgreSQL)
+ * Skip:    Set SKIP_INTEGRATION_TESTS=true to skip this file entirely
+ *
+ * The 3 healthy-path tests (200 OK, db=connected) will FAIL their `beforeAll`
+ * hook without a running PostgreSQL. This is intentional — these are
+ * integration tests, not unit tests.
+ *
+ * For the 503 DB-down path (no PostgreSQL required), see
+ * ./health-db-down.test.ts — those tests are runnable anywhere.
  */
-// Integration tests for GET /api/health.
-// Requires PostgreSQL running (docker start pria-pg).
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import http from 'http';
 import { createApp } from '../../app.js';
@@ -10,7 +20,10 @@ import { initDatabase, closePool } from '../../db/connection.js';
 import { initDB } from '../../db/schema.js';
 import { seed } from '../../db/seed.js';
 
-describe('GET /api/health', () => {
+const SKIP_INTEGRATION = process.env.SKIP_INTEGRATION_TESTS === 'true';
+const describeIf = SKIP_INTEGRATION ? describe.skip : describe;
+
+describeIf('GET /api/health -- happy path (requires PostgreSQL)', () => {
   let server: http.Server;
   let port: number;
 
@@ -42,20 +55,27 @@ describe('GET /api/health', () => {
     await closePool();
   });
 
-  test('returns healthy status with db=ok', async () => {
+  test('returns healthy status with db=connected', async () => {
     const res = await fetch(`http://127.0.0.1:${port}/api/health`);
     const data = await res.json() as any;
     expect(res.status).toBe(200);
-    expect(data.status).toBe('healthy');
-    expect(data.checks.database).toBe('ok');
-    expect(data.checks.server).toBe('ok');
+    expect(data.status).toBe('ok');
+    expect(data.db).toBe('connected');
+    expect(data.dbLatencyMs).toBeGreaterThanOrEqual(0);
+    expect(data.responseTimeMs).toBeGreaterThanOrEqual(0);
+    expect(data.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
   });
 
-  test('returns version 10.0.0 and uptime', async () => {
+  test('returns uptime and ISO timestamp', async () => {
     const res = await fetch(`http://127.0.0.1:${port}/api/health`);
     const data = await res.json() as any;
-    expect(data.version).toBe('10.0.0');
     expect(typeof data.uptime).toBe('number');
     expect(data.uptime).toBeGreaterThanOrEqual(0);
+    expect(data.timestamp).toBeDefined();
+  });
+
+  test('health endpoint is unauthenticated', async () => {
+    const res = await fetch(`http://127.0.0.1:${port}/api/health`);
+    expect(res.status).toBe(200);
   });
 });

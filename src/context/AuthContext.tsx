@@ -27,23 +27,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (savedToken && savedUser) {
       try {
         setToken(savedToken);
-        setUser(JSON.parse(savedUser) as UserInfo);
+        const parsedUser = JSON.parse(savedUser) as UserInfo;
+        setUser(parsedUser);
         // Validate token with /auth/me
-        getMe().then((u) => {
-          setUser(u);
-          localStorage.setItem(USER_KEY, JSON.stringify(u));
-        }).catch(() => {
-          localStorage.removeItem(TOKEN_KEY);
-          localStorage.removeItem(USER_KEY);
-          setToken(null);
-          setUser(null);
-        });
+        getMe()
+          .then((u) => {
+            setUser(u);
+            localStorage.setItem(USER_KEY, JSON.stringify(u));
+          })
+          .catch(() => {
+            // Token invalid or expired — clear and redirect
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(USER_KEY);
+            setToken(null);
+            setUser(null);
+            // Notify user with redirect
+            if (window.location.pathname !== '/login') {
+              window.location.href = '/login?reason=session-expired';
+            }
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
+        return; // early return — setIsLoading(false) called in finally
       } catch {
+        // Corrupted localStorage data — clear and show login
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
+        setToken(null);
+        setUser(null);
+        setIsLoading(false);
       }
+    } else {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
@@ -57,6 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    try {
+      sessionStorage.removeItem('currentResultId');
+    } catch {
+      // sessionStorage unavailable — silently ignore
+    }
     setToken(null);
     setUser(null);
   }, []);

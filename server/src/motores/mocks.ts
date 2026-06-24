@@ -11,7 +11,8 @@
 export type MotorType =
   | 'alpha2' | 'synthesis' | 'abp' | 'assessment'
   | 'plan' | 'slides' | 'ficha' | 'quiz'
-  | 'tutor' | 'pdc' | 'recalibrate' | 'micro';
+  | 'tutor' | 'pdc' | 'recalibrate' | 'micro'
+  | 'source_narrator';
 
 // ────────────────────────────────────────────────────────────
 // Individual mock generators
@@ -448,6 +449,88 @@ export function mockMicroOutput(params: Record<string, unknown>): Record<string,
   };
 }
 
+/** Source Narrator (M0.5): narrativa cultural y contextualización */
+export function mockSourceNarratorOutput(params: Record<string, unknown>): Record<string, unknown> {
+  const tema_clase = (params.tema_clase as string) || 'Tema de ejemplo';
+
+  return {
+    narrative_summary: `La presente narrativa contextualiza ${tema_clase} dentro del panorama cultural boliviano, estableciendo conexiones entre los contenidos temáticos y las tradiciones, prácticas y saberes ancestrales del contexto local andino. A través de un recorrido que integra elementos históricos, simbólicos y didácticos, se busca que el estudiante relacione los conceptos académicos con su entorno cultural vivo, promoviendo una aprendizaje significativo y culturalmente pertinente. La narrativa incorpora elementos de la cosmovisión andina, prácticas ceremoniales y expresiones artísticas tradicionales que iluminan la relevancia contempor\u00e1nea de ${tema_clase}.`,
+    characters: [
+      {
+        name: 'T\u00eda Mam\u00e1 Elena',
+        role: 'Narradora ancestral / sabia de la comunidad',
+        description: 'Persona mayor de la comunidad aymara que transmite conocimientos a trav\u00e9s de la oralidad. Representa la memoria colectiva y la sabidur\u00eda ancestral.',
+        key_quote: 'Todo lo que sabemos viene de la pachamama y a ella debemos volver.'
+      },
+      {
+        name: 'Marcelo',
+        role: 'Estudiante好奇 de secundaria',
+        description: 'Joven estudiante que representa la curiosidad juvenil y el dilema de conectar el aprendizaje escolar con su identidad cultural.',
+        key_quote: '\u00bfPero se\u00f1orita, eso de los rituales andinos tiene que ver con lo que estudiamos?'
+      },
+      {
+        name: 'Don Hilaria',
+        role: 'Agricultor y danzante del Tinku',
+        description: 'Agricultor de la comunidad que participa en las danzas tradicionales durante las festividades patronales. Transmite el significado de los rituales a trav\u00e9s de su pr\u00e1ctica.',
+        key_quote: 'El Tinku no es solo baile, es el encuentro de los suyos con la tierra.'
+      }
+    ],
+    sequence: [
+      { order: 1, event: 'Inicio: La pregunta de Marcelo en el aula', significance: 'Establece el conflicto cognitivo inicial y conecta el tema acad\u00e9mico con la vida cotidiana del estudiante.' },
+      { order: 2, event: 'La narraci\u00f3n de T\u00eda Mam\u00e1 Elena sobre el Guede y la Anata', significance: 'Introduce la cosmovisi\u00f3n andina y establece el marco cultural desde el cual se puede comprender el tema.' },
+      { order: 3, event: 'Don Hilaria explica el Phujllay y su relaci\u00f3n con los ciclos agr\u00edcolas', significance: 'Conecta los conceptos acad\u00e9micos con las pr\u00e1cticas agr\u00edcolas reales y los ritmos de la naturaleza.' },
+      { order: 4, event: 'Reflexi\u00f3n colectiva sobre el Tinku y la comunidad', significance: 'Desarrolla la dimensi\u00f3n social y comunitaria del conocimiento, mostrando c\u00f3mo los rituales unen a las personas.' },
+      { order: 5, event: 'Cierre: Marcelo relaciona el tema con su experiencia familiar', significance: 'Demuestra la transferencia del aprendizaje y la validez de los saberes culturales dentro del curr\u00edculo.'
+      }
+    ],
+    examples: [
+      {
+        type: 'cultural',
+        content: 'El Guede es una festividad ancestral de la cultura aymara que honra a los difuntos y celebra la continuidad de la vida. Se realiza entre noviembre y diciembre y combina elementos cat\u00f3licos con tradiciones andinas precolombinas.',
+        source_quote: 'Costumbres de Bolivia, Ministerio de Culturas, 2024'
+      },
+      {
+        type: 'historical',
+        content: 'El Tinku es una danza ceremonial originaria de los Andes bolivianos que se practica principalmente en la область de los ayllus. Esta danza representa el encuentro ritual entre comunidades y la renovaci\u00f3n de los v\u00ednculos sociales.',
+        source_quote: 'Rituales Andinos de Bolivia, UNESCO Intangible Heritage, 2014'
+      },
+      {
+        type: 'mythological',
+        content: 'Seg\u00fan la tradici\u00f3n oral aymara, el Phujllay fue ense\u00f1ado a los humanos por los Achachilas (monta\u00f1as sagradas) como forma de agradecer a la tierra por los frutos obtenidos en la cosecha.',
+        source_quote: 'Tradici\u00f3n oral, comunidad de Curva, Oruro'
+      },
+      {
+        type: 'anecdotal',
+        content: 'En la comunidad de Poop\u00f3, Oruro, los estudiantes de secundario participararon en un proyecto escolar donde documentaron las danzas locales y las relacionaron con sus contenidos de Historia y Ciencias Sociales.',
+        source_quote: 'Experiencia educativa, U.E. Poop\u00f3, 2023'
+      },
+      {
+        type: 'scientific',
+        content: 'Los ciclos agr\u00edcolas andinos, basados en el calendario lunar y las estaciones, demuestran un conocimiento sofisticado de agronom\u00eda que ha sido validado por la ciencia moderna sobre sostenible y respetuoso con el medio ambiente.',
+        source_quote: 'Estudios agron\u00f3micos, Universidad Mayor de San Andr\u00e9s, 2022'
+      }
+    ],
+    cultural_anchors: [
+      { term: 'Pachamama', definition: 'Madre Tierra en la cosmovisi\u00f3n andina. Represents the earth as a living, sacred entity that provides sustenance and receives offerings.', context: 'Used in agricultural rituals and daily expressions of gratitude in Andean cultures.' },
+      { term: 'Tinku', definition: 'Danza ceremonial andina de encuentro entre comunidades, practicada principalmente en Oruro y Potos\u00ed. Combina elementos simb\u00f3licos de conflicto y reconciliaci\u00f3n.', context: 'Se realiza en festividades patronales y representa la renovaci\u00f3n de los lazos comunitarios.' },
+      { term: 'Phujllay', definition: 'Danza tradicional de la region andina de Bolivia, asociada con la cosecha y la celebraci\u00f3n agr\u00edcola. Los danzantes visten disfraces coloridos con m\u00e1scaras y feathers.', context: 'Originaria de la zona de los valles interandinos, se baila durante las festividades de mayo a agosto.' },
+      { term: 'Achachila', definition: 'Monta\u00f1as sagradas protectoras en la cosmovisi\u00f3n aymara. Cada comunidad tiene sus propios Achachilas que la protegen y definen su identidad territorial.', context: 'Son objeto de veneraci\u00f3n y ofrendas, especialmente en rituales de paso y festividades.' },
+      { term: 'Anata', definition: 'Carnaval andino que combina tradiciones precolombinas con celebraciones cat\u00f3licas. Es una fiesta de revelac\u00f3n,renewal and community gathering.', context: 'Se celebra en febrero o marzo dependiendo de la regi\u00f3n, con danzas, m\u00fasica y rituales de limpieza espiritual.' },
+      { term: 'Guede', definition: 'Festividad que honra a los difuntos y celebra la vida. Tiene ra\u00edces tanto andinas como cat\u00f3licas, mezclando rituales de muerte y renewa.', context: 'Se celebra en noviembre con visitas a cementerios, ofrendas de comida y m\u00fasica tradicional.' }
+    ],
+    vivid_details: [
+      'El sonido de las quenas y charangos se mezcla con el murmullo de los participantes mientras la comunidad se prepara para el Phujllay al amanecer.',
+      'Las mujeres de la comunidad visten polleras multicolores y portan llikllas bordados con motivos geom\u00e9tricos que cuentan historias ancestrales.',
+      'El aroma del mistela (chicha de ma\u00edz) y el humo del copal llenan el aire durante los rituales en la plaza principal.',
+      'Los danzantes del Tinku usan m\u00e1scaras de madera tallada con expresiones severas, representando los esp\u00edritus de la monta\u00f1a.',
+      'En la comunidad aymara, la tierra se trabaja en comunidad bajo el sistema de ayni, donde todos se ayudan mutuamente en las labores agr\u00edcolas.',
+      'Los ni\u00f1os aprenden las danzas tradicionales desde muy peque\u00f1os, observando a sus mayores y practicando en las noches de luna llena.',
+      'El mercado dominical de Challapata es un punto de encuentro donde se mezclan los productos de la zona alta y los valles, igual que las tradiciones.',
+      'Las caravanas de llamas cruzan los senderos ancestrales que conectan las comunidades de la cordillera, igual que hace siglos.'
+    ]
+  };
+}
+
 // ────────────────────────────────────────────────────────────
 // Dispatcher
 // ────────────────────────────────────────────────────────────
@@ -473,6 +556,7 @@ export function generateMockOutput(
     case 'pdc': return mockPDCOutput(params);
     case 'recalibrate': return mockRecalibrateOutput(params);
     case 'micro': return mockMicroOutput(params);
+    case 'source_narrator': return mockSourceNarratorOutput(params);
     default: return {};
   }
 }

@@ -97,6 +97,8 @@ export default function DiagnosticosPage() {
       <div className={styles.fileListCard}>
         {loading ? (
           <div className={styles.loadingState} role="status" aria-live="polite">
+            <div style={{ width: '28px', height: '28px', border: '3px solid #e6e6eb', borderTop: '3px solid #3A9E5E', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 0.5rem' }} />
+            <style>{'@keyframes spin { to { transform: rotate(360deg); } }'}</style>
             Cargando diagnósticos...
           </div>
         ) : diagnosticos.length === 0 && !showForm ? (

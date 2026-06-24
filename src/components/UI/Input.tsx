@@ -22,6 +22,8 @@ export default function Input({ label, style, ...props }: InputProps) {
           background: '#f8f8ff', transition: 'border .2s, box-shadow .2s',
           boxSizing: 'border-box', ...style,
         }}
+        onFocus={(e) => { e.currentTarget.style.borderColor = '#3A9E5E'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(58,158,94,0.15)'; }}
+        onBlur={(e) => { e.currentTarget.style.borderColor = '#d4d4e0'; e.currentTarget.style.boxShadow = 'none'; }}
         {...props}
       />
     </div>

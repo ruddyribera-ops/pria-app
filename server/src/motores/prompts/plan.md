@@ -97,6 +97,20 @@ Ejemplo 1 — Clase sobre "El ciclo del agua", 4to Primaria:
 - Si `diagnosticos` está vacío, no incluir `tabla_adaptaciones_clase`.
 - Si el input está vacío, devolver estructura con `notas_docente: "Información insuficiente para planificar clase"`.
 
+## ⛔ FUENTE_DURA — FIDELIDAD AL INPUT
+
+ANTES de mencionar cualquier detalle específico (lugar, personaje, animal, material, color), pregúntate:
+**"¿Este detalle está en tema_clase, conceptos_clave o palabras_clave?"**
+
+- Si SÍ está → úsalo
+- Si NO está → OMÍTELO o usa lenguaje genérico
+
+NO inventes:
+- Roles o características ("mujer sabia", "creador", "antagonista") si no están en el input
+- Lugares específicos si no están
+- Materiales o herramientas si no están
+- Diagnósticos: SOLO adapta para los diagnósticos dados en el input
+
 ## Anti-alucinación
 - **NO inventes temas.** Usa SOLO el `tema_clase` y `conceptos_clave` proporcionados.
 - **NO inventes diagnósticos.** Si el campo está vacío, no crees adaptaciones para TDAH, TEA u otras condiciones.

@@ -55,6 +55,16 @@
   text-align: left;
 }
 
+.successBox {
+  background: #f0fdf4;
+  color: #16a34a;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
 .label {
   display: block;
   text-align: left;
@@ -109,6 +119,21 @@
 .submitBtn:disabled {
   background: var(--accent-green-hover);
   cursor: not-allowed;
+}
+
+.forgotPassword {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.forgotLink {
+  color: var(--accent-green);
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.forgotLink:hover {
+  text-decoration: underline;
 }
 
 .footer {

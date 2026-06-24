@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Header from '../components/Layout/Header';
 import { useMultiPhaseGeneration } from '../hooks/useMultiPhaseGeneration';
 import { useCurriculum } from '../hooks/useCurriculum';
-import type { MotorType } from '../hooks/useMotorGeneration';
+import type { MotorType } from '../types';
 import PhaseStepper from '../components/Motores/PhaseStepper';
 import PhaseNavigation from '../components/Motores/PhaseNavigation';
-import SlideEditorPanel from '../components/SlideEditor/SlideEditorPanel';
+import SlideEditorPanel, { type MergedData } from '../components/SlideEditor/SlideEditorPanel';
 import ResultPreview from '../components/SlideEditor/ResultPreview';
 import { mergePhaseResults } from '../lib/pptx/multiPhaseContent';
-import type { PhaseField } from '../lib/pptx/phaseDefinitions';
+import PhaseFieldRenderer from '../components/Motores/PhaseFieldRenderer';
+import { createMotorResult, updateMotorResult } from '../api/motores';
 import styles from './TrimestralPage.module.css';
 
 const TAB_MOTOR_MAP: Record<string, MotorType> = {
@@ -20,75 +21,6 @@ const TAB_LABELS: Record<string, string> = {
   'plan-unidad': '📋 Plan de Unidad y ABP',
   pdc: '📄 PDC Trimestral',
 };
-
-function renderField(
-  field: PhaseField,
-  value: unknown,
-  onChange: (name: string, val: unknown) => void,
-  disabled: boolean,
-) {
-  const val = (value !== undefined && value !== '') ? value : field.default ?? '';
-
-  if (field.type === 'select') {
-    return (
-      <select
-        value={val as string}
-        onChange={(e) => onChange(field.name, e.target.value)}
-        disabled={disabled}
-        className={styles.fieldSelect}
-        aria-label={field.label}
-      >
-        {(field.options || []).map(opt => (
-          <option key={opt} value={opt}>{opt}</option>
-        ))}
-      </select>
-    );
-  }
-
-  if (field.type === 'checkbox') {
-    return (
-      <div className={styles.checkboxField}>
-        <input
-          type="checkbox"
-          id={`tri-field-${field.name}`}
-          checked={val === true || val === 'true'}
-          onChange={(e) => onChange(field.name, e.target.checked)}
-          disabled={disabled}
-          className={styles.checkboxInput}
-          aria-label={field.label}
-        />
-        <label htmlFor={`tri-field-${field.name}`} className={styles.checkboxLabel}>
-          {field.label}
-        </label>
-      </div>
-    );
-  }
-
-  if (field.type === 'textarea') {
-    return (
-      <textarea
-        value={val as string}
-        onChange={(e) => onChange(field.name, e.target.value)}
-        disabled={disabled}
-        placeholder={field.placeholder}
-        className={`${styles.fieldSelect} ${styles.fieldTextarea}`}
-        aria-label={field.label}
-      />
-    );
-  }
-
-  return (
-    <input
-      type="text"
-      value={val as string}
-      onChange={(e) => onChange(field.name, e.target.value)}
-      disabled={disabled}
-      placeholder={field.placeholder}
-      className={styles.fieldSelect}
-      aria-label={field.label}
-    />
-  );
-}
 
 function PhaseContextViewer({ mpg }: { mpg: ReturnType<typeof useMultiPhaseGeneration> }) {
   const hasResults = mpg.results && Object.keys(mpg.results).length > 0;
@@ -114,6 +46,24 @@ export default function TrimestralPage() {
   const [activeTab, setActiveTab] = useState('plan-unidad');
   const [motorParams, setMotorParams] = useState<Record<string, unknown>>({});
   const [showEditor, setShowEditor] = useState(false);
+  const [currentResultId, setCurrentResultId] = useState<number | null>(() => {
+    try {
+      const stored = sessionStorage.getItem('currentResultId');
+      return stored ? Number(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const updateResultId = useCallback((id: number | null) => {
+    setCurrentResultId(id);
+    try {
+      if (id !== null) sessionStorage.setItem('currentResultId', String(id));
+      else sessionStorage.removeItem('currentResultId');
+    } catch {
+      // sessionStorage unavailable (SSR/private mode) — silently ignore
+    }
+  }, []);
 
   const { curriculum: curriculumFromMaterials, loading: _curriculumLoading } = useCurriculum();
 
@@ -122,6 +72,8 @@ export default function TrimestralPage() {
 
   useEffect(() => {
     setMotorParams({});
+    // Intentional: reset form when user switches tabs
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const updateParam = (name: string, value: unknown) => {
@@ -130,12 +82,30 @@ export default function TrimestralPage() {
 
   const handleSubmit = async () => { await mpg.submit(motorParams); };
   const handleRegenerate = async () => { await mpg.regenerate(motorParams); };
-  const handleClearEditor = useCallback(() => { setShowEditor(false); }, []);
+  const handleClearEditor = useCallback(() => {
+    setShowEditor(false);
+    updateResultId(null);
+  }, [updateResultId]);
 
   const handleReset = () => {
     mpg.reset();
     setShowEditor(false);
+    updateResultId(null);
   };
+
+  const handleSave = useCallback(async (resultId: number, data: Record<string, unknown>) => {
+    const jsonData = JSON.stringify(data);
+    if (resultId && currentResultId) {
+      await updateMotorResult(resultId, jsonData);
+    } else {
+      const created = await createMotorResult({
+        motor_type: motorType,
+        result_json: jsonData,
+        simulated: true,
+      });
+      updateResultId(created.id);
+    }
+  }, [currentResultId, motorType, updateResultId]);
 
   const mergedData = useMemo(() => {
     if (!mpg.allPhasesDone) return null;
@@ -154,11 +124,13 @@ export default function TrimestralPage() {
       <div className={styles.tabBar}>
         {Object.entries(TAB_MOTOR_MAP).map(([tabId, _motorType]) => (
           <button
+            type="button"
             key={tabId}
             onClick={() => {
               if (!mpg.isActive) {
                 mpg.reset();
                 setActiveTab(tabId);
+                updateResultId(null);
               }
             }}
             disabled={mpg.isActive}
@@ -204,14 +176,27 @@ export default function TrimestralPage() {
             {currentPhaseDef.fields.map(field => (
               <div key={field.name} className={styles.fieldGroup}>
                 {field.type !== 'checkbox' && (
-                  <label className={styles.fieldLabel}>{field.label}</label>
+                  <label htmlFor={`trimestral-field-${field.name}`} className={styles.fieldLabel}>{field.label}</label>
                 )}
                 <div className={field.type !== 'checkbox' ? styles.fieldMargin : ''}>
-                  {renderField(field, motorParams[field.name], updateParam, isGenerating)}
+                  <PhaseFieldRenderer
+                    field={field}
+                    value={motorParams[field.name]}
+                    onChange={updateParam}
+                    disabled={isGenerating}
+                    idPrefix="trimestral"
+                    textClass={styles.fieldSelect}
+                    selectClass={styles.fieldSelect}
+                    textareaClass={`${styles.fieldSelect} ${styles.fieldTextarea}`}
+                    checkboxFieldClass={styles.checkboxField}
+                    checkboxInputClass={styles.checkboxInput}
+                    checkboxLabelClass={styles.checkboxLabel}
+                  />
                 </div>
               </div>
             ))}
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={isGenerating}
               className={styles.submitBtn}
@@ -256,8 +241,8 @@ export default function TrimestralPage() {
                   {curriculumFromMaterials.unidad_real} — {curriculumFromMaterials.temas.length} tema(s) detectado(s)
                 </p>
                 <div className={styles.temasTags}>
-                  {curriculumFromMaterials.temas.map((t: string, i: number) => (
-                    <span key={i} className={styles.temaTag}>{t}</span>
+                  {curriculumFromMaterials.temas.map((t: string) => (
+                    <span key={t} className={styles.temaTag}>{t}</span>
                   ))}
                 </div>
                 <p className={styles.initialDesc}>
@@ -289,15 +274,17 @@ export default function TrimestralPage() {
                   {mpg.totalPhases} fases generadas correctamente. Visualiza y edita antes de descargar.
                 </div>
               </div>
-              <button onClick={() => setShowEditor(true)} className={styles.openEditorBtn}>
+              <button type="button" onClick={() => setShowEditor(true)} className={styles.openEditorBtn}>
                 🎬 Abrir Editor Visual
               </button>
             </div>
           ) : (
             <SlideEditorPanel
-              mergedData={mergedData as any}
+              mergedData={mergedData as MergedData}
               typeLabel={motorType === 'pdc' ? 'PDC_Trimestral' : 'Plan_Unidad'}
               motorType={motorType as 'slides' | 'plan' | 'ficha' | 'quiz' | 'pdc' | 'synthesis'}
+              resultId={currentResultId}
+              onSave={handleSave}
               onClear={handleClearEditor}
             />
           )}

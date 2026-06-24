@@ -1,0 +1,10 @@
+/* MaterialesMotorPanel.module.css */
+.simulatedBanner {
+  margin: 0 1rem 1rem;
+  padding: 0.5rem 1rem;
+  background: #FFF3CD;
+  border: 1px solid #FFC107;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: #856404;
+}

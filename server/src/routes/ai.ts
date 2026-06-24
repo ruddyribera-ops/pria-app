@@ -1,6 +1,8 @@
 import { Router } from 'express';
+import type { Response } from 'express';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
+import type { AuthRequest } from '../types/express.js';
 
 const MINIMAX_API_URL = 'https://api.minimax.io/v1/chat/completions';
 const MINIMAX_MODEL = process.env.MINIMAX_MODEL || 'MiniMax-M2.7';
@@ -37,7 +39,7 @@ function cleanResponse(raw: string): string {
 const router = Router();
 router.use(authMiddleware);
 
-router.post('/generate', async (req: any, res) => {
+router.post('/generate', async (req: AuthRequest, res: Response) => {
   const apiKey = process.env.MINIMAX_API_KEY;
   if (!apiKey) {
     return res.status(503).json({ ok: false, error: 'AI no configurada' });

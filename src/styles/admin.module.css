@@ -1,0 +1,64 @@
+/* Admin panel design tokens — single source of truth */
+@import './theme.css';
+
+.adminLabel {
+  display: block;
+  font-size: var(--pria-text-xs);
+  font-weight: 600;
+  color: var(--pria-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--pria-space-xs);
+}
+
+.adminInput {
+  width: 100%;
+  padding: var(--pria-space-sm) var(--pria-space-md);
+  border: 1px solid var(--pria-border-strong);
+  border-radius: var(--pria-radius-sm);
+  font-size: var(--pria-text-sm);
+  outline: none;
+  background: var(--pria-input-bg);
+  box-sizing: border-box;
+}
+
+.adminGreenBtn {
+  padding: var(--pria-space-sm) var(--pria-space-lg);
+  background: var(--pria-primary);
+  color: var(--pria-text-inverse);
+  border: none;
+  border-radius: var(--pria-radius-sm);
+  font-weight: 500;
+  font-size: var(--pria-text-sm);
+  margin-top: var(--pria-space-md);
+  cursor: pointer;
+}
+
+.adminCard {
+  background: var(--pria-bg);
+  border: 1px solid var(--pria-border);
+  border-radius: var(--pria-radius-md);
+  overflow: hidden;
+}
+
+.adminTabBtn {
+  padding: var(--pria-space-sm) var(--pria-space-md);
+  border: 1px solid var(--pria-border);
+  border-radius: var(--pria-radius-sm);
+  background: var(--pria-bg);
+  color: var(--pria-text-muted);
+  font-size: var(--pria-text-xs);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.adminTabBtnActive {
+  padding: var(--pria-space-sm) var(--pria-space-md);
+  border: none;
+  border-radius: var(--pria-radius-sm);
+  background: var(--pria-primary);
+  color: var(--pria-text-inverse);
+  font-size: var(--pria-text-xs);
+  font-weight: 500;
+  cursor: pointer;
+}

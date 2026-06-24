@@ -288,7 +288,7 @@ export function mergePhaseResults(
   const merged: Record<string, unknown> = {};
 
   // Base metadata from params
-  merged.title = (params.tema as string) || (results as any)?.titulo || '';
+  merged.title = (params.tema as string) || (results['titulo'] as string) || '';
   merged.subject = (params.materia as string) || (params.asignatura as string) || '';
   merged.grade = (params.grado as string) || (params.nivel as string) || '';
 
@@ -318,7 +318,7 @@ export function mergePhaseResults(
 
   // Plan-specific alias
   if (!merged.bloomObjectives) {
-    merged.bloomObjectives = (merged as any).objetivosBloom as string[] | undefined;
+    merged.bloomObjectives = (merged as Record<string, unknown>).objetivosBloom as string[] | undefined;
   }
 
   // Defaults

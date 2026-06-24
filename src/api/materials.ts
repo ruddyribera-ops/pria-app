@@ -7,10 +7,11 @@ export async function listMaterials(): Promise<Material[]> {
 }
 
 export async function uploadMaterial(file: File, tipo: string): Promise<Material> {
-  const response = await client.post('/materials/', {
-    filename: file.name,
-    tipo,
-    size: file.size,
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('tipo', tipo);
+  const response = await client.post('/materials/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data.data;
 }

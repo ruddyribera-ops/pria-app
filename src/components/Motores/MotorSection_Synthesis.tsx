@@ -26,9 +26,10 @@ export default function MotorSection_Synthesis({ result, curriculumPreview, load
         </MotorResult>
         <div style={{ marginTop: '0.75rem' }}>
           <MotorButton
-            label="🚀 Generar Proyecto ABP"
-            loadingLabel="🚀 Generando proyecto ABP..."
+            label="🚀 Diseñar proyecto ABP"
+            loadingLabel="🚀 Diseñando proyecto..."
             color="#2563EB"
+            progressPhases={['Definiendo el problema', 'Creando hitos', 'Asignando entregables', 'Vinculando con el currículo']}
             onClick={() => {
               if (!result) { showToast?.('Primero genera la síntesis.', 'warning'); return; }
               onGenerate?.();

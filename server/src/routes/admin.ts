@@ -1,20 +1,20 @@
 import { Router } from 'express';
+import type { Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
+import type { AuthRequest } from '../types/express.js';
 import { dbAll, dbRun } from '../db/schema.js';
+import { getAllMotorState } from '../db/motorState.js';
 import { validateBody } from '../middleware/validateBody.js';
 import { CreateUserSchema } from '../schemas/requests/admin.schema.js';
 
 const router = Router();
 
-router.get('/estado-sistema', (req, res) => {
+router.get('/estado-sistema', authMiddleware, (req: AuthRequest, res: Response) => {
+  const motors = getAllMotorState(req.user!.id);
   res.json({
     data: {
-      motors: {
-        synthesis: 'idle', abp: 'idle', assessment: 'idle',
-        plan: 'idle', slides: 'idle', ficha: 'idle', quiz: 'idle',
-        tutor: 'idle', pdc: 'idle', recalibrate: 'idle', micro: 'idle',
-      },
+      motors,
       lastUpdated: new Date().toISOString(),
     },
   });
@@ -50,8 +50,8 @@ router.post('/users/', authMiddleware, adminOnly, validateBody(CreateUserSchema)
   res.json({ data: { id: info.id, created: new Date().toISOString() } });
 });
 
-router.put('/users/:id', authMiddleware, adminOnly, async (req, res) => {
-  const { id } = req.params;
+router.put('/users/:id', authMiddleware, adminOnly, async (req: AuthRequest, res: Response) => {
+  const id = req.params.id as string;
   const { nombre, nivel, grado } = req.body;
   await dbRun(
     'UPDATE users SET nombre = $1, nivel = $2, grado = $3 WHERE id = $4',
@@ -60,8 +60,8 @@ router.put('/users/:id', authMiddleware, adminOnly, async (req, res) => {
   res.json({ data: { id: parseInt(id), updated: new Date().toISOString() } });
 });
 
-router.delete('/users/:id', authMiddleware, adminOnly, async (req, res) => {
-  const { id } = req.params;
+router.delete('/users/:id', authMiddleware, adminOnly, async (req: AuthRequest, res: Response) => {
+  const id = req.params.id as string;
   await dbRun('DELETE FROM users WHERE id = $1', [id]);
   res.json({ data: { id: parseInt(id), deleted: new Date().toISOString() } });
 });
@@ -98,7 +98,7 @@ router.delete('/cache', authMiddleware, adminOnly, async (_req, res) => {
   }
 });
 
-router.post('/reset-day', authMiddleware, adminOnly, async (req, res) => {
+router.post('/reset-day', authMiddleware, adminOnly, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'No autenticado' });

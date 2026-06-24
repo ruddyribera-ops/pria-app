@@ -1,28 +1,115 @@
 import PptxGenJS from 'pptxgenjs';
-import { FONT_TITLE, FONT_BODY, COLOR_WHITE, COLOR_TEXT, COLOR_VIOLET } from './types';
+import { FONTS, FONT_SIZES, COLORS, MARGIN, HEADER_H, CONTENT_W, RADIUS, SLIDE_W } from './types';
+import { addPageNumber } from './cover';
 import type { QuizOutput } from '../../../types/motor-types';
+import type { Palette } from '../types';
 
-export function buildQuizSlides(pptx: PptxGenJS, data: QuizOutput) {
+/**
+ * Build Quiz slides with professional card-based layout
+ * 
+ * Layout:
+ * - Header with question number
+ * - Large question card centered
+ * - 4 option cards in 2x2 grid
+ * - Progress indicator
+ */
+export function buildQuizSlides(pptx: PptxGenJS, data: QuizOutput, startNum: number = 1, palette?: Palette) {
   if (!data?.quiz?.preguntas) return;
-  data.quiz.preguntas.forEach((p) => {
+  
+  const totalQuestions = data.quiz.preguntas.length;
+  
+  data.quiz.preguntas.forEach((p, idx) => {
+    const slideNum = startNum + idx;
     const slide = pptx.addSlide();
+    slide.background = { color: palette?.bg || COLORS.bg };
+    
+    // Header bar with subject primary color or coral accent default
     slide.addShape(pptx.ShapeType.rect, {
-      x: 0, y: 0, w: 10, h: 0.75, fill: { color: COLOR_VIOLET },
+      x: 0, y: 0, w: SLIDE_W, h: HEADER_H,
+      fill: { color: palette?.primary || COLORS.accent },
     });
-    slide.addText(`Pregunta ${p.numero} - [${p.tipo || 'escrita'}]`, {
-      x: 0.4, y: 0.15, w: 9.2, h: 0.45,
-      fontSize: 14, bold: true, color: COLOR_WHITE, fontFace: FONT_TITLE, valign: 'middle',
+    
+    // Question number badge
+    slide.addText(`Pregunta ${p.numero || idx + 1}`, {
+      x: MARGIN, y: 0, w: 2, h: HEADER_H,
+      fontSize: 14, fontFace: FONTS.body, bold: true,
+      color: COLORS.textLight, valign: 'middle',
+    });
+    
+    // Question type badge
+    slide.addShape(pptx.ShapeType.roundRect, {
+      x: 2.3, y: 0.12, w: 1.0, h: 0.26,
+      fill: { color: COLORS.primary }, rectRadius: 0.05,
+    });
+    slide.addText(p.tipo || 'opción múltiple', {
+      x: 2.3, y: 0.12, w: 1.0, h: 0.26,
+      fontSize: 8, fontFace: FONTS.body, bold: true,
+      color: COLORS.textLight, align: 'center', valign: 'middle',
+    });
+    
+    // Progress indicator
+    slide.addText(`${idx + 1}/${totalQuestions}`, {
+      x: 8.5, y: 0, w: 1, h: HEADER_H,
+      fontSize: 12, fontFace: FONTS.body,
+      color: COLORS.textLight, valign: 'middle', align: 'right',
+    });
+    
+    // Question card
+    slide.addShape(pptx.ShapeType.roundRect, {
+      x: MARGIN, y: HEADER_H + 0.5, w: CONTENT_W, h: 1.6,
+      fill: { color: COLORS.surface }, rectRadius: RADIUS,
+      shadow: { type: 'outer', blur: 6, offset: 3, color: '#000000', opacity: 0.1 },
     });
     slide.addText(p.pregunta || '', {
-      x: 0.4, y: 1.0, w: 9.2, h: 1.5,
-      fontSize: 14, color: COLOR_TEXT, fontFace: FONT_BODY,
+      x: MARGIN + 0.3, y: HEADER_H + 0.6, w: CONTENT_W - 0.6, h: 1.4,
+      fontSize: FONT_SIZES.subtitle, fontFace: FONTS.body, bold: true,
+      color: COLORS.text, valign: 'middle',
     });
+    
+    // Options in 2x2 grid
     if (Array.isArray(p.opciones) && p.opciones.length) {
-      const opts = p.opciones.map((o: string, idx: number) => ({
-        text: `${String.fromCharCode(97 + idx)}) ${o}`,
-        options: { fontSize: 12, color: COLOR_TEXT, fontFace: FONT_BODY, breakLine: true },
-      }));
-      slide.addText(opts, { x: 0.4, y: 2.6, w: 9.2, h: 2.5 });
+      const optionPositions = [
+        { x: MARGIN, y: HEADER_H + 2.3 },
+        { x: MARGIN + CONTENT_W / 2 + 0.15, y: HEADER_H + 2.3 },
+        { x: MARGIN, y: HEADER_H + 3.3 },
+        { x: MARGIN + CONTENT_W / 2 + 0.15, y: HEADER_H + 3.3 },
+      ];
+      
+      const optionLetters = ['A', 'B', 'C', 'D'];
+      p.opciones.forEach((option: string, oi: number) => {
+        if (oi >= 4) return; // Max 4 options
+        
+        const pos = optionPositions[oi];
+        const cardW = (CONTENT_W - 0.15) / 2;
+        
+        // Option card
+        slide.addShape(pptx.ShapeType.roundRect, {
+          x: pos.x, y: pos.y, w: cardW, h: 0.85,
+          fill: { color: COLORS.textLight }, rectRadius: RADIUS,
+          line: { color: COLORS.border, width: 1 },
+        });
+        
+        // Option letter badge
+        slide.addShape(pptx.ShapeType.ellipse, {
+          x: pos.x + 0.15, y: pos.y + 0.25, w: 0.35, h: 0.35,
+          fill: { color: COLORS.primary },
+        });
+        slide.addText(optionLetters[oi], {
+          x: pos.x + 0.15, y: pos.y + 0.25, w: 0.35, h: 0.35,
+          fontSize: 12, fontFace: FONTS.body, bold: true,
+          color: COLORS.textLight, align: 'center', valign: 'middle',
+        });
+        
+        // Option text
+        slide.addText(option, {
+          x: pos.x + 0.6, y: pos.y + 0.1, w: cardW - 0.75, h: 0.65,
+          fontSize: FONT_SIZES.body, fontFace: FONTS.body,
+          color: COLORS.text, valign: 'middle',
+        });
+      });
     }
+    
+    // Page number
+    addPageNumber(slide, slideNum);
   });
 }

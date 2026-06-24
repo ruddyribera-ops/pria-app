@@ -4,6 +4,10 @@
  *
  * Flow:
  *   buildSlideDeck(content, subject) → ArrayBuffer (ready to download)
+ *
+ * @deprecated since Sprint 9 — Use generator.ts for PPTX generation.
+ *             This file is only used by SlideEditorPanel.
+ *             The main export pipeline uses generator.ts → slides/slides.ts
  */
 
 import PptxGenJS from 'pptxgenjs';

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 
@@ -13,6 +14,21 @@ for (const [key, value] of Object.entries(process.env)) {
   if (typeof value === 'string') {
     (process.env as any)[key] = value.trim();
   }
+}
+
+// SEC-01: Replace known-weak JWT_SECRET placeholder with a real 64-byte secret at startup
+const KNOWN_WEAK_SECRETS = [
+  '0000000000000000000000000000000000000000000000000000000000000000',
+  '00000000000000000000000000000000',
+  'placeholder',
+  'changeme',
+  'secret',
+];
+if (
+  process.env.JWT_SECRET &&
+  KNOWN_WEAK_SECRETS.includes(process.env.JWT_SECRET)
+) {
+  throw new Error('JWT_SECRET is a known weak value — generate a real secret with: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
 }
 
 const envSchema = z.object({

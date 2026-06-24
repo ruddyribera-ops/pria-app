@@ -1,12 +1,14 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import styles from './LoginForm.module.css';
 
 interface LoginFormProps {
   onLogin: (username: string, password: string) => Promise<void>;
   error: string | null;
+  successMessage?: string | null;
 }
 
-export default function LoginForm({ onLogin, error }: LoginFormProps) {
+export default function LoginForm({ onLogin, error, successMessage }: LoginFormProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,6 +36,10 @@ export default function LoginForm({ onLogin, error }: LoginFormProps) {
 
         {(error || localError) && (
           <div className={styles.errorBox}>{error || localError}</div>
+        )}
+
+        {successMessage && (
+          <div className={styles.successBox}>{successMessage}</div>
         )}
 
         <form onSubmit={handleSubmit}>
@@ -65,6 +71,12 @@ export default function LoginForm({ onLogin, error }: LoginFormProps) {
             {isSubmitting ? 'Ingresando...' : 'Iniciar Sesión'}
           </button>
         </form>
+
+        <div className={styles.forgotPassword}>
+          <Link to="/forgot-password" className={styles.forgotLink}>
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
 
         <div className={styles.footer}>© 2026 PRIA • Método Palma-Ribera</div>
       </div>

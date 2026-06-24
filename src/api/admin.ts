@@ -1,6 +1,23 @@
 import type { EstadoSistema } from '../types';
 import client from './client';
 
+export interface AdminUser {
+  id: number;
+  nombre: string;
+  usuario: string;
+  role: string;
+  teacher_code?: string;
+}
+
+export interface CreatedAdminUser {
+  id: number;
+  nombre: string;
+  usuario: string;
+  role: string;
+  nivel: string;
+  grado: string;
+}
+
 export async function getEstadoSistema(): Promise<EstadoSistema> {
   const response = await client.get<{ data: EstadoSistema }>('/admin/estado-sistema');
   return response.data.data;
@@ -20,13 +37,13 @@ export async function resetDay(teacherCode?: string) {
   return response.data.data;
 }
 
-export async function getAdminUsers(): Promise<any[]> {
-  const response = await client.get<{ data: any[] }>('/admin/users');
+export async function getAdminUsers(): Promise<AdminUser[]> {
+  const response = await client.get<{ data: AdminUser[] }>('/admin/users');
   return response.data.data;
 }
 
-export async function createAdminUser(data: { nombre: string; usuario: string; password: string; nivel: string; grado: string }): Promise<any> {
-  const response = await client.post<{ data: any }>('/admin/users', data);
+export async function createAdminUser(data: { nombre: string; usuario: string; password: string; nivel: string; grado: string }): Promise<CreatedAdminUser> {
+  const response = await client.post<{ data: CreatedAdminUser }>('/admin/users', data);
   return response.data.data;
 }
 

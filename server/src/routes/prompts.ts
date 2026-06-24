@@ -3,6 +3,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import { authMiddleware } from '../middleware/auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROMPTS_DIR = path.resolve(__dirname, '../motores/prompts');
@@ -23,6 +24,7 @@ const VALID_KEYS = [
 ];
 
 const router = Router();
+router.use(authMiddleware);
 
 // GET /api/prompts/:motorKey — returns raw prompt text for debugging/inspection
 router.get('/:motorKey', (req, res) => {

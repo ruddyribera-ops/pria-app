@@ -33,6 +33,24 @@ const MOTOR_LABELS: Record<string, string> = {
   micro: 'Micro-Objetivos',
 };
 
+const MOTOR_OPTIONS = [
+  { value: '', label: 'Todos los motores' },
+  { value: 'synthesis', label: '🧠 Síntesis Curricular' },
+  { value: 'alpha2', label: '📄 Extracción de Currículo' },
+  { value: 'abp', label: '🚀 Proyecto ABP' },
+  { value: 'assessment', label: '📊 Evaluación' },
+  { value: 'plan', label: '📋 Plan de Clase' },
+  { value: 'slides', label: '🎨 Diapositivas' },
+  { value: 'ficha', label: '🎮 Ficha Gamificada' },
+  { value: 'quiz', label: '❓ Pop Quiz' },
+  { value: 'tutor', label: '👩‍🏫 Panel del Tutor' },
+  { value: 'pdc', label: '📅 PDC Trimestral' },
+  { value: 'recalibrate', label: '🔄 Recalibración' },
+  { value: 'micro', label: '🎯 Micro-Objetivos' },
+];
+
+const PAGE_SIZE = 20;
+
 function formatDate(dateStr: string): string {
   try {
     const d = new Date(dateStr);
@@ -50,20 +68,47 @@ function formatDate(dateStr: string): string {
 
 export default function HistoryPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const [motorType, setMotorType] = useState<string>('');
   const { showToast } = useToast();
-  const { data: entries = [], isLoading, error } = useMotorHistory();
+  const { data, isLoading, error } = useMotorHistory({ page, limit: PAGE_SIZE, motor_type: motorType || null });
+
+  const entries = data?.data ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   if (error && entries.length === 0) {
     showToast('Error al cargar historial', 'error');
   }
+
+  const handleMotorTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setMotorType(e.target.value);
+    setPage(1); // Reset to page 1 when filter changes
+  };
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>📁 Historial de Generación</h1>
         <p className={styles.subtitle}>
-          Últimos 20 contenidos generados con los motores IA
+          {total > 0 ? `${total} contenidos generados` : 'Historial de contenidos generados con los motores IA'}
         </p>
+      </div>
+
+      {/* Filter controls */}
+      <div className={styles.filterBar}>
+        <label className={styles.filterLabel}>
+          Filtrar por tipo:
+          <select
+            value={motorType}
+            onChange={handleMotorTypeChange}
+            className={styles.filterSelect}
+          >
+            {MOTOR_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {isLoading && (
@@ -90,64 +135,91 @@ export default function HistoryPage() {
       )}
 
       {!isLoading && entries.length > 0 && (
-        <div className={styles.entryList}>
-          {entries.map((entry) => {
-            const icon = MOTOR_ICONS[entry.motor_type] ?? '⚙️';
-            const label = MOTOR_LABELS[entry.motor_type] ?? entry.motor_type;
-            const isExpanded = expandedId === entry.id;
-            const isSimulated = entry.simulated === true;
+        <>
+          <div className={styles.entryList}>
+            {entries.map((entry) => {
+              const icon = MOTOR_ICONS[entry.motor_type] ?? '⚙️';
+              const label = MOTOR_LABELS[entry.motor_type] ?? entry.motor_type;
+              const isExpanded = expandedId === entry.id;
+              const isSimulated = entry.simulated === true;
 
-            return (
-              <div key={entry.id} className={styles.entryCard}>
-                {/* Row header */}
-                <div
-                  className={styles.entryHeader}
-                  onClick={() => setExpandedId(isExpanded ? null : entry.id)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && setExpandedId(isExpanded ? null : entry.id)}
-                  aria-expanded={isExpanded}
-                  aria-label={`${label}, ${formatDate(entry.created_at)}`}
-                >
-                  <span className={styles.entryIcon}>{icon}</span>
-                  <div className={styles.entryInfo}>
-                    <div className={styles.entryLabel}>{label}</div>
-                    <div className={styles.entryDate}>{formatDate(entry.created_at)}</div>
-                  </div>
-                  <div className={styles.entryActions}>
-                    {isSimulated ? (
-                      <span className={`${styles.badge} ${styles.badgeSimulated}`}>
-                        ⚠️ Simulado
+              return (
+                <div key={entry.id} className={styles.entryCard}>
+                  {/* Row header */}
+                  <div
+                    className={styles.entryHeader}
+                    onClick={() => setExpandedId(isExpanded ? null : entry.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && setExpandedId(isExpanded ? null : entry.id)}
+                    aria-expanded={isExpanded}
+                    aria-label={`${label}, ${formatDate(entry.created_at)}`}
+                  >
+                    <span className={styles.entryIcon}>{icon}</span>
+                    <div className={styles.entryInfo}>
+                      <div className={styles.entryLabel}>{label}</div>
+                      <div className={styles.entryDate}>{formatDate(entry.created_at)}</div>
+                    </div>
+                    <div className={styles.entryActions}>
+                      {isSimulated ? (
+                        <span className={`${styles.badge} ${styles.badgeSimulated}`}>
+                          ⚠️ Simulado
+                        </span>
+                      ) : (
+                        <span className={`${styles.badge} ${styles.badgeReal}`}>
+                          ✅ Real
+                        </span>
+                      )}
+                      <span className={styles.expandIcon}>
+                        {isExpanded ? '▲' : '▼'}
                       </span>
-                    ) : (
-                      <span className={`${styles.badge} ${styles.badgeReal}`}>
-                        ✅ Real
-                      </span>
-                    )}
-                    <span className={styles.expandIcon}>
-                      {isExpanded ? '▲' : '▼'}
-                    </span>
+                    </div>
                   </div>
+
+                  {/* Expanded JSON preview */}
+                  {isExpanded && (
+                    <div className={styles.expandedContent}>
+                      <div className={styles.expandedMeta}>
+                        ID: {entry.id} · Tipo: {entry.motor_type} · Status: {entry.status}
+                        {isSimulated
+                          ? ' · ⚠️ Generado sin IA (contenido simulado)'
+                          : ' · Motor IA'}
+                      </div>
+                      <div className={styles.jsonPreview}>
+                        {entry.result_json_preview || '{ "error": "Sin contenido disponible" }'}
+                      </div>
+                    </div>
+                  )}
                 </div>
+              );
+            })}
+          </div>
 
-                {/* Expanded JSON preview */}
-                {isExpanded && (
-                  <div className={styles.expandedContent}>
-                    <div className={styles.expandedMeta}>
-                      ID: {entry.id} · Tipo: {entry.motor_type} · Status: {entry.status}
-                      {isSimulated
-                        ? ' · ⚠️ Generado sin IA (contenido simulado)'
-                        : ' · Motor IA'}
-                    </div>
-                    <div className={styles.jsonPreview}>
-                      {entry.result_json_preview || '{ "error": "Sin contenido disponible" }'}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+          {/* Pagination controls */}
+          {totalPages > 1 && (
+            <div className={styles.pagination}>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className={styles.paginationButton}
+              >
+                ◀ Anterior
+              </button>
+              <span className={styles.paginationInfo}>
+                Página {page} de {totalPages} ({total} total)
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className={styles.paginationButton}
+              >
+                Siguiente ▶
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

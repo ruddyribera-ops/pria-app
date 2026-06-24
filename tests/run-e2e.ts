@@ -1,5 +1,15 @@
 import { chromium } from '@playwright/test';
 
+const BASE = process.env.E2E_BASE_URL || 'http://localhost:5173';
+// Production safety guard
+const PRODUCTION_HOSTS = ['railway.app', 'vercel.app', 'netlify.app', 'aws.amazon.com', 'digitalocean.com', 'heroku.com'];
+if (PRODUCTION_HOSTS.some(h => BASE.includes(h))) {
+  throw new Error(`[run-e2e] REFUSING to run against production URL: ${BASE}. Use localhost for development.`);
+}
+if (process.env.NODE_ENV === 'production') {
+  throw new Error('[run-e2e] NODE_ENV=production — aborting E2E tests.');
+}
+
 async function runTests() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
@@ -20,7 +30,7 @@ async function runTests() {
 
   // ── Auth tests ──────────────────────────────────────────────
   await test('login redirects to materiales', async () => {
-    await page.goto('http://localhost:5173/login');
+    await page.goto(`${BASE}/login`);
     await page.waitForTimeout(2000);
     await page.fill('input[placeholder="admin"]', 'admin');
     await page.fill('input[type="password"]', 'admin123');
@@ -31,7 +41,7 @@ async function runTests() {
   await test('unauthenticated redirect to login', async () => {
     await page.context().clearCookies();
     await page.evaluate(() => localStorage.clear());
-    await page.goto('http://localhost:5173/', { timeout: 15000 });
+    await page.goto(`${BASE}/`);
     await page.waitForURL(/login/, { timeout: 15000 });
     const url = page.url();
     if (!url.includes('login')) throw new Error(`Expected login redirect, got: ${url}`);
@@ -39,7 +49,7 @@ async function runTests() {
 
   // ── Materiales page ─────────────────────────────────────────
   await test('materiales page loads', async () => {
-    await page.goto('http://localhost:5173/login');
+    await page.goto(`${BASE}/login`);
     await page.waitForTimeout(2000);
     await page.fill('input[placeholder="admin"]', 'admin');
     await page.fill('input[type="password"]', 'admin123');
@@ -51,19 +61,16 @@ async function runTests() {
   });
 
   await test('sidebar has nav items', async () => {
-    await page.goto('http://localhost:5173/login');
+    await page.goto(`${BASE}/login`);
     await page.waitForTimeout(2000);
     await page.fill('input[placeholder="admin"]', 'admin');
     await page.fill('input[type="password"]', 'admin123');
     await page.click('button[type="submit"]');
     await page.waitForURL('**/materiales', { timeout: 15000 });
-    // Wait for sidebar to appear - it's in Layout so give it time
     await page.waitForTimeout(3000);
-    // Check for sidebar element (aside tag)
     const sidebarCount = await page.locator('aside').count();
     console.log(`    Found ${sidebarCount} aside element(s)`);
     if (sidebarCount === 0) {
-      // Debug: print page content
       const body = await page.locator('body').innerText();
       console.log('    Body text (first 200):', body.slice(0, 200));
       throw new Error('No sidebar (aside) element found');
@@ -74,7 +81,7 @@ async function runTests() {
   });
 
   await test('export button shows toast when no content', async () => {
-    await page.goto('http://localhost:5173/login');
+    await page.goto(`${BASE}/login`);
     await page.waitForTimeout(2000);
     await page.fill('input[placeholder="admin"]', 'admin');
     await page.fill('input[type="password"]', 'admin123');

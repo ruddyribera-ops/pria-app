@@ -1,7 +1,7 @@
 import PptxGenJS from 'pptxgenjs';
 import type { SlideItem } from '../../types/motor-types';
 // Import all slide builders
-import { buildCoverSlide, buildCreditsSlide } from './slides/cover';
+import { buildCoverSlide, buildCreditsSlide, type TeacherInfo } from './slides/cover';
 import { buildSynthesisSlides } from './slides/synthesis';
 import { buildABPSlides } from './slides/abp';
 import { buildPlanSlides } from './slides/plan';
@@ -14,6 +14,9 @@ import { buildPDCSlides } from './slides/pdc';
 import { buildRecalibrationSlides } from './slides/recalibrate';
 import { buildMicroSlides } from './slides/micro';
 import type { SynthesisOutput, ABPOutput, AssessmentOutput, PlanOutput, FichaOutput, QuizOutput, TutorOutput, PDCOutput, RecalibrateOutput, MicroOutput } from '../../types/motor-types';
+import type { SlideContent } from './types';
+import type { Palette } from './types';
+import { getPalette } from './designSystem';
 
 export interface ExportInput {
   title?: string;
@@ -29,6 +32,7 @@ export interface ExportInput {
   recalibrate?: RecalibrateOutput | null;
   micro?: MicroOutput | null;
   curriculumPreview?: { unidad_real: string; temas: string[] } | null;
+  teacherInfo?: TeacherInfo;
 }
 
 export async function exportAllMotorsToPPTX(input: ExportInput): Promise<Blob> {
@@ -37,14 +41,18 @@ export async function exportAllMotorsToPPTX(input: ExportInput): Promise<Blob> {
   pptx.author = 'PRIA v10';
   pptx.title = input.title || 'Material Educativo';
 
-  buildCoverSlide(pptx, input.title || 'Material Educativo');
-  if (input.synthesis) buildSynthesisSlides(pptx, input.synthesis);
+  const pal: Palette = input.curriculumPreview?.unidad_real
+    ? getPalette(input.curriculumPreview.unidad_real)
+    : getPalette('');
+
+  buildCoverSlide(pptx, input.title || 'Material Educativo', pal, input.teacherInfo);
+  if (input.synthesis) buildSynthesisSlides(pptx, input.synthesis, pal);
   if (input.abp) buildABPSlides(pptx, input.abp);
   if (input.assessment) buildAssessmentSlides(pptx, input.assessment);
-  if (input.plan) buildPlanSlides(pptx, input.plan);
-  if (input.slides) buildSlidesSlides(pptx, input.slides);
+  if (input.plan) buildPlanSlides(pptx, input.plan, pal);
+  if (input.slides) buildSlidesSlides(pptx, input.slides, { palette: pal });
   if (input.ficha) buildFichaSlides(pptx, input.ficha);
-  if (input.quiz) buildQuizSlides(pptx, input.quiz);
+  if (input.quiz) buildQuizSlides(pptx, input.quiz, 1, pal);
   if (input.tutor) buildTutorSlides(pptx, input.tutor);
   if (input.pdc) buildPDCSlides(pptx, input.pdc);
   if (input.recalibrate) buildRecalibrationSlides(pptx, input.recalibrate);
@@ -95,5 +103,130 @@ export async function exportContentToPPTX(title: string, content: object, option
     slideNum++;
     if (slideNum > 22) break;
   }
+  return await pptx.write({ outputType: 'blob' }) as Blob;
+}
+
+/**
+ * Build a complete PPTX slide deck from AI-generated SlideContent.
+ * Replaces the deprecated buildSlides.ts buildSlideDeck function.
+ * Used by SlideEditorPanel for slides-mode editing and download.
+ */
+export async function buildSlideDeck(content: SlideContent, subject: string): Promise<Blob> {
+  const pptx = new PptxGenJS();
+  pptx.defineLayout({ name: 'WIDE', width: 10, height: 5.625 });
+  pptx.layout = 'WIDE';
+
+  const pal = getPalette(subject);
+  let slideNum = 0;
+
+  // Slide 1: Cover
+  slideNum++;
+  const coverSlide = pptx.addSlide();
+  coverSlide.background = { color: pal.bg };
+  coverSlide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 3.8, h: 5.625, fill: { color: pal.primary } });
+  coverSlide.addText(content.cover.title, {
+    x: 4.4, y: 1.2, w: 5.2, h: 1.5,
+    fontSize: 32, fontFace: 'Inter', color: pal.primary, bold: true,
+  });
+  coverSlide.addText(content.cover.subtitle, {
+    x: 4.4, y: 2.7, w: 5.2, h: 0.6,
+    fontSize: 14, fontFace: 'Inter', color: pal.textDark,
+  });
+  coverSlide.addText(`${content.cover.grade} · ${content.cover.subject}`, {
+    x: 4.4, y: 4.2, w: 5.2, h: 0.4,
+    fontSize: 11, fontFace: 'Inter', color: pal.accent,
+  });
+
+  // Slide 2: Objectives
+  if (content.objectives.length > 0) {
+    slideNum++;
+    const objSlide = pptx.addSlide();
+    objSlide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 10, h: 0.6, fill: { color: pal.secondary } });
+    objSlide.addText('🎯 Objetivos de Aprendizaje', {
+      x: 0.5, y: 0.25, w: 9, h: 0.5,
+      fontSize: 18, fontFace: 'Inter', color: pal.primary, bold: true,
+    });
+    content.objectives.forEach((obj, i) => {
+      const y = 1.1 + i * 0.75;
+      objSlide.addShape(pptx.ShapeType.roundRect, {
+        x: 0.5, y, w: 9, h: 0.65,
+        fill: { color: '#F8F8FF' }, rectRadius: 0.1,
+        shadow: { type: 'outer', blur: 4, offset: 1, color: '#000000', opacity: 0.08 },
+      });
+      objSlide.addText(`${i + 1}. ${obj}`, {
+        x: 0.7, y, w: 8.6, h: 0.65,
+        fontSize: 13, fontFace: 'Inter', color: pal.textDark, valign: 'middle',
+      });
+    });
+  }
+
+  // Content Slides
+  for (const slide of content.slides) {
+    slideNum++;
+    const cSlide = pptx.addSlide();
+    cSlide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 10, h: 0.6, fill: { color: pal.secondary } });
+    cSlide.addText(slide.title, {
+      x: 0.5, y: 0.2, w: 9, h: 0.45,
+      fontSize: 16, fontFace: 'Inter', color: pal.primary, bold: true,
+    });
+    let yPos = 0.75;
+    for (const para of slide.paragraphs) {
+      cSlide.addText(para, { x: 0.5, y: yPos, w: 9, h: 0.8, fontSize: 12, fontFace: 'Inter', color: pal.textDark });
+      yPos += 0.85;
+    }
+    if (slide.copyToNotebook) {
+      cSlide.addShape(pptx.ShapeType.roundRect, {
+        x: 0.5, y: yPos, w: 9, h: 0.5,
+        fill: { color: '#FFFBEB' }, line: { color: '#F59E0B', width: 0.5 }, rectRadius: 0.1,
+      });
+      cSlide.addText(`📝 ${slide.copyToNotebook}`, {
+        x: 0.7, y: yPos, w: 8.6, h: 0.5,
+        fontSize: 11, fontFace: 'Inter', color: '#92400E', valign: 'middle',
+      });
+      yPos += 0.6;
+    }
+    if (slide.bullets) {
+      for (const bullet of slide.bullets) {
+        cSlide.addText(`• ${bullet}`, { x: 0.6, y: yPos, w: 8.8, h: 0.3, fontSize: 11, fontFace: 'Inter', color: pal.textDark });
+        yPos += 0.32;
+      }
+    }
+  }
+
+  // Activity Slides
+  if (content.activities) {
+    for (const act of content.activities) {
+      slideNum++;
+      const aSlide = pptx.addSlide();
+      aSlide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 10, h: 0.6, fill: { color: pal.secondary } });
+      aSlide.addText(act.title, {
+        x: 0.5, y: 0.2, w: 9, h: 0.45,
+        fontSize: 16, fontFace: 'Inter', color: pal.primary, bold: true,
+      });
+      aSlide.addText(act.instruction, {
+        x: 0.5, y: 0.7, w: 9, h: 0.4,
+        fontSize: 12, fontFace: 'Inter', color: pal.textDark,
+      });
+      let yPos = 1.2;
+      act.questions.forEach((q, qi) => {
+        aSlide.addText(`${qi + 1}. ${q.text}`, {
+          x: 0.5, y: yPos, w: 9, h: 0.35,
+          fontSize: 12, fontFace: 'Inter', color: pal.textDark, bold: true,
+        });
+        yPos += 0.38;
+        if (q.options) {
+          q.options.forEach((opt, oi) => {
+            aSlide.addText(`${['A', 'B', 'C', 'D'][oi] || String(oi)}. ${opt}`, {
+              x: 0.7, y: yPos, w: 8.6, h: 0.28,
+              fontSize: 11, fontFace: 'Inter', color: pal.textDark,
+            });
+            yPos += 0.32;
+          });
+        }
+        yPos += 0.1;
+      });
+    }
+  }
+
   return await pptx.write({ outputType: 'blob' }) as Blob;
 }

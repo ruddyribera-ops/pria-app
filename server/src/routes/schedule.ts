@@ -18,7 +18,7 @@ router.get('/:teacherCode/:dia', async (req, res) => {
     res.json({ data: rows });
   } catch (err) {
     console.error('[/schedule GET]', err);
-    res.status(500).json({ data: [] });
+    res.status(500).json({ error: 'Error al cargar el horario' });
   }
 });
 

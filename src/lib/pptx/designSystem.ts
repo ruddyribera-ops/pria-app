@@ -1,14 +1,15 @@
 /**
- * PRIA PPTX Design System
- * Based on the handover educational design spec.
- *
- * - 16:9 format (10" × 5.625")
- * - Bitter titles (54pt cover, 28pt content)
- * - Calibri body (13-15pt)
- * - Top bar: secondary color, 0.08" high
- * - Page numbers: circle at x:9.3 y:5.1 (except cover)
- * - Cards: roundedRect with shadow
- * - Cover: left panel 3.8" primary + decorative circles
+ * PRIA v10 PPTX Design System
+ * 
+ * Design tokens for professional educational slides:
+ * - Deep teal primary (#0F766E) for headers and accents
+ * - Vibrant coral (#FF6B6B) for highlights and activity callouts
+ * - Warm white (#FAFAF7) backgrounds with generous whitespace
+ * - Inter font family throughout for clean, modern typography
+ * 
+ * 16:9 format (10" × 5.625")
+ * 0.5" margins, 0.5" header bar
+ * Cards with 0.15" radius and subtle shadows
  */
 
 import type { Palette } from './types';
@@ -16,143 +17,178 @@ import type { Palette } from './types';
 // ===== Dimensions =====
 export const SLIDE_W = 10;
 export const SLIDE_H = 5.625;
-export const MARGIN = 0.4;
-export const CONTENT_W = SLIDE_W - MARGIN * 2; // 9.2"
-export const TOP_BAR_H = 0.08;
+export const MARGIN = 0.5;
+export const HEADER_H = 0.5;
+export const CONTENT_W = SLIDE_W - MARGIN * 2; // 9"
+export const CONTENT_H = SLIDE_H - HEADER_H - MARGIN - 0.5; // ~4.125"
+export const RADIUS = 0.15;
 export const PAGE_NUM_X = 9.3;
 export const PAGE_NUM_Y = 5.1;
 export const COVER_PANEL_W = 3.8;
 
 // ===== Fonts =====
 export const FONTS = {
-  title: 'Bitter',
-  titleFallback: 'Georgia',
-  body: 'Calibri',
+  title: 'Inter',
+  titleFallback: 'Arial',
+  body: 'Inter',
+  bodyFallback: 'Arial',
 } as const;
 
 export const FONT_SIZES = {
-  coverTitle: 54,
-  coverSubtitle: 18,
+  coverTitle: 44,
+  coverSubtitle: 20,
   slideTitle: 28,
   slideTitleSmall: 22,
-  body: 13,
-  bodySmall: 11,
-  pageNumber: 9,
+  subtitle: 20,
+  body: 16,
+  bodySmall: 14,
+  caption: 12,
+  pageNumber: 10,
   badge: 10,
 } as const;
 
-// ===== Subject → Palette Mapping =====
+// ===== Colors =====
+export const COLORS = {
+  // Primary brand
+  primary: '#0F766E',       // Deep teal
+  primaryHover: '#0D9488',  // Teal hover
+  
+  // Accents
+  accent: '#FF6B6B',         // Vibrant coral
+  accentAlt: '#FBBF24',      // Sunshine yellow
+  
+  // Neutrals
+  bg: '#FAFAF7',             // Warm white
+  surface: '#F5F5F0',       // Light warm gray
+  border: '#E5E5E0',         // Subtle border
+  
+  // Text
+  text: '#1F2937',           // Charcoal
+  textMuted: '#6B7280',      // Medium gray
+  textLight: '#FFFFFF',      // White
+  
+  // Semantic
+  success: '#10B981',        // Emerald
+  warning: '#F59E0B',        // Amber
+  error: '#EF4444',          // Red
+  info: '#3B82F6',           // Blue
+} as const;
+
+// Subject → Palette Mapping
 const SUBJECT_PALETTES: Record<string, Palette> = {
-  Matemáticas: {
+  'Matemáticas': {
     name: 'Navy & Gold',
-    primary: '#2D3A54',
-    secondary: '#C99B3B',
-    accent: '#5A7D9A',
-    bg: '#FFFFFF',
-    textDark: '#1e1e2f',
+    primary: '#1E3A5F',
+    secondary: '#FBBF24',
+    accent: '#3B82F6',
+    bg: '#FAFAF7',
+    textDark: '#1F2937',
     textLight: '#FFFFFF',
   },
-  Lenguaje: {
-    name: 'Teal',
-    primary: '#1A6B73',
-    secondary: '#E8A87C',
-    accent: '#3A9BAE',
-    bg: '#FFFFFF',
-    textDark: '#1e1e2f',
+  'Lenguaje': {
+    name: 'Teal & Coral',
+    primary: '#0F766E',
+    secondary: '#FF6B6B',
+    accent: '#F5F5F0',
+    bg: '#FAFAF7',
+    textDark: '#1F2937',
     textLight: '#FFFFFF',
   },
   'Ciencias Naturales': {
-    name: 'Forest',
-    primary: '#4A6B4A',
-    secondary: '#C4A86A',
-    accent: '#6B8E6B',
-    bg: '#FFFFFF',
-    textDark: '#1e1e2f',
+    name: 'Forest Green',
+    primary: '#166534',
+    secondary: '#86EFAC',
+    accent: '#22C55E',
+    bg: '#FAFAF7',
+    textDark: '#1F2937',
     textLight: '#FFFFFF',
   },
   'Ciencias Sociales': {
-    name: 'Stone & Terracotta',
-    primary: '#4A5054',
-    secondary: '#C97B5A',
-    accent: '#7A8A8E',
-    bg: '#FFFFFF',
-    textDark: '#1e1e2f',
+    name: 'Slate & Terracotta',
+    primary: '#4A4A4A',
+    secondary: '#FCD34D',
+    accent: '#D97706',
+    bg: '#FAFAF7',
+    textDark: '#1F2937',
     textLight: '#FFFFFF',
   },
-  Historia: {
-    name: 'Slate & Sand',
-    primary: '#3D5A70',
-    secondary: '#D4A574',
-    accent: '#6B8A9E',
-    bg: '#FFFFFF',
-    textDark: '#1e1e2f',
+  'Historia': {
+    name: 'Sepia Classic',
+    primary: '#78350F',
+    secondary: '#FDE68A',
+    accent: '#B45309',
+    bg: '#FAFAF7',
+    textDark: '#1F2937',
     textLight: '#FFFFFF',
   },
-  Inglés: {
-    name: 'Purple & Amber',
-    primary: '#4A2C5C',
-    secondary: '#D4A24E',
-    accent: '#7A5C8E',
-    bg: '#FFFFFF',
-    textDark: '#1e1e2f',
+  'Inglés': {
+    name: 'Purple & Lavender',
+    primary: '#5B21B6',
+    secondary: '#DDD6FE',
+    accent: '#A78BFA',
+    bg: '#FAFAF7',
+    textDark: '#1F2937',
     textLight: '#FFFFFF',
   },
   'Educación Física': {
-    name: 'Coral',
+    name: 'Coral & Teal',
     primary: '#C7695C',
-    secondary: '#E8B88A',
-    accent: '#5A8C8E',
-    bg: '#FFFFFF',
-    textDark: '#1e1e2f',
+    secondary: '#0F766E',
+    accent: '#5EEAD4',
+    bg: '#FAFAF7',
+    textDark: '#1F2937',
     textLight: '#FFFFFF',
   },
-  Artes: {
-    name: 'Terracotta',
+  'Artes': {
+    name: 'Terracotta & Sand',
     primary: '#B85C38',
-    secondary: '#E2A76F',
-    accent: '#3D6B9E',
-    bg: '#FFFFFF',
-    textDark: '#1e1e2f',
+    secondary: '#FEF3C7',
+    accent: '#3B82F6',
+    bg: '#FAFAF7',
+    textDark: '#1F2937',
     textLight: '#FFFFFF',
   },
-  Música: {
-    name: 'Deep Teal',
-    primary: '#1A5C6B',
-    secondary: '#D4A07A',
-    accent: '#3A8A9E',
-    bg: '#FFFFFF',
-    textDark: '#1e1e2f',
+  'Música': {
+    name: 'Deep Teal & Gold',
+    primary: '#0F766E',
+    secondary: '#FBBF24',
+    accent: '#14B8A6',
+    bg: '#FAFAF7',
+    textDark: '#1F2937',
     textLight: '#FFFFFF',
   },
-  Religión: {
-    name: 'Burgundy',
+  'Religión': {
+    name: 'Burgundy & Cream',
     primary: '#6B2C3E',
-    secondary: '#C99B6A',
-    accent: '#8A5C6E',
-    bg: '#FFFFFF',
-    textDark: '#1e1e2f',
+    secondary: '#FEF3C7',
+    accent: '#BE185D',
+    bg: '#FAFAF7',
+    textDark: '#1F2937',
     textLight: '#FFFFFF',
   },
 };
 
-/** Default palette if subject is not found */
+// Default palette fallback
 const DEFAULT_PALETTE: Palette = {
-  name: 'Default',
-  primary: '#3A9E5E',
-  secondary: '#5C6AC4',
-  accent: '#3A9BAE',
-  bg: '#FFFFFF',
-  textDark: '#1e1e2f',
+  name: 'PRIA Default',
+  primary: '#0F766E',
+  secondary: '#F5F5F0',
+  accent: '#FF6B6B',
+  bg: '#FAFAF7',
+  textDark: '#1F2937',
   textLight: '#FFFFFF',
 };
 
-/** Get palette for a subject/topic */
+/**
+ * Get palette for a subject/topic
+ * Uses exact match first, then partial match
+ */
 export function getPalette(subject: string): Palette {
-  // Try exact match first
+  if (!subject) return DEFAULT_PALETTE;
+  
   const exact = SUBJECT_PALETTES[subject];
   if (exact) return exact;
 
-  // Try partial match
   const lower = subject.toLowerCase();
   for (const [key, pal] of Object.entries(SUBJECT_PALETTES)) {
     if (lower.includes(key.toLowerCase())) return pal;
@@ -161,13 +197,27 @@ export function getPalette(subject: string): Palette {
   return DEFAULT_PALETTE;
 }
 
-/** Get an array of decorative circle positions for the cover */
+/**
+ * Decorative circle positions for cover slide
+ * Big overlapping circles (40-60% opacity) for dramatic visual interest
+ * Sizes in inches — circles are 200-300px equivalent at 96dpi
+ */
 export function getCoverCircles(): { x: number; y: number; r: number }[] {
   return [
-    { x: 0.6, y: 0.6, r: 0.35 },
-    { x: 2.0, y: 1.2, r: 0.25 },
-    { x: 1.2, y: 4.0, r: 0.3 },
-    { x: 2.8, y: 4.5, r: 0.2 },
-    { x: 0.3, y: 2.5, r: 0.15 },
+    { x: 0.2, y: 0.3, r: 1.2 },   // Big top-left
+    { x: 1.5, y: 1.5, r: 0.9 },   // Medium center
+    { x: 0.6, y: 3.5, r: 1.1 },   // Big bottom
+    { x: 2.2, y: 4.2, r: 0.7 },   // Medium bottom-right
+    { x: 0.1, y: 5.0, r: 0.5 },   // Small bottom-left
   ];
+}
+
+/**
+ * Get a contrasting text color for a background
+ */
+export function getContrastColor(backgroundColor: string): 'light' | 'dark' {
+  // Simple luminance check - can be enhanced
+  const darkColors = ['#1F2937', '#0F766E', '#1E3A5F', '#166534', '#5B21B6'];
+  const bg = backgroundColor.toUpperCase();
+  return darkColors.includes(bg) ? 'light' : 'dark';
 }

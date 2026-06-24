@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { listBlocks, createBlock, updateBlock, deleteBlock } from '../api/blocks';
-import { adminTheme } from '../styles/adminTheme';
+import styles from '../styles/admin.module.css';
 import Modal from '../components/UI/Modal';
 import type { BloqueResponse } from '../types';
 
@@ -117,47 +117,47 @@ export default function AdminBloquesPanel({ teacherCode, showToast }: Props) {
         </h4>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
           <div>
-            <label style={adminTheme.label}>Dia</label>
-            <select value={newBlock.dia} onChange={e => setNewBlock({ ...newBlock, dia: e.target.value })} style={adminTheme.input}>
+            <label htmlFor="bloque-dia" className={styles.adminLabel}>Dia</label>
+            <select id="bloque-dia" value={newBlock.dia} onChange={e => setNewBlock({ ...newBlock, dia: e.target.value })} className={styles.adminInput}>
               {['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'].map(d => (
                 <option key={d} value={d}>{d}</option>
               ))}
             </select>
           </div>
           <div>
-            <label style={adminTheme.label}>Hora Inicio</label>
-            <input type="time" value={newBlock.hora_inicio}
-              onChange={e => setNewBlock({ ...newBlock, hora_inicio: e.target.value })} style={adminTheme.input} />
+            <label htmlFor="bloque-hora-inicio" className={styles.adminLabel}>Hora Inicio</label>
+            <input id="bloque-hora-inicio" type="time" value={newBlock.hora_inicio}
+              onChange={e => setNewBlock({ ...newBlock, hora_inicio: e.target.value })} className={styles.adminInput} />
           </div>
           <div>
-            <label style={adminTheme.label}>Hora Fin</label>
-            <input type="time" value={newBlock.hora_fin}
-              onChange={e => setNewBlock({ ...newBlock, hora_fin: e.target.value })} style={adminTheme.input} />
+            <label htmlFor="bloque-hora-fin" className={styles.adminLabel}>Hora Fin</label>
+            <input id="bloque-hora-fin" type="time" value={newBlock.hora_fin}
+              onChange={e => setNewBlock({ ...newBlock, hora_fin: e.target.value })} className={styles.adminInput} />
           </div>
           <div>
-            <label style={adminTheme.label}>Tipo</label>
-            <select value={newBlock.tipo} onChange={e => setNewBlock({ ...newBlock, tipo: e.target.value })} style={adminTheme.input}>
+            <label htmlFor="bloque-tipo" className={styles.adminLabel}>Tipo</label>
+            <select id="bloque-tipo" value={newBlock.tipo} onChange={e => setNewBlock({ ...newBlock, tipo: e.target.value })} className={styles.adminInput}>
               <option value="clase">Clase</option>
               <option value="recreo">Recreo</option>
             </select>
           </div>
           <div>
-            <label style={adminTheme.label}>Materia</label>
-            <input value={newBlock.materia} placeholder="Opcional"
-              onChange={e => setNewBlock({ ...newBlock, materia: e.target.value })} style={adminTheme.input} />
+            <label htmlFor="bloque-materia" className={styles.adminLabel}>Materia</label>
+            <input id="bloque-materia" value={newBlock.materia} placeholder="Opcional"
+              onChange={e => setNewBlock({ ...newBlock, materia: e.target.value })} className={styles.adminInput} />
           </div>
           <div>
-            <label style={adminTheme.label}>Nivel / Grado</label>
-            <input value={newBlock.nivel_grado} placeholder="Ej: 3er ano"
-              onChange={e => setNewBlock({ ...newBlock, nivel_grado: e.target.value })} style={adminTheme.input} />
+            <label htmlFor="bloque-nivel" className={styles.adminLabel}>Nivel / Grado</label>
+            <input id="bloque-nivel" value={newBlock.nivel_grado} placeholder="Ej: 3er ano"
+              onChange={e => setNewBlock({ ...newBlock, nivel_grado: e.target.value })} className={styles.adminInput} />
           </div>
           <div>
-            <label style={adminTheme.label}>Ubicacion</label>
-            <input value={newBlock.ubicacion} placeholder="Ej: Aula 101"
-              onChange={e => setNewBlock({ ...newBlock, ubicacion: e.target.value })} style={adminTheme.input} />
+            <label htmlFor="bloque-ubicacion" className={styles.adminLabel}>Ubicacion</label>
+            <input id="bloque-ubicacion" value={newBlock.ubicacion} placeholder="Ej: Aula 101"
+              onChange={e => setNewBlock({ ...newBlock, ubicacion: e.target.value })} className={styles.adminInput} />
           </div>
         </div>
-        <button onClick={handleCreate} style={{ ...adminTheme.greenBtn, marginTop: '0.75rem' }}>
+        <button type="button" onClick={handleCreate} className={styles.adminGreenBtn} style={{ marginTop: '0.75rem' }}>
           Crear Bloque
         </button>
       </div>
@@ -166,7 +166,7 @@ export default function AdminBloquesPanel({ teacherCode, showToast }: Props) {
         Configura los bloques horarios del horario escolar.
       </p>
 
-      <div style={adminTheme.card}>
+      <div className={styles.adminCard}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
@@ -209,6 +209,7 @@ export default function AdminBloquesPanel({ teacherCode, showToast }: Props) {
                   <td style={cellStyle(b)}>{b.ubicacion || '\u2014'}</td>
                   <td style={cellStyle(b)}>
                     <button
+                      type="button"
                       onClick={() => setEditingBlock({
                         id: b.id, dia: b.dia, hora_inicio: b.hora_inicio,
                         hora_fin: b.hora_fin, tipo: b.tipo, materia: b.materia || '',
@@ -223,6 +224,7 @@ export default function AdminBloquesPanel({ teacherCode, showToast }: Props) {
                       Editar
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleDelete(b.id)}
                       style={{
                         marginLeft: '0.25rem',
@@ -251,11 +253,12 @@ export default function AdminBloquesPanel({ teacherCode, showToast }: Props) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div>
-                <label style={adminTheme.label}>Dia</label>
+                <label htmlFor="bloque-edit-dia" className={styles.adminLabel}>Dia</label>
                 <select
+                  id="bloque-edit-dia"
                   value={editingBlock.dia}
                   onChange={e => setEditingBlock({ ...editingBlock, dia: e.target.value })}
-                  style={adminTheme.input}
+                  className={styles.adminInput}
                 >
                   {['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'].map(d => (
                     <option key={d} value={d}>{d}</option>
@@ -263,48 +266,49 @@ export default function AdminBloquesPanel({ teacherCode, showToast }: Props) {
                 </select>
               </div>
               <div>
-                <label style={adminTheme.label}>Tipo</label>
+                <label htmlFor="bloque-edit-tipo" className={styles.adminLabel}>Tipo</label>
                 <select
+                  id="bloque-edit-tipo"
                   value={editingBlock.tipo}
                   onChange={e => setEditingBlock({ ...editingBlock, tipo: e.target.value })}
-                  style={adminTheme.input}
+                  className={styles.adminInput}
                 >
                   <option value="clase">Clase</option>
                   <option value="recreo">Recreo</option>
                 </select>
               </div>
               <div>
-                <label style={adminTheme.label}>Hora Inicio</label>
-                <input type="time" value={editingBlock.hora_inicio}
+                <label htmlFor="bloque-edit-hora-inicio" className={styles.adminLabel}>Hora Inicio</label>
+                <input id="bloque-edit-hora-inicio" type="time" value={editingBlock.hora_inicio}
                   onChange={e => setEditingBlock({ ...editingBlock, hora_inicio: e.target.value })}
-                  style={adminTheme.input} />
+                  className={styles.adminInput} />
               </div>
               <div>
-                <label style={adminTheme.label}>Hora Fin</label>
-                <input type="time" value={editingBlock.hora_fin}
+                <label htmlFor="bloque-edit-hora-fin" className={styles.adminLabel}>Hora Fin</label>
+                <input id="bloque-edit-hora-fin" type="time" value={editingBlock.hora_fin}
                   onChange={e => setEditingBlock({ ...editingBlock, hora_fin: e.target.value })}
-                  style={adminTheme.input} />
+                  className={styles.adminInput} />
               </div>
               <div>
-                <label style={adminTheme.label}>Materia</label>
-                <input value={editingBlock.materia}
+                <label htmlFor="bloque-edit-materia" className={styles.adminLabel}>Materia</label>
+                <input id="bloque-edit-materia" value={editingBlock.materia}
                   onChange={e => setEditingBlock({ ...editingBlock, materia: e.target.value })}
-                  placeholder="Opcional" style={adminTheme.input} />
+                  placeholder="Opcional" className={styles.adminInput} />
               </div>
               <div>
-                <label style={adminTheme.label}>Nivel / Grado</label>
-                <input value={editingBlock.nivel_grado}
+                <label htmlFor="bloque-edit-nivel" className={styles.adminLabel}>Nivel / Grado</label>
+                <input id="bloque-edit-nivel" value={editingBlock.nivel_grado}
                   onChange={e => setEditingBlock({ ...editingBlock, nivel_grado: e.target.value })}
-                  placeholder="Ej: 3er ano" style={adminTheme.input} />
+                  placeholder="Ej: 3er ano" className={styles.adminInput} />
               </div>
             </div>
             <div>
-              <label style={adminTheme.label}>Ubicacion</label>
-              <input value={editingBlock.ubicacion}
+              <label htmlFor="bloque-edit-ubicacion" className={styles.adminLabel}>Ubicacion</label>
+              <input id="bloque-edit-ubicacion" value={editingBlock.ubicacion}
                 onChange={e => setEditingBlock({ ...editingBlock, ubicacion: e.target.value })}
-                placeholder="Ej: Aula 101" style={adminTheme.input} />
+                placeholder="Ej: Aula 101" className={styles.adminInput} />
             </div>
-            <button onClick={handleSaveEdit} style={adminTheme.greenBtn}>
+            <button type="button" onClick={handleSaveEdit} className={styles.adminGreenBtn}>
               💾 Guardar cambios
             </button>
           </div>

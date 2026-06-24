@@ -18,13 +18,30 @@ export interface AiResult {
   text: string;
   error?: string;
   simulated?: boolean;
+  fidelity?: FidelityReport;
+}
+
+export interface FidelityWarning {
+  slide_number?: number;
+  severity: 'HIGH' | 'MEDIUM';
+  category: string;
+  flagged_text: string;
+  reason: string;
+  suggestion: string;
+}
+
+export interface FidelityReport {
+  score: number;
+  total_flags: number;
+  warnings: FidelityWarning[];
 }
 
 /** Tipo de motor para enrutar al backend correcto */
 export type MotorType =
   | 'synthesis' | 'alpha2' | 'abp' | 'assessment'
   | 'plan' | 'slides' | 'ficha' | 'quiz'
-  | 'tutor' | 'pdc' | 'recalibrate' | 'micro';
+  | 'tutor' | 'pdc' | 'recalibrate' | 'micro'
+  | 'source_narrator';
 
 /** Streaming callback type — called once per text chunk as it arrives */
 export type StreamingCallback = (text: string) => void;
@@ -125,6 +142,7 @@ export async function callMinimax(
         status?: string;
         output?: unknown;
         simulated?: boolean;
+        fidelity?: FidelityReport;
       };
       error?: string;
     };
@@ -135,12 +153,13 @@ export async function callMinimax(
 
     const output = data.data?.output;
     const simulated = data.data?.simulated === true;
+    const fidelity = data.data?.fidelity;
     if (!output) {
-      return { ok: false, text: '', error: 'Backend no devolvi�� output' };
+      return { ok: false, text: '', error: 'Backend no devolvi output' };
     }
 
     // Serializar el output como JSON para mantener compatibilidad con AiResult.text
-    return { ok: true, text: JSON.stringify(output), simulated };
+    return { ok: true, text: JSON.stringify(output), simulated, fidelity };
   } catch (err: any) {
     const msg = err?.response?.data?.error
       || err?.message
@@ -191,8 +210,8 @@ export async function callMinimaxStream(
         curriculum_id: (params?.curriculum_id as string) || '',
       };
     } else {
-      // Generic SSE endpoint: POST /api/ai/stream
-      url = '/api/ai/stream';
+      // Generic endpoint: POST /api/ai/generate (non-streaming fallback)
+      url = '/api/ai/generate';
       body = {
         systemPrompt: _systemPrompt,
         userMessage: _userMessage,
@@ -251,7 +270,7 @@ export async function callMinimaxStream(
         const jsonStr = trimmed.slice('data:'.length).trim();
         if (!jsonStr) continue;
 
-        let event: { status?: string; chunk?: string; output?: unknown; error?: string };
+        let event: { status?: string; chunk?: string; output?: unknown; error?: string; simulated?: boolean };
         try {
           event = JSON.parse(jsonStr);
         } catch {
@@ -275,7 +294,7 @@ export async function callMinimaxStream(
           return {
             ok: true,
             text: event.output ? JSON.stringify(event.output) : '',
-            simulated: false,
+            simulated: event.simulated ?? false,
           };
         }
 

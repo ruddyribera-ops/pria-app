@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/Layout/Header';
-import { adminTheme } from '../styles/adminTheme';
+import adminStyles from '../styles/admin.module.css';
 import styles from './AdminPage.module.css';
 import { useToast } from '../components/UI/Toast';
 import AdminArchivosPanel from './AdminArchivosPanel';
@@ -33,7 +33,7 @@ export default function AdminPage() {
       {/* Tab bar */}
       <div className={styles.tabBar}>
         {TABS.map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={adminTheme.tabBtn(activeTab === tab.id)}>
+          <button type="button" key={tab.id} onClick={() => setActiveTab(tab.id)} className={activeTab === tab.id ? adminStyles.adminTabBtnActive : adminStyles.adminTabBtn}>
             {tab.label}
           </button>
         ))}

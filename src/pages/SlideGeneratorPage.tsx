@@ -2,23 +2,42 @@ import { useState, useCallback, useMemo } from 'react';
 import Header from '../components/Layout/Header';
 import PhaseStepper from '../components/Motores/PhaseStepper';
 import PhaseNavigation from '../components/Motores/PhaseNavigation';
-import SlideEditorPanel from '../components/SlideEditor/SlideEditorPanel';
+import SlideEditorPanel, { type MergedData } from '../components/SlideEditor/SlideEditorPanel';
 import ResultPreview from '../components/SlideEditor/ResultPreview';
 import { useMultiPhaseGeneration } from '../hooks/useMultiPhaseGeneration';
 import { mergePhaseResults } from '../lib/pptx/multiPhaseContent';
 import type { PhaseField } from '../lib/pptx/phaseDefinitions';
+import { createMotorResult, updateMotorResult } from '../api/motores';
 import styles from './SlideGeneratorPage.module.css';
 
 export default function SlideGeneratorPage() {
   const [motorParams, setMotorParams] = useState<Record<string, unknown>>({});
   const [showEditor, setShowEditor] = useState(false);
+  const [currentResultId, setCurrentResultId] = useState<number | null>(() => {
+    try {
+      const stored = sessionStorage.getItem('currentResultId');
+      return stored ? Number(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const updateResultId = (id: number | null) => {
+    setCurrentResultId(id);
+    try {
+      if (id !== null) sessionStorage.setItem('currentResultId', String(id));
+      else sessionStorage.removeItem('currentResultId');
+    } catch {
+      // sessionStorage unavailable (SSR/private mode) — silently ignore
+    }
+  };
 
   const {
     phaseDefs, currentPhase, totalPhases,
     phaseStatus, phaseStatuses, results,
     isActive, allPhasesDone,
     submit, regenerate, nextPhase, prevPhase,
-    goToPhase, reset,
+    goToPhase, reset, simulated,
   } = useMultiPhaseGeneration('slides');
 
   const currentDef = phaseDefs[currentPhase];
@@ -46,8 +65,23 @@ export default function SlideGeneratorPage() {
 
   const handleClearEditor = useCallback(() => {
     setShowEditor(false);
+    updateResultId(null);
     reset();
   }, [reset]);
+
+  const handleSave = useCallback(async (resultId: number, data: Record<string, unknown>) => {
+    const jsonData = JSON.stringify(data);
+    if (resultId && currentResultId) {
+      await updateMotorResult(resultId, jsonData);
+    } else {
+      const created = await createMotorResult({
+        motor_type: 'slides',
+        result_json: jsonData,
+        simulated,
+      });
+      updateResultId(created.id);
+    }
+  }, [currentResultId, simulated]);
 
   const renderField = (field: PhaseField) => {
     const value = motorParams[field.name] ?? field.default ?? '';
@@ -169,6 +203,7 @@ export default function SlideGeneratorPage() {
                 </div>
               ))}
               <button
+                type="submit"
                 onClick={handleSubmit}
                 disabled={isActive}
                 className={styles.submitBtn}
@@ -209,6 +244,7 @@ export default function SlideGeneratorPage() {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setShowEditor(true)}
                   className={styles.openEditorBtn}
                 >
@@ -218,9 +254,11 @@ export default function SlideGeneratorPage() {
             </div>
           ) : (
             <SlideEditorPanel
-              mergedData={mergedData as any}
+              mergedData={mergedData as MergedData}
               typeLabel={(motorParams.tema as string) || (motorParams.materia as string) || 'Diapositivas'}
               motorType="slides"
+              resultId={currentResultId}
+              onSave={handleSave}
               onClear={handleClearEditor}
             />
           )}

@@ -20,6 +20,7 @@ export default function NotFoundPage() {
         Página no encontrada
       </p>
       <button
+        type="button"
         onClick={() => navigate('/diario')}
         style={{
           marginTop: '1rem', padding: '0.75rem 2rem', background: '#3A9E5E',

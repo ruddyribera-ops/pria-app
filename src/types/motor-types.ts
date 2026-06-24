@@ -117,6 +117,12 @@ export interface PlanOutput {
 
 // ── Slides (slides.schema.ts) ───────────────────────────────────────────────
 
+export interface MnemonicItem {
+  label: string;
+  description: string;
+  color?: string;
+}
+
 export interface SlideItem {
   numero: number;
   tipo: 'portada' | 'objetivos' | 'concepto' | 'pausa' | 'cierre';
@@ -125,6 +131,7 @@ export interface SlideItem {
   guion_docente: string;
   prompt_imagen?: string;
   callout?: string;
+  mnemonic?: MnemonicItem[];
 }
 
 export type SlidesOutput = SlideItem[];
@@ -288,6 +295,34 @@ export interface MicroOutput {
   };
 }
 
+// ── Source Narrator (source-narrator.schema.ts) ─────────────────────────────
+
+export interface SourceNarratorOutput {
+  narrative_summary: string;
+  characters: Array<{
+    name: string;
+    role: string;
+    description: string;
+    key_quote?: string;
+  }>;
+  sequence: Array<{
+    order: number;
+    event: string;
+    significance: string;
+  }>;
+  examples: Array<{
+    type: 'historical' | 'cultural' | 'scientific' | 'anecdotal' | 'mythological';
+    content: string;
+    source_quote?: string;
+  }>;
+  cultural_anchors: Array<{
+    term: string;
+    definition: string;
+    context: string;
+  }>;
+  vivid_details: string[];
+}
+
 // ── Union type for all motors ───────────────────────────────────────────────
 
 export type AnyMotorOutput =
@@ -301,4 +336,5 @@ export type AnyMotorOutput =
   | TutorOutput
   | PDCOutput
   | RecalibrateOutput
-  | MicroOutput;
+  | MicroOutput
+  | SourceNarratorOutput;

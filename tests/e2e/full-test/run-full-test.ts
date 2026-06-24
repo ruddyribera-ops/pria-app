@@ -1,8 +1,9 @@
 import { chromium, Browser, Page } from 'playwright';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 
-const BASE = 'http://localhost:5173';
+const BASE = process.env.E2E_BASE_URL || 'http://localhost:5173';
 const SCREENSHOT_DIR = 'D:/.playwright-mcp/pria-test';
 const REPORT: string[] = [];
 let browser: Browser;
@@ -106,6 +107,15 @@ async function visitPage(url: string, label: string) {
 }
 
 async function run() {
+  // Production safety guard — refuse to run destructive test against non-localhost
+  const PRODUCTION_HOSTS = ['railway.app', 'vercel.app', 'netlify.app', 'aws.amazon.com', 'digitalocean.com', 'heroku.com'];
+  if (PRODUCTION_HOSTS.some(h => BASE.includes(h))) {
+    throw new Error(`[run-full-test] REFUSING to run against production URL: ${BASE}. This script clicks every button and could destroy data. Use localhost for development only.`);
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('[run-full-test] NODE_ENV=production — aborting destructive test.');
+  }
+
   // Ensure screenshot dir
   if (!fs.existsSync(SCREENSHOT_DIR)) {
     fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });

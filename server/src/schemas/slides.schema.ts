@@ -7,6 +7,14 @@ const SlideSchema = z.object({
   texto_pantalla: z.string(),
   guion_docente: z.string(),
   prompt_imagen: z.string().optional(),
+  // Phase A: 3 variations of the image prompt optimized for different free tools
+  prompt_imagen_variations: z.array(z.object({
+    estilo: z.enum(['ilustracion_infantil', 'fotografia_educativa', 'artistico_cultural']),
+    prompt: z.string(),
+    herramienta_recomendada: z.enum(['bing', 'leonardo', 'ideogram', 'cualquiera']),
+  })).optional(),
+  // Phase C: Auto-generated alt-text for accessibility
+  alt_text: z.string().optional(),
   callout: z.string().optional(),
 });
 

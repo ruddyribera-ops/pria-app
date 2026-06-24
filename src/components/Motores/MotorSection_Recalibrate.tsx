@@ -30,8 +30,8 @@ export default function MotorSection_Recalibrate({ result }: Props) {
         {r.ajustes_sugeridos && r.ajustes_sugeridos.length > 0 && (
           <div>
             <strong>Ajuste sugerido:</strong>
-            {r.ajustes_sugeridos.map((a, i) => (
-              <div key={i} style={{ paddingLeft: '0.5rem', borderLeft: '2px solid #EA580C' }}>
+            {r.ajustes_sugeridos.map((a) => (
+              <div key={a.area} style={{ paddingLeft: '0.5rem', borderLeft: '2px solid #EA580C' }}>
                 <strong>{a.area}:</strong> {a.accion} <span style={{ color: '#6b6b80' }}>(impacto: {a.impacto_esperado})</span>
               </div>
             ))}

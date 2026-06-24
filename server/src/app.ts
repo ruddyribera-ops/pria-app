@@ -2,9 +2,14 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import * as Sentry from '@sentry/node';
+import { sentryBeforeSend } from './lib/sentry-scrubber.js';
 import { pinoHttp as pinoHttpFn } from 'pino-http';
 import { config } from './config.js';
 import type { Request, Response } from 'express';
+import { requestIdMiddleware } from './middleware/requestId.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { cspReportOnlyMiddleware, cspReportHandler } from './middleware/csp.js';
+import { createRateLimiter } from './middleware/rateLimiter.js';
 import healthRouter from './routes/health.js';
 import authRouter from './routes/auth.js';
 import adminRouter from './routes/admin.js';
@@ -16,29 +21,40 @@ import curriculumsRouter from './routes/curriculums.js';
 import aiRouter from './routes/ai.js';
 import blocksRouter from './routes/blocks.js';
 import promptsRouter from './routes/prompts.js';
-import { errorHandler } from './middleware/errorHandler.js';
+import passwordResetRouter from './routes/password-reset.js';
 import { authMiddleware } from './middleware/auth.js';
+import path from 'path';
 
 // Init Sentry if DSN is provided
 if (process.env.SENTRY_DSN) {
-  Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1 });
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    tracesSampleRate: 0.1,
+    sendDefaultPii: false,
+    beforeSend: sentryBeforeSend,
+    environment: process.env.NODE_ENV || 'development',
+    release: process.env.RAILWAY_GIT_COMMIT_SHA || 'unknown',
+  });
 }
 
 export async function createApp() {
   const app = express();
 
+  // SEC-02: Trust proxy so req.ip reflects real client IP behind Railway reverse proxy
+  app.set('trust proxy', 1);
+
   // Security headers
   app.use(helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: false, // Disable helmet's CSP so we can use Report-Only
     crossOriginResourcePolicy: { policy: 'same-origin' },
   }));
-  app.use((req, res, next) => {
-    res.setHeader(
-      'Content-Security-Policy',
-      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.minimax.io;"
-    );
-    next();
-  });
+
+  // CSP Report-Only — collects violations without enforcing
+  app.use(cspReportOnlyMiddleware);
+
+  // CSP violation report endpoint — rate limited to 10 reports/min per IP
+  const cspReportLimiter = createRateLimiter(10, 60 * 1000);
+  app.post('/api/csp-report', cspReportLimiter, express.json({ type: 'application/csp-report' }), cspReportHandler);
 
   // Support comma-separated list of origins: "http://localhost:5173,https://myapp.com"
   const rawOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || 'http://localhost:5173') as string;
@@ -55,6 +71,9 @@ export async function createApp() {
   }));
   app.use(express.json({ limit: '10mb' }));
 
+  // Request ID — must be before pinoHttp so genReqId can use it
+  app.use(requestIdMiddleware);
+
   // Structured request logging
   app.use(pinoHttpFn({
     autoLogging: {
@@ -65,6 +84,7 @@ export async function createApp() {
       if (res.statusCode >= 400) return 'warn';
       return 'info';
     },
+    genReqId: (req: Request) => req.requestId!,
     serializers: {
       req: (req: Request) => ({ method: req.method, url: req.url, query: req.query }),
       res: (res: Response) => ({ statusCode: res.statusCode }),
@@ -74,6 +94,7 @@ export async function createApp() {
   // Routes
   app.use('/api/health', healthRouter);
   app.use('/api/auth', authRouter);
+  app.use('/api/auth', passwordResetRouter);  // forgot-password + reset-password
   app.use('/api/admin', adminRouter);
   app.use('/api/materials', materialsRouter);
   app.use('/api/motores', motoresRouter);
@@ -83,6 +104,9 @@ export async function createApp() {
   app.use('/api/blocks', authMiddleware, blocksRouter);
   app.use('/api/ai', aiRouter);
   app.use('/api/prompts', promptsRouter);
+
+  // Serve uploaded files
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   // Error handler
   app.use(errorHandler);

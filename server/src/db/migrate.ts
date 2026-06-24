@@ -3,7 +3,7 @@
  * Reads .sql files from migrations/ directory, applies them in order,
  * and tracks applied migrations in schema_migrations table.
  */
-import { readFileSync, readdirSync } from 'fs';
+import { readFileSync, readdirSync, writeFileSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { getPoolClient } from './connection.js';
@@ -38,9 +38,14 @@ async function getAppliedMigrations(pool: ReturnType<typeof getPoolClient>): Pro
 
 /** Get all migration files sorted by version prefix */
 function getMigrationFiles(): { version: number; name: string; path: string }[] {
-  const files = readdirSync(MIGRATIONS_DIR)
-    .filter((f) => f.endsWith('.sql'))
-    .sort();
+  const allSqlFiles = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql'));
+  const SAFE_NAME = /^(\d{3,})_[a-z0-9_]+\.sql$/;
+  const files = allSqlFiles.filter((f) => SAFE_NAME.test(f));
+
+  if (files.length !== allSqlFiles.length) {
+    const bad = allSqlFiles.filter((f) => !SAFE_NAME.test(f));
+    throw new Error(`[migrate] UNSAFE FILENAMES detected: ${bad.join(', ')}. Aborting.`);
+  }
 
   return files.map((filename) => {
     const match = filename.match(/^(\d+)_/);
@@ -59,6 +64,24 @@ function getMigrationFiles(): { version: number; name: string; path: string }[] 
  * Duplicate key (23505) is treated as already applied — no exit.
  */
 export async function runMigrations(): Promise<void> {
+  // Skip writable check in dev mode (Windows Admin can't make dirs read-only)
+  if (process.env.NODE_ENV === 'development' || process.env.SKIP_MIGRATION_SECURITY_CHECK === '1') {
+    console.log('[migrate] Dev mode — skipping writability check');
+  } else {
+    // Verify migrations directory is not writable — fail fast if misconfigured
+    try {
+      const testFile = join(MIGRATIONS_DIR, '.migration-lock');
+      writeFileSync(testFile, 'test');
+      unlinkSync(testFile); // clean up
+      throw new Error('[migrate] MIGRATIONS_DIR is WRITABLE — this is a security risk. Fix permissions.');
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'EACCES') {
+        // EACCES = correctly read-only (desired). Any other error = unexpected.
+        throw new Error(`[migrate] Cannot verify migrations dir: ${(err as Error).message}`);
+      }
+    }
+  }
+
   const pool = getPoolClient();
 
   await ensureTrackingTable(pool);

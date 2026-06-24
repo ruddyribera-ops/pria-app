@@ -115,6 +115,31 @@ export default function Sidebar({ nivel, grado, onNivelChange, onGradoChange }: 
 
         {/* Navigation */}
         <nav className={styles.nav}>
+          {/* Primary action — Mis Clases (Dashboard) */}
+          <NavLink
+            to="/dashboard"
+            className={({ isActive }) =>
+              `${styles.navLink} ${styles.navLinkPrimary} ${isActive ? styles.navLinkPrimaryActive : ''}`
+            }
+            onClick={closeMobile}
+          >
+            <span className={styles.navIcon}>📚</span>
+            <span>Mis Clases</span>
+          </NavLink>
+
+          {/* Section: Crear */}
+          <div className={styles.navSection}>✨ Crear</div>
+          <NavLink
+            to="/wizard"
+            className={({ isActive }) =>
+              `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
+            }
+            onClick={closeMobile}
+          >
+            <span className={styles.navIcon}>➕</span>
+            <span>Nuevo Material</span>
+          </NavLink>
+
           {/* Section: Generación */}
           <div className={styles.navSection}>🎨 Generación</div>
           <NavLink
