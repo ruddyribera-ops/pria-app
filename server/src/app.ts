@@ -82,7 +82,8 @@ export async function createApp() {
       callback(new Error(`CORS: origin ${origin} not allowed`));
     },
   }));
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: '100mb' }));
+  app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
   // Request ID — must be before pinoHttp so genReqId can use it
   app.use(requestIdMiddleware);

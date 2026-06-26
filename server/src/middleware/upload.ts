@@ -6,6 +6,7 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { mkdirSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -18,6 +19,8 @@ const ALLOWED_MATERIALS = ['.pdf', '.docx', '.txt', '.doc', '.pptx', '.xlsx'];
 const ALLOWED_DIAG = ['.pdf', '.docx', '.txt', '.jpg', '.jpeg', '.png', '.doc'];
 
 function makeDiskStorage(subDir: string) {
+  const subDirAbs = path.resolve(subDir);
+  try { mkdirSync(subDirAbs, { recursive: true }); } catch { /* exists or no perm — let multer surface the real error */ }
   return multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, subDir),
     filename: (_req, file, cb) => {
