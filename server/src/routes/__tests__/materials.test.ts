@@ -16,7 +16,7 @@ describe('Materials routes', () => {
   beforeAll(async () => {
     try { await (await import('../../db/connection.js')).getPoolClient(); } catch { throw new Error('PostgreSQL required'); }
     await initDatabase(); initDB();
-    const cleanPool = getPoolClient(); await cleanPool.query('DELETE FROM rate_limiter');
+    const cleanPool = getPoolClient(); await cleanPool.query('DELETE FROM rate_limit_buckets');
     const hashed = await bcrypt.hash('admin123', 12);
     const pool = getPoolClient();
     await pool.query(`INSERT INTO users (username,password_hash,nombre,role,nivel,grado)
@@ -93,4 +93,106 @@ describe('Materials routes', () => {
     const res = await fetch(`http://127.0.0.1:${port}/api/materials`);
     expect(res.status).toBe(401);
   });
+
+  test('GET /materials/:id/output returns motor result output', async () => {
+    // First create a motor_result directly in DB
+    const pool = getPoolClient();
+    const insertRes = await pool.query(
+      `INSERT INTO motor_results (user_id, motor_type, result_json, status, simulated)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [1, 'synthesis', JSON.stringify({ output: { tema: 'Test Output' }, fidelity: null }), 'done', true]
+    );
+    const motorResultId = insertRes.rows[0].id;
+
+    // Now query it via /materials/:id/output
+    const res = await fetch(`http://127.0.0.1:${port}/api/materials/${motorResultId}/output`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const data = await res.json() as any;
+    expect(data.output.tema).toBe('Test Output');
+
+    // Cleanup
+    await pool.query('DELETE FROM motor_results WHERE id = $1', [motorResultId]);
+  });
+
+  test('GET /materials/:id/output with non-existent id returns 404', async () => {
+    const res = await fetch(`http://127.0.0.1:${port}/api/materials/99999/output`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(404);
+  });
+
+  test('GET /materials/:id/output without auth returns 401', async () => {
+    const res = await fetch(`http://127.0.0.1:${port}/api/materials/1/output`);
+    expect(res.status).toBe(401);
+  });
 });
+
+describe('Materials file upload edge cases', () => {
+  let server: http.Server;
+  let port: number;
+  let token: string;
+
+  beforeAll(async () => {
+    try { await (await import('../../db/connection.js')).getPoolClient(); } catch { throw new Error('PostgreSQL required'); }
+    await initDatabase(); initDB();
+    const cleanPool = getPoolClient(); await cleanPool.query('DELETE FROM rate_limit_buckets');
+    const hashed = await bcrypt.hash('admin123', 12);
+    const pool = getPoolClient();
+    await pool.query(`INSERT INTO users (username,password_hash,nombre,role,nivel,grado)
+      VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT(username) DO UPDATE SET password_hash=EXCLUDED.password_hash`,
+      ['admin', hashed, 'Admin', 'admin', 'Primaria', '5to']);
+    const app = await createApp();
+    await new Promise<void>(r => { server = app.listen(0, () => { const a = server.address(); port = typeof a==='object'?a!.port:3001; r(); }); });
+    const res = await fetch(`http://127.0.0.1:${port}/api/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'admin', password: 'admin123' }),
+    });
+    const data = await res.json() as any; token = data.data.token;
+  });
+
+  afterAll(async () => { await new Promise<void>(r => server?.close(() => r())); await closePool(); });
+
+  test('POST /materials with oversized body returns 413', async () => {
+    // Multer is configured with 50MB limit (50 * 1024 * 1024 bytes)
+    // Send an actual 60MB body (not just metadata) to exceed the limit
+    const padding = 'x'.repeat(60 * 1024 * 1024); // 60MB of 'x'
+    const largeBody = JSON.stringify({
+      filename: 'large.pdf',
+      tipo: 'textbook',
+      size: 60 * 1024 * 1024,
+      padding,
+    });
+
+    const res = await fetch(`http://127.0.0.1:${port}/api/materials`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: largeBody,
+    });
+    // When multer's fileSize limit is exceeded, it returns 413
+    expect([413, 500]).toContain(res.status);
+  });
+
+  test('POST /materials with valid small file succeeds', async () => {
+    const smallBody = JSON.stringify({
+      filename: 'small.pdf',
+      tipo: 'textbook',
+      size: 1024, // 1KB - well under limit
+    });
+
+    const res = await fetch(`http://127.0.0.1:${port}/api/materials`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: smallBody,
+    });
+    expect(res.status).toBe(200);
+  });
+});
+

@@ -9,10 +9,15 @@ interface ScheduleApiResponse {
 }
 
 export async function getScheduleByDay(teacherCode: string, dia: string): Promise<ScheduleEntry[]> {
-  const response = await client.get(`/schedule/${teacherCode}/${dia}`);
-  if (Array.isArray(response.data)) return response.data;
-  const apiResp = response.data as ScheduleApiResponse;
-  return apiResp.bloques ?? [];
+  try {
+    const response = await client.get(`/schedule/${teacherCode}/${dia}`);
+    if (Array.isArray(response.data)) return response.data;
+    const apiResp = response.data as ScheduleApiResponse;
+    return apiResp.bloques ?? [];
+  } catch (err) {
+    console.warn('[getScheduleByDay] Network error:', err);
+    return [];
+  }
 }
 
 export const DAYS = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES'] as const;

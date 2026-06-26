@@ -311,7 +311,8 @@ async function tryMinimax(
  */
 async function tryMinimaxStream(
   motorType: string,
-  params: Record<string, unknown>
+  params: Record<string, unknown>,
+  clientSignal?: AbortSignal
 ): Promise<{ chunks: string[]; output: unknown } | null> {
   if (!MINIMAX_API_KEY) {
     console.warn('[motores] MINIMAX_API_KEY no configurada');
@@ -346,6 +347,11 @@ async function tryMinimaxStream(
     streamController.abort();
   }, streamTimeoutMs);
 
+  // Combine client disconnect signal with internal timeout signal
+  const combinedSignal = clientSignal
+    ? AbortSignal.any([clientSignal, streamController.signal])
+    : streamController.signal;
+
   try {
     const response = await fetch(MINIMAX_API_URL, {
       method: 'POST',
@@ -354,7 +360,7 @@ async function tryMinimaxStream(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
-      signal: streamController.signal,
+      signal: combinedSignal,
     });
 
     if (!response.ok) {
@@ -700,8 +706,17 @@ router.post('/:type/stream', motorLimiterHourly, motorLimiterDaily, async (req: 
 
   sendEvent({ status: 'started' });
 
+  // Create AbortController for client disconnect — aborts MiniMax call when client disconnects
+  const clientAbortController = new AbortController();
+  req.on('close', () => {
+    if (!clientAbortController.signal.aborted) {
+      console.warn(`[motores/stream] Client disconnected for ${type}, aborting MiniMax call`);
+      clientAbortController.abort();
+    }
+  });
+
   try {
-    const result = await tryMinimaxStream(type, params);
+    const result = await tryMinimaxStream(type, params, clientAbortController.signal);
     if (!result) {
       // MiniMax failed — generate mock and stream it
       const mockOutput = generateMockOutput(type as MotorType, params as Record<string, unknown>);

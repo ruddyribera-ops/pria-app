@@ -79,3 +79,4 @@ describeIf('GET /api/health -- happy path (requires PostgreSQL)', () => {
     expect(res.status).toBe(200);
   });
 });
+

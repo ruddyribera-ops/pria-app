@@ -49,3 +49,4 @@ describe('GET /api/health -- DB down', () => {
     expect(data.db).toBe('disconnected');
   });
 });
+

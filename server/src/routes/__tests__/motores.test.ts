@@ -31,7 +31,7 @@ describe('Motores routes', () => {
   beforeAll(async () => {
     try { await (await import('../../db/connection.js')).getPoolClient(); } catch { throw new Error('PostgreSQL required'); }
     await initDatabase(); initDB();
-    const pool = getPoolClient(); await pool.query('DELETE FROM rate_limiter');
+    const pool = getPoolClient(); await pool.query('DELETE FROM rate_limit_buckets');
     const hashed = await bcrypt.hash('admin123', 12);
     await pool.query(`INSERT INTO users (username,password_hash,nombre,role,nivel,grado)
       VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT(username) DO UPDATE SET password_hash=EXCLUDED.password_hash`,
@@ -46,7 +46,7 @@ describe('Motores routes', () => {
   });
 
   beforeEach(async () => {
-    const pool = getPoolClient(); await pool.query('DELETE FROM rate_limiter');
+    const pool = getPoolClient(); await pool.query('DELETE FROM rate_limit_buckets');
   });
 
   afterAll(async () => { await new Promise<void>(r => server?.close(() => r())); await closePool(); });
@@ -141,3 +141,4 @@ describe('Motores routes', () => {
     expect([200, 422, 429]).toContain(res.status);
   });
 });
+

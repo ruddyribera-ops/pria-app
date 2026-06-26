@@ -2,6 +2,9 @@
  * Database migration runner with tracking table.
  * Reads .sql files from migrations/ directory, applies them in order,
  * and tracks applied migrations in schema_migrations table.
+ *
+ * NOTE: When USE_PGLITE=1, migrations are handled by connection.ts directly.
+ * This module is only used for non-pglite (production PostgreSQL) setups.
  */
 import { readFileSync, readdirSync, writeFileSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
@@ -11,6 +14,8 @@ import { getPoolClient } from './connection.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(__dirname, 'migrations');
 
+const USE_PGLITE = process.env.USE_PGLITE === '1' || process.env.VITEST === 'true';
+
 interface MigrationRecord {
   version: number;
   name: string;
@@ -18,7 +23,7 @@ interface MigrationRecord {
 }
 
 /** Create the tracking table if it doesn't exist */
-async function ensureTrackingTable(pool: ReturnType<typeof getPoolClient>): Promise<void> {
+async function ensureTrackingTable(pool: any): Promise<void> {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       version INTEGER PRIMARY KEY,
@@ -29,7 +34,7 @@ async function ensureTrackingTable(pool: ReturnType<typeof getPoolClient>): Prom
 }
 
 /** Get list of already-applied migrations */
-async function getAppliedMigrations(pool: ReturnType<typeof getPoolClient>): Promise<MigrationRecord[]> {
+async function getAppliedMigrations(pool: any): Promise<MigrationRecord[]> {
   const result = await pool.query<{ version: number; name: string; applied_at: Date }>(
     'SELECT version, name, applied_at FROM schema_migrations ORDER BY version ASC'
   );
@@ -64,6 +69,13 @@ function getMigrationFiles(): { version: number; name: string; path: string }[] 
  * Duplicate key (23505) is treated as already applied — no exit.
  */
 export async function runMigrations(): Promise<void> {
+  // When using pglite, migrations are handled automatically by connection.ts
+  // on first database access. This function is only for non-pglite setups.
+  if (USE_PGLITE) {
+    console.log('[migrate] PGlite mode — migrations handled by connection layer');
+    return;
+  }
+
   // Skip writable check in dev mode (Windows Admin can't make dirs read-only)
   if (process.env.NODE_ENV === 'development' || process.env.SKIP_MIGRATION_SECURITY_CHECK === '1') {
     console.log('[migrate] Dev mode — skipping writability check');
@@ -82,7 +94,7 @@ export async function runMigrations(): Promise<void> {
     }
   }
 
-  const pool = getPoolClient();
+  const pool: any = getPoolClient();
 
   await ensureTrackingTable(pool);
 
@@ -104,29 +116,22 @@ export async function runMigrations(): Promise<void> {
 
     console.log(`[migrate] Applying ${migration.name}...`);
 
-    const client = await pool.connect();
     try {
-      await client.query('BEGIN');
-      await client.query(sql);
-      await client.query(
+      await pool.query(sql);
+      await pool.query(
         'INSERT INTO schema_migrations (version, name) VALUES ($1, $2)',
         [migration.version, migration.name]
       );
-      await client.query('COMMIT');
       console.log(`[migrate] ✓ ${migration.name} applied`);
     } catch (err: any) {
-      await client.query('ROLLBACK');
       // 23505 = duplicate key — migration already applied (e.g. in parallel test suites)
       if (err?.code === '23505') {
         console.log(`[migrate] ${migration.name} already applied (duplicate key)`);
-        client.release();
         continue;
       }
       console.error(`[migrate] ✗ ${migration.name} failed:`);
       console.error(err);
       process.exit(1);
-    } finally {
-      client.release();
     }
   }
 

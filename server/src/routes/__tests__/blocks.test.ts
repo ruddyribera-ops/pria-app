@@ -17,7 +17,7 @@ describe('Blocks routes (Bug B4)', () => {
   beforeAll(async () => {
     try { await (await import('../../db/connection.js')).getPoolClient(); } catch { throw new Error('PostgreSQL required'); }
     await initDatabase(); initDB();
-    const cleanPool = getPoolClient(); await cleanPool.query('DELETE FROM rate_limiter');
+    const cleanPool = getPoolClient(); await cleanPool.query('DELETE FROM rate_limit_buckets');
     const hashed = await bcrypt.hash('admin123', 12);
     const pool = getPoolClient();
     await pool.query(`INSERT INTO users (username,password_hash,nombre,role,nivel,grado)
@@ -47,7 +47,7 @@ describe('Blocks routes (Bug B4)', () => {
 
   beforeEach(async () => {
     const pool = getPoolClient();
-    await pool.query('DELETE FROM rate_limiter');
+    await pool.query('DELETE FROM rate_limit_buckets');
     await pool.query('DELETE FROM bloques');
   });
 
@@ -211,4 +211,41 @@ describe('Blocks routes (Bug B4)', () => {
     expect(Array.isArray(data.data)).toBe(true);
     expect(data.data.length).toBe(2);
   });
+
+  test('POST /api/blocks/ without auth returns 401', async () => {
+    const res = await fetch(`http://127.0.0.1:${port}/api/blocks/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        teacher_code: 'UNAUTH_1',
+        dia: 'Lunes',
+        hora_inicio: '08:00',
+        hora_fin: '09:00',
+        tipo: 'regular',
+      }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  test('GET /api/blocks/ without auth returns 401', async () => {
+    const res = await fetch(`http://127.0.0.1:${port}/api/blocks/`);
+    expect(res.status).toBe(401);
+  });
+
+  test('PUT /api/blocks/:id without auth returns 401', async () => {
+    const res = await fetch(`http://127.0.0.1:${port}/api/blocks/999`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dia: 'Miercoles' }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  test('DELETE /api/blocks/:id without auth returns 401', async () => {
+    const res = await fetch(`http://127.0.0.1:${port}/api/blocks/999`, {
+      method: 'DELETE',
+    });
+    expect(res.status).toBe(401);
+  });
 });
+
