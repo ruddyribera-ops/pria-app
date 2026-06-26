@@ -35,7 +35,7 @@ async function ensureTrackingTable(pool: any): Promise<void> {
 
 /** Get list of already-applied migrations */
 async function getAppliedMigrations(pool: any): Promise<MigrationRecord[]> {
-  const result = await pool.query<{ version: number; name: string; applied_at: Date }>(
+  const result = await (pool.query as any)(
     'SELECT version, name, applied_at FROM schema_migrations ORDER BY version ASC'
   );
   return result.rows;

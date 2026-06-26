@@ -51,11 +51,7 @@ async function upsertToDb(
 async function loadFromDb(userId: number): Promise<void> {
   try {
     const pool = getPoolClient();
-    const result = await pool.query<{
-      motor_type: string;
-      status: MotorStatus;
-      last_updated: number;
-    }>(
+    const result = await (pool.query as any)(
       'SELECT motor_type, status, last_updated FROM motor_state WHERE user_id = $1',
       [userId]
     );
