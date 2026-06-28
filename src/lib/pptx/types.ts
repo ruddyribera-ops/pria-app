@@ -51,13 +51,5 @@ export interface ActivityQuestion {
   correctAnswer?: number;
 }
 
-/** Visual palette for a slide deck */
-export interface Palette {
-  name: string;
-  primary: string;
-  secondary: string;
-  accent: string;
-  bg: string;
-  textDark: string;
-  textLight: string;
-}
+/** Visual palette for a slide deck — re-exported from the full design-system definition */
+export type { Palette } from './slides/design-system';

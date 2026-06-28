@@ -19,6 +19,7 @@ export const SLIDE_W = 10;
 export const SLIDE_H = 5.625;
 export const MARGIN = 0.5;
 export const HEADER_H = 0.5;
+export const TOP_BAR_H = HEADER_H; // alias for backward compat with buildSlides.ts
 export const CONTENT_W = SLIDE_W - MARGIN * 2; // 9"
 export const CONTENT_H = SLIDE_H - HEADER_H - MARGIN - 0.5; // ~4.125"
 export const RADIUS = 0.15;

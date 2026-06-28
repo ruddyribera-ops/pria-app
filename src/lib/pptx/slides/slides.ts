@@ -1,8 +1,8 @@
 import PptxGenJS from 'pptxgenjs';
-import { FONTS, FONT_SIZES, getTypography, pickFontSize } from './types';
-import { PALETTES, TIPO_TEMPLATES, TIPO_ICONS, BRAND, detectMateria, getPalette, type Palette } from './design-system';
+import { FONTS, FONT_SIZES } from './types';
+import { PALETTES, TIPO_TEMPLATES, BRAND, detectMateria, getPalette, type Palette } from './design-system';
 import { addPageNumber } from './cover';
-import type { SlideItem, MnemonicItem } from '../../../types/motor-types';
+import type { SlideItem } from '../../../types/motor-types';
 
 // ── Layout constants ──
 const SLIDE_W = 10;
@@ -17,6 +17,7 @@ export interface BuildSlidesOptions {
   teacherEmail?: string;
   startNum?: number;
   materia?: keyof typeof PALETTES;
+  palette?: Palette;
 }
 
 // ─── Decoration helpers ─────────────────────────────────────────────────────
@@ -61,21 +62,18 @@ function drawWave(pptx: PptxGenJS, slide: any, palette: Palette) {
   });
 }
 
-function drawLines(pptx: PptxGenJS, slide: any, palette: Palette) {
-  // Diagonal accent lines (not used now, placeholder)
-}
-
 // ─── Header helpers ─────────────────────────────────────────────────────────
 
 function drawHeader(pptx: PptxGenJS, slide: any, palette: Palette, slideNum: number, total: number) {
   // Gradient bar (2 stacked rects simulating gradient)
+  const gradient = palette.gradient ?? [palette.primary, palette.primaryDark ?? palette.primary];
   slide.addShape(pptx.ShapeType.rect, {
     x: 0, y: 0, w: SLIDE_W, h: HEADER_H / 2,
-    fill: { color: palette.gradient[0] },
+    fill: { color: gradient[0] },
   });
   slide.addShape(pptx.ShapeType.rect, {
     x: 0, y: HEADER_H / 2, w: SLIDE_W, h: HEADER_H / 2,
-    fill: { color: palette.gradient[1] },
+    fill: { color: gradient[1] },
   });
 
   // Brand mark (left)
@@ -93,7 +91,7 @@ function drawHeader(pptx: PptxGenJS, slide: any, palette: Palette, slideNum: num
   });
 }
 
-function drawFooter(pptx: PptxGenJS, slide: any, palette: Palette, subject?: string) {
+function drawFooter(_pptx: PptxGenJS, slide: any, palette: Palette, subject?: string) {
   const footerText = subject
     ? `${BRAND.tagline}  ·  ${subject}`
     : BRAND.tagline;
@@ -107,7 +105,7 @@ function drawFooter(pptx: PptxGenJS, slide: any, palette: Palette, subject?: str
 
 // ─── Title helpers ──────────────────────────────────────────────────────────
 
-function drawTitle(pptx: PptxGenJS, slide: any, palette: Palette, title: string, position: 'center' | 'left') {
+function drawTitle(_pptx: PptxGenJS, slide: any, palette: Palette, title: string, position: 'center' | 'left') {
   if (position === 'center') {
     slide.addText(title, {
       x: 0.5, y: 1.5, w: SLIDE_W - 1, h: 1.8,
@@ -191,7 +189,7 @@ export function buildSlidesSlides(
   // Detect materia from subject or first slide title
   const materiaKey = options.materia
     || detectMateria(subject || data.map(s => s.titulo).join(' '));
-  const palette = getPalette(materiaKey);
+  const palette = options.palette || getPalette(materiaKey);
   const total = data.length;
 
   data.forEach((slideData, idx) => {

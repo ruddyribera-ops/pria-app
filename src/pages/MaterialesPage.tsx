@@ -62,7 +62,7 @@ export default function MaterialesPage() {
   const [teacherConfig, setTeacherConfig] = useState<TeacherInfo>(DEFAULT_TEACHER);
   const [units, setUnits] = useState<Unit[]>([]);
   const [selectedTopicIds, setSelectedTopicIds] = useState<Set<string>>(new Set());
-  const [topicGenerationStatus, setTopicGenerationStatus] = useState<Map<string, 'pending' | 'generating' | 'done' | 'error'>>(new Map());
+  const [_topicGenerationStatus, setTopicGenerationStatus] = useState<Map<string, 'pending' | 'generating' | 'done' | 'error'>>(new Map());
 
   // Load teacher config from localStorage on mount
   useEffect(() => {

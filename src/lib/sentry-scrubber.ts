@@ -24,10 +24,10 @@ function scrubObject(obj: unknown): unknown {
 }
 
 export function sentryBeforeSend(
-  event: Sentry.Event,
+  event: Sentry.ErrorEvent,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _hint: Sentry.EventHint,
-): Sentry.Event | null {
+): Sentry.ErrorEvent | null {
   if (event.request?.headers && typeof event.request.headers === 'object') {
     for (const key of Object.keys(event.request.headers)) {
       if (SENSITIVE_HEADER_PATTERNS.some(p => p.test(key))) {
@@ -41,6 +41,6 @@ export function sentryBeforeSend(
     delete event.user.username;
   }
   if (event.extra) event.extra = scrubObject(event.extra) as Record<string, unknown>;
-  if (event.contexts) event.contexts = scrubObject(event.contexts) as Sentry.Event['contexts'];
+  if (event.contexts) event.contexts = scrubObject(event.contexts) as Sentry.ErrorEvent['contexts'];
   return event;
 }

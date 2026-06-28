@@ -1,4 +1,4 @@
-import type { MotorType } from '../../hooks/useMotorGeneration';
+import type { MotorType } from '../../types';
 
 export interface PhaseField {
   name: string;

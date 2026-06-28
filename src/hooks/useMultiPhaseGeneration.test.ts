@@ -1,24 +1,6 @@
 ﻿/** @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { useMultiPhaseGeneration } from './useMultiPhaseGeneration';
 import type { MotorType } from '../types';
-
-// Simple test helper without renderHook for complex async
-function createHookTester() {
-  let hookState: any = null;
-  let currentPhaseNameRef: any = { current: null };
-  let errorRef: any = { current: null };
-  let phaseStatusesRef: any = { current: [] };
-  let resultsRef: any = { current: {} };
-  let completedPhasesRef: any = { current: [] };
-  let progressIntervalRef: any = { current: null };
-
-  return {
-    getState: () => hookState,
-    setState: (s: any) => { hookState = s; },
-    refs: { currentPhaseNameRef, errorRef, phaseStatusesRef, resultsRef, completedPhasesRef, progressIntervalRef }
-  };
-}
 
 vi.mock('../lib/pptx/phaseDefinitions', () => ({
   getPhaseDefs: vi.fn((motor: MotorType) => {
@@ -55,9 +37,9 @@ describe('useMultiPhaseGeneration', () => {
       expect(errorMessage).toMatch(/cancelado/i);
     });
 
-    it('cancel clears progress interval (no memory leak - bug B-2)', () => {
+it('cancel clears progress interval (no memory leak - bug B-2)', () => {
       // Simulate the clearProgressInterval behavior
-      let intervalId: ReturnType<typeof setInterval> | null = 1;
+      let intervalId: number | null = 1;
       const clearProgressInterval = () => {
         if (intervalId) {
           clearInterval(intervalId);

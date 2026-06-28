@@ -8,9 +8,9 @@ import type { PhaseDef } from '../../lib/pptx/phaseDefinitions';
 
 function makePhaseDefs(): PhaseDef[] {
   return [
-    { id: 'phase-1', label: 'Tema', subtitle: 'Define el tema', description: '...', fields: [], produces: 'output' },
-    { id: 'phase-2', label: 'Objetivos', subtitle: 'Define objetivos', description: '...', fields: [], produces: 'output' },
-    { id: 'phase-3', label: 'Actividades', subtitle: 'Define actividades', description: '...', fields: [], produces: 'output' },
+    { id: 'phase-1', label: 'Tema', subtitle: 'Define el tema', description: '...', fields: [], produces: ['output'] },
+    { id: 'phase-2', label: 'Objetivos', subtitle: 'Define objetivos', description: '...', fields: [], produces: ['output'] },
+    { id: 'phase-3', label: 'Actividades', subtitle: 'Define actividades', description: '...', fields: [], produces: ['output'] },
   ];
 }
 

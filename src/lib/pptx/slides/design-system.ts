@@ -16,17 +16,20 @@ export const BRAND = {
 // ─── PALETTES PER MATERIA ───────────────────────────────────────────────────
 // Each palette is tuned for cultural relevance + visual harmony
 export interface Palette {
+  name?: string;         // Palette name (e.g. 'Navy & Gold')
   primary: string;       // Header / titles
-  primaryDark: string;   // Hover / shadows
+  primaryDark?: string;  // Hover / shadows
   secondary: string;     // Subheaders / accents
   accent: string;        // Highlights / callouts
-  warm: string;          // Warm accent (callout bg)
+  warm?: string;         // Warm accent (callout bg)
   bg: string;            // Page background
-  surface: string;       // Card background
-  text: string;          // Body text
-  textMuted: string;     // Captions / metadata
+  surface?: string;      // Card background
+  text?: string;         // Body text
+  textMuted?: string;    // Captions / metadata
   textLight: string;     // Text on dark bg
-  gradient: [string, string]; // Header gradient
+  textDark?: string;     // Alias for `text` (backward compat with old Palette interface)
+  gradient?: [string, string]; // Header gradient
+  border?: string;       // Optional border color (falls back to '#E5E5E0')
 }
 
 export const PALETTES: Record<string, Palette> = {

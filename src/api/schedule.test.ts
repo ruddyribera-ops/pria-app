@@ -12,12 +12,12 @@ describe('getScheduleByDay', () => {
   });
 
   it('returns bloques from response.data.bloques', async () => {
-    (client.get as any).mockResolvedValue({
-      data: { teacher_code: 'T', dia: 'LUNES', bloques: [{ id: 1, hora_inicio: '08:00' }] },
+(client.get as any).mockResolvedValue({
+      data: { teacher_code: 'T', dia: 'LUNES', bloques: [{ id: 1, hora: '08:00' }] },
     });
     const r = await getScheduleByDay('T', 'LUNES');
     expect(r).toHaveLength(1);
-    expect(r[0].hora_inicio).toBe('08:00');
+    expect(r[0].hora).toBe('08:00');
   });
 
   it('returns [] when bloques is empty', async () => {

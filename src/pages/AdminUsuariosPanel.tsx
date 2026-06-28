@@ -167,7 +167,7 @@ export default function AdminUsuariosPanel({ showToast }: Props) {
               <option value="true">Activo</option><option value="false">Inactivo</option>
             </select>
           </div>
-          <button type="button" onClick={handleSaveEditUser} disabled={editUserLoading} style={{ ...styles.adminGreenBtn, opacity: editUserLoading ? 0.6 : 1, cursor: editUserLoading ? 'not-allowed' : 'pointer', width: '100%', textAlign: 'center' }}>
+          <button type="button" onClick={handleSaveEditUser} disabled={editUserLoading} style={{ ...(styles.adminGreenBtn as React.CSSProperties), opacity: editUserLoading ? 0.6 : 1, cursor: editUserLoading ? 'not-allowed' : 'pointer', width: '100%', textAlign: 'center' }}>
             {editUserLoading ? 'Guardando...' : '💾 Guardar Cambios'}
           </button>
         </div>

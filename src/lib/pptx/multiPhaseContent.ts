@@ -5,7 +5,7 @@
  * mergePhaseResults:     flatten all phase results into a single MergedData-like object for the editor.
  */
 
-import type { MotorType } from '../../hooks/useMotorGeneration';
+import type { MotorType } from '../../types';
 import { generateMockOutput, type PromptContext } from './promptRunner';
 
 // ──────────────────────────────────────────────────
