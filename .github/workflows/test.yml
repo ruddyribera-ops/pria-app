@@ -53,6 +53,10 @@ jobs:
       - name: Start backend server
         run: npm run dev
         working-directory: server
+        env:
+          DATABASE_URL: postgresql://postgres:pria_local@localhost:5432/pria
+          JWT_SECRET: ci-test-jwt-secret-key-minimum-32-chars!!
+          CORS_ORIGIN: http://localhost:5173
 
   e2e:
     runs-on: ubuntu-latest
