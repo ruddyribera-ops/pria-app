@@ -7,7 +7,7 @@ on:
     branches: [master, main]
 
 jobs:
-  test:
+  backend:
     runs-on: ubuntu-latest
 
     services:
@@ -50,6 +50,23 @@ jobs:
           JWT_SECRET: ci-test-jwt-secret-key-minimum-32-chars!!
           CORS_ORIGIN: http://localhost:5173
 
+      - name: Start backend server
+        run: npm run dev
+        working-directory: server
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
       - name: Install frontend dependencies
         run: npm ci
         working-directory: .
@@ -62,13 +79,23 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Start dev server
-        run: npm run dev &
+        run: npm run dev
         working-directory: .
         env:
           NODE_ENV: test
 
-      - name: Wait for dev server
-        run: sleep 10
+      - name: Wait for backend to be healthy
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "Backend is healthy"
+              exit 0
+            fi
+            echo "Waiting for backend... attempt $i/30"
+            sleep 2
+          done
+          echo "Backend did not become healthy in time"
+          exit 1
 
       - name: Run E2E smoke tests
         run: npm run test:e2e
