@@ -29,6 +29,7 @@ jobs:
       DATABASE_URL: postgresql://postgres:pria_local@localhost:5432/pria
       JWT_SECRET: ci-test-jwt-secret-key-minimum-32-chars!!
       CORS_ORIGIN: http://localhost:5173
+      SKIP_MIGRATION_SECURITY_CHECK: '1'  # server/src/db/migrate.ts:80 — migrations dir is writable on GH Actions runners
 
     steps:
       - uses: actions/checkout@v4
