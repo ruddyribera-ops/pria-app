@@ -14,7 +14,7 @@ export default function LoginPage() {
   const handleLogin = async (username: string, password: string) => {
     try {
       await login(username, password);
-      navigate('/wizard');
+      navigate('/materiales');  // post-login redirect — admin lands on main materials page (was /wizard before; tests in tests/e2e/auth.spec.ts:13 and demo-flow.spec.ts:21 expect /materiales)
     } catch (err: any) {
       setError(err?.response?.data?.error || err?.message || 'Error de conexión');
     }
