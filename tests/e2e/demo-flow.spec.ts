@@ -11,6 +11,11 @@ function getFixturePdf(): string {
 test.describe('Demo Flow — Full E2E Smoke Test', () => {
 
   test('complete flow: login → upload PDF → generate Síntesis → export PPTX', async ({ page }) => {
+    // Test-level timeout: 120s. Login + upload + generate takes ~20s; client-side
+    // PPTX generation (MaterialesPage.tsx:281: dynamic import('pptxgenjs') +
+    // write({outputType:'blob'})) takes 30-50s in CI headless. Default test
+    // timeout is 30s, which would cap our waitForEvent(60s) prematurely.
+    test.setTimeout(120000);
     // 1. Login
     await page.goto('/login');
     const usernameInput = page.locator('input[type="text"]').first();
