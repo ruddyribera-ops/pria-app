@@ -30,6 +30,7 @@ jobs:
       JWT_SECRET: ci-test-jwt-secret-key-minimum-32-chars!!
       CORS_ORIGIN: http://localhost:5173
       SKIP_MIGRATION_SECURITY_CHECK: '1'  # server/src/db/migrate.ts:80 — migrations dir is writable on GH Actions runners
+      ADMIN_PASSWORD: 'admin123'  # server/src/db/seed.ts:34 — fixes deterministic admin password for E2E login (admin/admin123)
 
     steps:
       - uses: actions/checkout@v4
