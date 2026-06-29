@@ -10,12 +10,7 @@ function getFixturePdf(): string {
 // ── Test: Full demo flow ────────────────────────────────────────────────────────
 test.describe('Demo Flow — Full E2E Smoke Test', () => {
 
-  // TODO: skip temporarily — PPTX export download times out at 15s in CI.
-  // Backend export endpoint (mock PPTX generation + cold start) is too slow.
-  // Login → upload PDF → generate Síntesis works in CI and is covered by
-  // auth.spec.ts and demo-tour.spec.ts. Re-enable when export completes
-  // in <15s, or increase this test's timeout, or run export in a separate job.
-  test.skip('complete flow: login → upload PDF → generate Síntesis → export PPTX', async ({ page }) => {
+  test('complete flow: login → upload PDF → generate Síntesis → export PPTX', async ({ page }) => {
     // 1. Login
     await page.goto('/login');
     const usernameInput = page.locator('input[type="text"]').first();
@@ -67,7 +62,10 @@ test.describe('Demo Flow — Full E2E Smoke Test', () => {
       const exportBtn = page.locator('button').filter({ hasText: /Exportar/i }).first();
       
       // Set up download listener before clicking
-      const downloadPromise = page.waitForEvent('download', { timeout: 15000 });
+      // 60s timeout: PPTX generation is client-side via pptxgenjs in the
+      // browser (MaterialesPage.tsx:281). Dynamic import + write({outputType:'blob'})
+      // cold-start in CI headless can take 20-40s. Other waits in this test use 30s.
+      const downloadPromise = page.waitForEvent('download', { timeout: 60000 });
       
       await exportBtn.click();
       
