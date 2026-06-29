@@ -7,7 +7,7 @@ on:
     branches: [master, main]
 
 jobs:
-  backend:
+  e2e:
     runs-on: ubuntu-latest
 
     services:
@@ -24,6 +24,11 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:pria_local@localhost:5432/pria
+      JWT_SECRET: ci-test-jwt-secret-key-minimum-32-chars!!
+      CORS_ORIGIN: http://localhost:5173
 
     steps:
       - uses: actions/checkout@v4
@@ -45,31 +50,6 @@ jobs:
       - name: Run server tests
         run: npm test
         working-directory: server
-        env:
-          DATABASE_URL: postgresql://postgres:pria_local@localhost:5432/pria
-          JWT_SECRET: ci-test-jwt-secret-key-minimum-32-chars!!
-          CORS_ORIGIN: http://localhost:5173
-
-      - name: Start backend server
-        run: npm run dev
-        working-directory: server
-        env:
-          DATABASE_URL: postgresql://postgres:pria_local@localhost:5432/pria
-          JWT_SECRET: ci-test-jwt-secret-key-minimum-32-chars!!
-          CORS_ORIGIN: http://localhost:5173
-
-  e2e:
-    runs-on: ubuntu-latest
-    needs: backend
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-          cache-dependency-path: server/package-lock.json
 
       - name: Install frontend dependencies
         run: npm ci
@@ -82,27 +62,47 @@ jobs:
       - name: Install Playwright
         run: npx playwright install --with-deps
 
-      - name: Start dev server
-        run: npm run dev
-        working-directory: .
-        env:
-          NODE_ENV: test
-
-      - name: Wait for backend to be healthy
+      - name: Run E2E (backend in same step as Playwright)
         run: |
+          set +e
+          # Start backend in background within THIS shell session.
+          # The `&` is safe because the shell stays alive until the e2e tests
+          # complete (and explicit `kill` at the end). This is fundamentally
+          # different from `&` in a separate step.
+          npm --prefix server run dev > /tmp/backend.log 2>&1 &
+          BACKEND_PID=$!
+          echo "Backend PID: $BACKEND_PID"
+
+          # Wait up to 60s for backend health endpoint
           for i in $(seq 1 30); do
             if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
-              echo "Backend is healthy"
-              exit 0
+              echo "Backend is healthy after $((i*2))s"
+              break
             fi
             echo "Waiting for backend... attempt $i/30"
             sleep 2
           done
-          echo "Backend did not become healthy in time"
-          exit 1
 
-      - name: Run E2E smoke tests
-        run: npm run test:e2e
-        working-directory: .
-        env:
-          BASE_URL: http://localhost:5173
+          # If backend never came up, dump logs and fail before running e2e
+          if ! curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+            echo "::error::Backend did not become healthy in time"
+            echo "=== /tmp/backend.log ==="
+            cat /tmp/backend.log
+            echo "=== end log ==="
+            kill $BACKEND_PID 2>/dev/null || true
+            exit 1
+          fi
+
+          # Run E2E — Playwright starts Vite via webServer config (port 5173)
+          echo "Running Playwright E2E tests..."
+          npm run test:e2e
+          TEST_EXIT=$?
+          echo "Playwright exited with code $TEST_EXIT"
+
+          # Cleanup backend (whether tests passed or failed)
+          kill $BACKEND_PID 2>/dev/null || true
+          # Give backend 2s to shut down gracefully, then force if needed
+          sleep 2
+          kill -9 $BACKEND_PID 2>/dev/null || true
+
+          exit $TEST_EXIT
