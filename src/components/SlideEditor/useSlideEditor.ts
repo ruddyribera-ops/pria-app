@@ -3,7 +3,7 @@
  * Converts merged results to visual slides, tracks edits, handles image uploads.
  */
 
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { EditorSlide, EditsMap, ImageMap } from './types';
 import type { Palette } from '../../lib/pptx/types';
 import { mapToEditorSlides, getEditorPalette } from './slideMapper';
@@ -82,14 +82,17 @@ export function useSlideEditor(
     return mapToEditorSlides(mergedData, slidesOutput);
   });
 
-  // Re-initialize slides when mergedData or slidesOutput changes (but not when setSlides is called)
-  // We use a ref to track whether the change came from parent props or from internal updateSlideAt
-  const mergedDataRef = useRef(mergedData);
-  if (mergedData !== mergedDataRef.current) {
-    mergedDataRef.current = mergedData;
+  // Re-initialize slides when the input data changes, but ignore equivalent objects
+  // recreated by a parent render.
+  const inputSignatureRef = useRef(JSON.stringify([mergedData, slidesOutput]));
+  useEffect(() => {
+    const inputSignature = JSON.stringify([mergedData, slidesOutput]);
+    if (inputSignature === inputSignatureRef.current) return;
+
+    inputSignatureRef.current = inputSignature;
     setSlides(mergedData ? mapToEditorSlides(mergedData, slidesOutput) : []);
     setCurrentIndex(0);
-  }
+  }, [mergedData, slidesOutput]);
 
   const subject = mergedData?.subject || 'Matemáticas';
   const palette = useMemo(() => getEditorPalette(subject), [subject]);
