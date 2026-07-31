@@ -35,6 +35,8 @@ export interface PromptResult {
   error?: string;
   simulated?: boolean;
   fidelity?: import('../ai/minimaxClient').FidelityReport;
+  quality?: unknown;
+  cultural?: unknown;
 }
 
 
@@ -344,8 +346,17 @@ export function mockPlanOutput(params: Record<string, unknown>): Record<string, 
 
 /** Slides (M1b): 10 slides para presentación */
 export function mockSlidesOutput(params: Record<string, unknown>): unknown[] {
-  const palabras_clave = (params.palabras_clave as string) || (params.tema as string) || 'Tema';
-  const keywords = palabras_clave.split(',').map(s => s.trim()).filter(Boolean);
+  const rawKw = params.palabras_clave;
+  let keywords: string[];
+  if (Array.isArray(rawKw)) {
+    keywords = rawKw.map(s => String(s).trim()).filter(Boolean);
+  } else if (typeof rawKw === 'string') {
+    keywords = rawKw.split(',').map(s => s.trim()).filter(Boolean);
+  } else if (params.tema) {
+    keywords = [String(params.tema)];
+  } else {
+    keywords = ['Tema'];
+  }
   const titulo = keywords[0] || 'Tema de la clase';
 
   const slideDefs = [
@@ -619,7 +630,7 @@ export async function executePrompt(
         // Parse and return
         try {
           const parsed = JSON.parse(result.text);
-          return { mode: 'FULL_AI', rawOutput: result.text, simulated: result.simulated, structuredOutput: parsed, fidelity: result.fidelity };
+          return { mode: 'FULL_AI', rawOutput: result.text, simulated: result.simulated, structuredOutput: parsed, fidelity: result.fidelity, quality: result.quality, cultural: result.cultural };
         } catch {
           return {
             mode: 'FULL_AI',

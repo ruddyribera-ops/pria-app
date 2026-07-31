@@ -28,7 +28,7 @@ export interface IngestMetadata {
 }
 
 export interface IngestWarning {
-  code: 'OCR_USED' | 'PARTIAL_CONTENT' | 'IMAGE_QUALITY_LOW' | 'UNSUPPORTED_ELEMENTS' | 'CHART_DETECTED';
+  code: 'OCR_USED' | 'PARTIAL_CONTENT' | 'IMAGE_QUALITY_LOW' | 'UNSUPPORTED_ELEMENTS' | 'CHART_DETECTED' | 'LOW_TEXT_LAYER';
   message: string;
 }
 

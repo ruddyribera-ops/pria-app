@@ -1,15 +1,13 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Header from '../components/Layout/Header';
 import { getAdminUsers } from '../api/admin';
 import { useCurriculum } from '../hooks/useCurriculum';
 import type { ScheduleEntry, MotorType } from '../types';
-import { useMultiPhaseGeneration } from '../hooks/useMultiPhaseGeneration';
+import { useMotorGenerator } from '../hooks/useMotorGenerator';
 import SemanalScheduleGrid from '../components/Semanal/SemanalScheduleGrid';
 import SemanalGeneratorPanel from '../components/Semanal/SemanalGeneratorPanel';
-import { mergePhaseResults } from '../lib/pptx/multiPhaseContent';
-import { createMotorResult, updateMotorResult } from '../api/motores';
-import type { MergedData } from '../components/SlideEditor/SlideEditorPanel';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/UI/Toast';
 import styles from './SemanalPage.module.css';
 
 const ACTION_MOTOR_MAP: Record<string, MotorType> = {
@@ -30,33 +28,15 @@ export default function SemanalPage() {
   const [activeDay, setActiveDay] = useState<string>('');
   const [activeLabel, setActiveLabel] = useState('');
   const [params, setParams] = useState<Record<string, unknown>>({});
-  const [showEditor, setShowEditor] = useState(false);
   const [teachers, setTeachers] = useState<{ code: string; name: string }[]>([]);
   const [teachersLoading, setTeachersLoading] = useState(true);
   const [weekData, setWeekData] = useState<Record<string, ScheduleEntry[]>>({});
   const [scheduleLoading, setScheduleLoading] = useState(false);
-  const [currentResultId, setCurrentResultId] = useState<number | null>(() => {
-    try {
-      const stored = sessionStorage.getItem('currentResultId');
-      return stored ? Number(stored) : null;
-    } catch {
-      return null;
-    }
-  });
-
-  const updateResultId = (id: number | null) => {
-    setCurrentResultId(id);
-    try {
-      if (id !== null) sessionStorage.setItem('currentResultId', String(id));
-      else sessionStorage.removeItem('currentResultId');
-    } catch {
-      // sessionStorage unavailable (SSR/private mode) — silently ignore
-    }
-  };
 
   const { curriculum: curriculumFromMaterials } = useCurriculum();
   const effectiveMotorType = activeMotorType || 'slides';
-  const mpg = useMultiPhaseGeneration(effectiveMotorType);
+  const { showToast } = useToast();
+  const motorGenerator = useMotorGenerator(effectiveMotorType, showToast);
 
   // Load teachers list
   useEffect(() => {
@@ -96,58 +76,41 @@ export default function SemanalPage() {
   }, []);
 
   useEffect(() => {
+    // Schedule loading updates UI state asynchronously when the teacher changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadWeekSchedule(teacherCode);
   }, [teacherCode, loadWeekSchedule]);
 
   const handleDayAction = (day: string, action: string) => {
     const motorType = ACTION_MOTOR_MAP[action];
     if (!motorType) return;
+    const topic = materia === 'Todas las materias' ? 'Matemáticas' : materia;
+
     setActiveMotorType(motorType);
     setActiveDay(day);
     setActiveLabel(`${action} — ${day}`);
     setParams({
-      tema: materia,
-      materia: materia === 'Todas las materias' ? 'Matemáticas' : materia,
+      tema: topic,
+      tema_clase: topic,
+      materia: topic,
       nivel,
       grado,
+      grado_nivel: `${grado} ${nivel}`,
       paginas,
       dia: day,
+      conceptos_clave: topic,
+      palabras_clave: topic,
     });
   };
 
-  const handleRunMultiPhase = async () => { await mpg.runMultiPhase(params); };
-  const handleRegenerate = async () => { await mpg.regenerate(params); };
-  const handleClearEditor = () => { setShowEditor(false); };
-
+  const handleGenerate = async () => { await motorGenerator.generate(params); };
+  const handleRegenerate = async () => { await motorGenerator.generate(params); };
   const handleReset = () => {
-    mpg.cancel();
-    mpg.reset();
     setActiveMotorType(null);
     setActiveDay('');
     setActiveLabel('');
-    setShowEditor(false);
+    setParams({});
   };
-
-  const handleSave = useCallback(async (resultId: number, data: Record<string, unknown>) => {
-    const jsonData = JSON.stringify(data);
-    if (resultId && currentResultId) {
-      await updateMotorResult(resultId, jsonData);
-    } else {
-      const created = await createMotorResult({
-        motor_type: activeMotorType || 'slides',
-        result_json: jsonData,
-        simulated: mpg.simulated,
-      });
-      updateResultId(created.id);
-    }
-  }, [activeMotorType, currentResultId, mpg.simulated]);
-
-  const mergedData = useMemo(() => {
-    if (!mpg.allPhasesDone || !activeMotorType) return null;
-    return mergePhaseResults(activeMotorType, mpg.results, params) as MergedData;
-  }, [mpg.allPhasesDone, mpg.results, activeMotorType, params]);
-
-  const currentPhaseDef = mpg.phaseDefs[mpg.currentPhase];
 
   return (
     <div>
@@ -180,7 +143,7 @@ export default function SemanalPage() {
         teachersLoading={teachersLoading}
         weekData={weekData}
         scheduleLoading={scheduleLoading}
-        isGenerating={mpg.isActive}
+        isGenerating={motorGenerator.loading}
         user={user}
         onNivelChange={setNivel}
         onGradoChange={setGrado}
@@ -196,16 +159,10 @@ export default function SemanalPage() {
           activeDay={activeDay}
           activeLabel={activeLabel}
           params={params}
-          showEditor={showEditor}
-          currentResultId={currentResultId}
-          mergedData={mergedData}
-          currentPhaseDef={currentPhaseDef}
-          mpg={mpg}
+          motorGenerator={motorGenerator}
           onReset={handleReset}
-          onRunMultiPhase={handleRunMultiPhase}
+          onGenerate={handleGenerate}
           onRegenerate={handleRegenerate}
-          onClearEditor={handleClearEditor}
-          onSave={handleSave}
           onParamsChange={(name, val) => setParams(p => ({ ...p, [name]: val }))}
         />
       )}

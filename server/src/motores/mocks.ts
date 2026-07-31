@@ -244,10 +244,29 @@ export function mockPlanOutput(params: Record<string, unknown>): Record<string, 
   };
 }
 
+const CONCEPTO_TITLE_TEMPLATES = [
+  (kw: string) => `¿Qué es ${kw}?`,
+  (kw: string) => `Características de ${kw}`,
+  (kw: string) => `${kw} en la vida diaria`,
+  (kw: string) => `Ejemplo de ${kw}`,
+  (kw: string) => `Cómo se relaciona ${kw} con otros temas`,
+  (kw: string) => `Importancia de ${kw}`,
+  (kw: string) => `Resumen sobre ${kw}`,
+];
+
 /** Slides (M1b): 10 slides para presentación */
 export function mockSlidesOutput(params: Record<string, unknown>): unknown[] {
-  const palabras_clave = (params.palabras_clave as string) || (params.tema as string) || 'Tema';
-  const keywords = palabras_clave.split(',').map(s => s.trim()).filter(Boolean);
+  const rawKw = params.palabras_clave;
+  let keywords: string[];
+  if (Array.isArray(rawKw)) {
+    keywords = rawKw.map(s => String(s).trim()).filter(Boolean);
+  } else if (typeof rawKw === 'string') {
+    keywords = rawKw.split(',').map(s => s.trim()).filter(Boolean);
+  } else if (params.tema) {
+    keywords = [String(params.tema)];
+  } else {
+    keywords = ['Tema'];
+  }
   const titulo = keywords[0] || 'Tema de la clase';
 
   const slideDefs = [
@@ -263,9 +282,11 @@ export function mockSlidesOutput(params: Record<string, unknown>): unknown[] {
     { tipo: 'cierre' as const },
   ];
 
+  let conceptoIndex = -1;
   return slideDefs.map((def, i) => {
     const num = i + 1;
     const kw = keywords[i % keywords.length] || 'Concepto ' + i;
+    if (def.tipo === 'concepto') conceptoIndex++;
     switch (def.tipo) {
       case 'portada':
         return { numero: num, tipo: 'portada', titulo: titulo, texto_pantalla: 'Aprende sobre ' + titulo, guion_docente: 'Bienvenida. Presentar el tema y objetivos.', prompt_imagen: 'Flat illustration children educational style exploring ' + titulo + ' bright classroom warm palette' };
@@ -275,8 +296,20 @@ export function mockSlidesOutput(params: Record<string, unknown>): unknown[] {
         return { numero: num, tipo: 'pausa', titulo: '¡Movimiento!', texto_pantalla: 'Levántate y estiramos 2 minutos', guion_docente: 'Dirigir actividad física breve.', prompt_imagen: 'Illustration children stretching moving classroom warm palette', callout: '¡Buen trabajo! Volvamos a aprender.' };
       case 'cierre':
         return { numero: num, tipo: 'cierre', titulo: 'Resumen Final', texto_pantalla: 'Hoy aprendimos:\n' + keywords.map((k, idx) => (idx + 1) + '. ' + k).join('\n'), guion_docente: 'Resumen colaborativo. Preguntas finales.', prompt_imagen: 'Illustration happy children celebrating learning warm palette', callout: '¡Misión cumplida!' };
-      default:
-        return { numero: num, tipo: 'concepto', titulo: kw, texto_pantalla: 'Explicación detallada de ' + kw, guion_docente: 'Explicar ' + kw + '. Dar ejemplos. Preguntar comprensión.', prompt_imagen: 'Flat illustration child learning ' + kw + ' warm palette' };
+      default: {
+        const ci = conceptoIndex % CONCEPTO_TITLE_TEMPLATES.length;
+        const ki = conceptoIndex % keywords.length;
+        const slideKw = keywords[ki] || 'Concepto ' + (conceptoIndex + 1);
+        const tituloConcepto = CONCEPTO_TITLE_TEMPLATES[ci](slideKw);
+        return {
+          numero: num,
+          tipo: 'concepto',
+          titulo: tituloConcepto,
+          texto_pantalla: `Explicación detallada de ${tituloConcepto.toLowerCase()}`,
+          guion_docente: `Explicar ${tituloConcepto.toLowerCase()}. Dar ejemplos. Preguntar comprensión.`,
+          prompt_imagen: `Flat illustration child learning ${tituloConcepto.toLowerCase()} warm palette`,
+        };
+      }
     }
   });
 }

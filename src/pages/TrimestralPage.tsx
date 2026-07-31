@@ -210,6 +210,19 @@ export default function TrimestralPage() {
         {(isDone && mpg.currentResult) ? (
           <div className={styles.phaseResult}>
             <div className={styles.resultTitle}>✅ {currentPhaseDef?.label} generado</div>
+            {mpg.simulated && (
+              <div style={{
+                marginBottom: '0.75rem',
+                padding: '0.5rem 0.75rem',
+                background: '#FFF3CD',
+                border: '1px solid #FFC107',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                color: '#856404',
+              }}>
+                ⚠️ Generado con datos simulados (la IA no respondió). Vuelve a intentar o contacta soporte.
+              </div>
+            )}
             <ResultPreview data={mpg.currentResult as Record<string, unknown>} />
           </div>
         ) : null}
@@ -268,6 +281,19 @@ export default function TrimestralPage() {
         <div className={styles.editorSection}>
           {!showEditor ? (
             <div className={styles.completeCard}>
+              {mpg.simulated && (
+                <div style={{
+                  marginBottom: '0.75rem',
+                  padding: '0.5rem 0.75rem',
+                  background: '#FFF3CD',
+                  border: '1px solid #FFC107',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  color: '#856404',
+                }}>
+                  ⚠️ Generado con datos simulados (la IA no respondió). Vuelve a intentar o contacta soporte.
+                </div>
+              )}
               <div>
                 <div className={styles.completeTitle}>🎉 ¡Documento completo!</div>
                 <div className={styles.completeSubtitle}>

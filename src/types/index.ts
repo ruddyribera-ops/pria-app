@@ -40,6 +40,7 @@ export interface UsuarioCreate {
   nombre: string;
   role: string;
   password: string;
+  correo?: string;
   nivel?: string;
   grado?: string;
   teacher_code?: string;

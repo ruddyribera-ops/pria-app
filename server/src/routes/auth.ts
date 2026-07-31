@@ -35,7 +35,7 @@ router.post('/login', authLimiter, validateBody(LoginSchema), async (req: AuthRe
   res.json({
     data: {
       token,
-      user: { id: user.id, nombre: user.nombre, role: user.role, nivel: user.nivel, grado: user.grado },
+      user: { id: user.id, nombre: user.nombre, role: user.role, nivel: user.nivel, grado: user.grado, teacher_code: user.teacher_code },
     },
   });
 });
@@ -44,17 +44,17 @@ router.post('/register', authMiddleware, async (req: AuthRequest, res: Response)
   if (req.user!.role !== 'admin') return res.status(403).json({ error: 'Solo administradores' });
   const result = RegisterSchema.safeParse(req.body);
   if (!result.success) return res.status(400).json({ error: 'Validation failed', details: result.error.issues });
-  const { username, password, nombre, nivel = 'Primaria', grado = '5to' } = result.data;
+  const { username, password, nombre, nivel = 'Primaria', grado = '5to', teacher_code } = result.data;
   const hash = bcrypt.hashSync(password, 12);
   const info = await dbRun(
-    'INSERT INTO users (username, password_hash, nombre, nivel, grado) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-    [username, hash, nombre, nivel, grado]
+    'INSERT INTO users (username, password_hash, nombre, nivel, grado, teacher_code) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+    [username, hash, nombre, nivel, grado, teacher_code || null]
   );
   res.json({ data: { id: info.id, created: new Date().toISOString() } });
 });
 
 router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
-  const user = await dbGet('SELECT id, nombre, role, nivel, grado FROM users WHERE id = $1', [req.user!.id]);
+  const user = await dbGet('SELECT id, nombre, role, nivel, grado, teacher_code FROM users WHERE id = $1', [req.user!.id]);
   if (!user) return res.status(404).json({ error: 'User not found' });
   res.json({ data: user });
 });

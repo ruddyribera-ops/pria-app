@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/Layout/Header';
 import adminStyles from '../styles/admin.module.css';
@@ -21,10 +22,17 @@ const TABS: { id: AdminTab; label: string }[] = [
 ];
 
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<AdminTab>('archivos');
   const teacherCode = user?.teacher_code || 'ADMIN';
+
+  // Role guard — teachers (and unauthenticated users) cannot access admin panel UI.
+  // The API correctly returns 403, but we also gate the UI to avoid rendering
+  // panels that will silently fail and confuse the user.
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div>

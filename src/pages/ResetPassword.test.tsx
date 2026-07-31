@@ -12,7 +12,7 @@ describe('ResetPasswordPage', () => {
       <ResetPasswordPage />,
       { initialEntries: ['/reset-password?token=abc123'] }
     );
-    expect(screen.getByRole('heading', { level: 2 })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1 })).toBeTruthy();
   });
 
   test('renders invalid token message when no token', () => {

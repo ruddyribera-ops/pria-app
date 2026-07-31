@@ -1,6 +1,32 @@
 import type { EstadoSistema } from '../types';
 import client from './client';
 
+export interface ArchivoEntry {
+  id: number;
+  user_id: number;
+  filename: string;
+  tipo: string;
+  size?: number;
+  created_at: string;
+  user_nombre: string;
+  user_username: string;
+  source: 'material' | 'diagnostico';
+}
+
+export interface ArchivosResponse {
+  materials: ArchivoEntry[];
+  diagnosticos: ArchivoEntry[];
+}
+
+export async function getArchivos(): Promise<ArchivosResponse> {
+  const response = await client.get<{ data: ArchivosResponse }>('/admin/archivos');
+  return response.data.data;
+}
+
+export async function deleteArchivo(source: 'material' | 'diagnostico', id: number): Promise<void> {
+  await client.delete(`/admin/archivos/${source}/${id}`);
+}
+
 export interface AdminUser {
   id: number;
   nombre: string;
@@ -32,8 +58,8 @@ export async function clearCache() {
   return response.data.data;
 }
 
-export async function resetDay(teacherCode?: string) {
-  const response = await client.post<{ data: { reset: boolean } }>('/admin/reset-day', { teacherCode });
+export async function resetDay(teacherCode?: string, date?: string) {
+  const response = await client.post<{ data: { reset: boolean } }>('/admin/reset-day', { teacherCode, date });
   return response.data.data;
 }
 

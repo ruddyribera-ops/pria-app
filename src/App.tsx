@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
@@ -7,6 +7,7 @@ import { ToastProvider } from './components/UI/Toast';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import AppLayout from './components/Layout/AppLayout';
 import ErrorBoundary from './components/UI/ErrorBoundary';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ForgotPasswordPage from './pages/ForgotPassword';
@@ -24,6 +25,7 @@ const DiarioPage = lazy(() => import('./pages/DiarioPage'));
 const SemanalPage = lazy(() => import('./pages/SemanalPage'));
 const TrimestralPage = lazy(() => import('./pages/TrimestralPage'));
 const WizardPage = lazy(() => import('./pages/WizardPage'));
+const ConfiguracionPage = lazy(() => import('./pages/ConfiguracionPage'));
 
 // Lightweight fallback while chunk loads
 function PageLoader() {
@@ -55,6 +57,7 @@ export default function App() {
           <AuthProvider>
             <Routes>
               {/* Public */}
+              <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={withErrorBoundary(<LoginPage />, 'Iniciar Sesión')} />
               <Route path="/forgot-password" element={withErrorBoundary(<ForgotPasswordPage />, 'Restablecer Contraseña')} />
               <Route path="/reset-password" element={withErrorBoundary(<ResetPasswordPage />, 'Nueva Contraseña')} />
@@ -71,10 +74,10 @@ export default function App() {
                 <Route path="/historial" element={withErrorBoundary(<HistoryPage />, 'Historial')} />
                 <Route path="/diagnosticos" element={withErrorBoundary(<DiagnosticosPage />, 'Diagnósticos')} />
                 <Route path="/admin" element={withErrorBoundary(<AdminPage />, 'Administración')} />
+                <Route path="/configuracion" element={withErrorBoundary(<ConfiguracionPage />, 'Configuración')} />
               </Route>
 
               {/* Redirects */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={withErrorBoundary(<NotFoundPage />, '404')} />
             </Routes>
           </AuthProvider>

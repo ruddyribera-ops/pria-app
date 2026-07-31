@@ -143,7 +143,7 @@
 }
 
 .subtitle::before {
-  content: '◆';
+  content: '■';
   color: var(--btn-color, #3A9E5E);
   font-size: 0.5rem;
 }

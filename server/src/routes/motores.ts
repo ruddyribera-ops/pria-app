@@ -20,6 +20,7 @@ import { validateRecalibrate } from '../schemas/recalibrate.schema.js';
 import { validateMicro } from '../schemas/micro.schema.js';
 import { validateSourceNarrator, type SourceNarratorOutput } from '../schemas/source-narrator.schema.js';
 import { validateSourceFidelity, type FidelityReport } from '../lib/source-grounding.js';
+import { checkQuality, type QualityScore } from '../lib/quality/checker.js';
 import { generateMockOutput } from '../motores/mocks.js';
 import type { MotorType } from '../motores/mocks.js';
 import { fileURLToPath } from 'url';
@@ -27,6 +28,7 @@ import path from 'path';
 import fs from 'fs';
 import { execSync } from 'child_process';
 import { setMotorState } from '../db/motorState.js';
+import { detectIndigenousContext, culturalPrefix } from '../lib/cultural/sensitivity.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROMPTS_DIR = path.resolve(__dirname, '../motores/prompts');
@@ -53,7 +55,7 @@ const promptCache = new Map<string, CachedPrompt>();
 function getPromptVersion(motorType: string): string {
   try {
     const filePath = path.join(PROMPTS_DIR, `${motorType}.md`);
-    return execSync(`git hash-object ${filePath}`, { encoding: 'utf-8' }).trim().slice(0, 8);
+    return execSync(`git hash-object "${filePath}"`, { encoding: 'utf-8' }).trim().slice(0, 8);
   } catch {
     return 'unknown';
   }
@@ -168,8 +170,9 @@ const MINIMAX_MODEL = process.env.MINIMAX_MODEL || 'MiniMax-M2.7';
 // P0 FIX: AbortController timeout for MiniMax API calls.
 // Without this, a slow/hanging MiniMax API would block the route handler forever,
 // preventing mock fallback from triggering and leaving motor state stuck at 'generating'.
-// Slides motor uses longer timeout due to larger output (8192 tokens).
-const MINIMAX_TIMEOUT_MS = (motorType: string): number => motorType === 'slides' ? 60_000 : 45_000;
+// Slides motor uses longer timeout due to larger output (8192 tokens) + 10 complex slides.
+const MINIMAX_TIMEOUT_MS = (motorType: string): number =>
+  motorType === 'slides' ? 240_000 : 60_000;
 
 const MOTOR_TEMPS: Record<string, number> = {
   synthesis: 0.7,
@@ -211,13 +214,21 @@ async function tryMinimax(
   }
   const paramsJson = JSON.stringify(params, null, 2);
   const systemPrompt = loadSystemPrompt(motorType);
+
+  // ── Cultural sensitivity injection ──
+  const indigenousContext = detectIndigenousContext(params as Record<string, unknown>);
+  if (indigenousContext.detected) {
+    console.log('[cultural] detected:', indigenousContext.groups.join(', '));
+  }
+  const culturalRule = indigenousContext.detected ? culturalPrefix(indigenousContext) : '';
   const userMessage = [
+    culturalRule,
     'Variables de entrada:',
     paramsJson,
     '',
     'Genera la salida en JSON según el OUTPUT SCHEMA del prompt de sistema.',
     'Responde ÚNICAMENTE con el JSON, sin markdown ni texto adicional.',
-  ].join('\n');
+  ].filter(Boolean).join('\n\n');
   const body = {
     model: MINIMAX_MODEL,
     messages: [
@@ -269,6 +280,17 @@ async function tryMinimax(
     else if (cleaned.startsWith('```')) cleaned = cleaned.slice(3);
     if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
     cleaned = cleaned.trim();
+    // Cut off any trailing text after the last closing brace/bracket
+    // Some MiniMax responses include epilogues like "Nota: ..." after the JSON
+    const lastBrace = Math.max(cleaned.lastIndexOf('}'), cleaned.lastIndexOf(']'));
+    if (lastBrace > 0 && lastBrace < cleaned.length - 1) {
+      const trailing = cleaned.slice(lastBrace + 1);
+      // Only strip if there's non-whitespace content after the brace
+      if (trailing.trim().length > 0) {
+        console.warn('[motores] Stripping trailing text after JSON:', trailing.substring(0, 80));
+        cleaned = cleaned.slice(0, lastBrace + 1);
+      }
+    }
     console.log('[motores] CLEANED string before parse (length:', cleaned.length, '):');
     console.log(cleaned.slice(0, 2000));
     let parsed: unknown;
@@ -469,6 +491,11 @@ const COMMON_TYPOS: Record<string, string> = {
   'comprensionas': 'comprensiones',
   'niñoss': 'niños',
   'estudiantees': 'estudiantes',
+  // Estilo normalization (slides.md v3.3 enum alignment)
+  'fotografia_educativa': 'documental_educativo',
+  // P1-5: Known LLM Spanish typos
+  'solcalienta': 'sol calienta',
+  'sol calienta al': 'sol calienta al',
 };
 
 function applyTypoFix(obj: unknown): unknown {
@@ -481,7 +508,76 @@ function applyTypoFix(obj: unknown): unknown {
       fixed = true;
     }
   }
+
+  // P1-5: Remove Chinese/CJK characters from all text fields
+  const cjkPattern = /[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g;
+  if (cjkPattern.test(str)) {
+    console.warn('[motores] Removing CJK (Chinese) characters from output');
+    str = str.replace(cjkPattern, '');
+    fixed = true;
+  }
+
+  // P1-5: Fix run-on words — lowercase letter directly followed by uppercase (camelCase artifacts)
+  const runOnPattern = /([a-zñáéíóú])([A-ZÑÁÉÍÓÚ])/g;
+  if (runOnPattern.test(str)) {
+    console.warn('[motores] Fixing run-on words (camelCase artifacts)');
+    str = str.replace(runOnPattern, '$1 $2');
+    fixed = true;
+  }
+
   return fixed ? JSON.parse(str) : obj;
+}
+
+/**
+ * Normalize estilo values in slides output — safety net for enum drift.
+ * MiniMax may return variations like "Documental_Educativo" or "diagrama-visual"
+ * that don't match the exact schema enum. Maps them to the closest valid value.
+ */
+function normalizeEstilosEnSlides(obj: unknown): unknown {
+  const VALID_ESTILOS = new Set([
+    'ilustracion_infantil',
+    'documental_educativo',
+    'artistico_cultural',
+    'diagrama_visual',
+  ]);
+
+  function normalizeValue(v: string): string {
+    const lower = v.toLowerCase().trim();
+    if (VALID_ESTILOS.has(lower)) return lower;
+    // Common variations from MiniMax output
+    if (lower.includes('docu') || lower.includes('edu') || lower === 'fotografia_educativa') return 'documental_educativo';
+    if (lower.includes('diagra') || lower.includes('diagram') || lower.includes('visual')) return 'diagrama_visual';
+    if (lower.includes('ilustra') || lower.includes('infantil') || lower.includes('child')) return 'ilustracion_infantil';
+    if (lower.includes('artis') || lower.includes('cult') || lower.includes('cultural')) return 'artistico_cultural';
+    return 'ilustracion_infantil'; // safe default
+  }
+
+  function walk(o: unknown): unknown {
+    if (Array.isArray(o)) return o.map(walk);
+    if (o && typeof o === 'object') {
+      const obj = o as Record<string, unknown>;
+      // If this looks like a slide with prompt_imagen_variations, normalize estilos
+      if ('prompt_imagen_variations' in obj && Array.isArray(obj.prompt_imagen_variations)) {
+        obj.prompt_imagen_variations = (obj.prompt_imagen_variations as Array<Record<string, unknown>>).map((variation) => {
+          if ('estilo' in variation && typeof variation.estilo === 'string') {
+            const normalized = normalizeValue(variation.estilo);
+            if (normalized !== variation.estilo) {
+              console.warn(`[motores] Normalizing estilo: "${variation.estilo}" → "${normalized}"`);
+            }
+            return { ...variation, estilo: normalized };
+          }
+          return variation;
+        });
+      }
+      // Recurse into all keys
+      for (const key of Object.keys(obj)) {
+        obj[key] = walk(obj[key]);
+      }
+    }
+    return o;
+  }
+
+  return walk(obj);
 }
 
 const VALIDATORS: Record<string, (data: unknown) => any> = {
@@ -566,10 +662,18 @@ router.post('/:type', motorLimiterHourly, motorLimiterDaily, async (req: AuthReq
       console.log('[motores] MiniMax', type, 'exitoso');
     }
 
+    // Normalize estilo enum values before validation (slides enum alignment)
+    let normalizedOutput = type === 'slides' ? normalizeEstilosEnSlides(rawOutput) : rawOutput;
+    // MiniMax slides motor now returns {slides: [...} wrapper — unwrap for validator that expects raw array
+    if (type === 'slides' && normalizedOutput && typeof normalizedOutput === 'object' && !Array.isArray(normalizedOutput) && 'slides' in normalizedOutput && Array.isArray((normalizedOutput as Record<string, unknown>).slides)) {
+      normalizedOutput = (normalizedOutput as Record<string, unknown>).slides as unknown;
+      console.log('[motores] Unwrapped {slides: [...]} wrapper for validation');
+    }
+
     // Validate the output
     let validated;
     try {
-        validated = validator(rawOutput);
+        validated = validator(normalizedOutput);
     } catch (validationErr: any) {
         console.error('[motores] Validation failed for', type);
         console.error('[motores] Raw output type:', typeof rawOutput);
@@ -582,6 +686,20 @@ router.post('/:type', motorLimiterHourly, motorLimiterDaily, async (req: AuthReq
 
     // Auto-fix common LLM-generated typos before returning to client
     validated = applyTypoFix(validated);
+
+    // Quality scoring: pure function, no blocking, just flags for wizard UI
+    const quality: QualityScore = checkQuality(type, validated, params as Record<string, unknown>);
+    if (quality.flags.length > 0) {
+      console.log(`[quality] ${type}: score=${quality.overall}, flags=${quality.flags.length}`);
+    }
+
+    // Cultural sensitivity detection — inject into response for frontend indicator
+    const indigenousContext = detectIndigenousContext(params as Record<string, unknown>);
+    const cultural = {
+      detected: indigenousContext.detected,
+      groups: indigenousContext.groups,
+      regions: indigenousContext.regions,
+    };
 
     // Placeholder detection for Síntesis motor
     if (type === 'synthesis') {
@@ -601,22 +719,34 @@ router.post('/:type', motorLimiterHourly, motorLimiterDaily, async (req: AuthReq
     const fullText = (params as Record<string, unknown>).full_text;
     if (typeof fullText === 'string' && fullText.length >= 10) {
       const motorTypeForFidelity = type === 'source_narrator' ? 'narrator' : type;
-      fidelityReport = validateSourceFidelity(validated, fullText, { type: motorTypeForFidelity as any });
-      if (fidelityReport.total_flags > 0) {
-        console.log(`[fidelity] ${type}: score=${fidelityReport.score}, flags=${fidelityReport.total_flags}`);
+      try {
+        fidelityReport = validateSourceFidelity(validated, fullText, { type: motorTypeForFidelity as any });
+        if (fidelityReport.total_flags > 0) {
+          console.log(`[fidelity] ${type}: score=${fidelityReport.score}, flags=${fidelityReport.total_flags}`);
+        }
+      } catch (fidelityErr: any) {
+        console.warn(`[fidelity] ${type}: check failed, continuing without fidelity: ${fidelityErr.message}`);
+        fidelityReport = null;
       }
     }
 
-    // Wrap validated + fidelity in a single JSON object so fidelity persists with the result.
+    // Wrap validated + fidelity + quality in a single JSON object so they persist with the result.
     // Place fidelity FIRST so it's not truncated by LEFT(result_json, 2000) in history queries.
     const storedPayload = fidelityReport
-      ? { fidelity: fidelityReport, output: validated }
-      : { output: validated };
+      ? { fidelity: fidelityReport, quality, output: validated }
+      : { quality, output: validated };
 
-    await dbRun(
-      'INSERT INTO motor_results (user_id, curriculum_id, motor_type, result_json, status, simulated, prompt_version) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      [req.user!.id, curriculum_id || null, type, JSON.stringify(storedPayload), 'done', isSimulated, promptVersion]
-    );
+    let motorResultId: number | undefined;
+    try {
+      const info = await dbRun(
+        'INSERT INTO motor_results (user_id, curriculum_id, motor_type, result_json, status, simulated, prompt_version) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+        [req.user!.id, curriculum_id || null, type, JSON.stringify(storedPayload), 'done', isSimulated, promptVersion]
+      );
+      motorResultId = info.id;
+    } catch (dbErr: any) {
+      console.error(`[motores] DB insert failed for ${type}:`, dbErr.message);
+      // Still return the result to the client even if DB logging failed
+    }
 
     setMotorState(req.user!.id, type, 'done');
     res.json({
@@ -625,7 +755,10 @@ router.post('/:type', motorLimiterHourly, motorLimiterDaily, async (req: AuthReq
         status: 'done',
         output: validated,
         simulated: isSimulated,
-        fidelity: fidelityReport || undefined
+        fidelity: fidelityReport || undefined,
+        quality: quality,
+        cultural: cultural,
+        motor_result_id: motorResultId,
       }
     });
   } catch (err) {
@@ -676,6 +809,10 @@ router.post('/:type', motorLimiterHourly, motorLimiterDaily, async (req: AuthReq
         details: friendlyErrors,
       });
     } else {
+      console.error('[motores] Non-ZodError in', type, ':', err);
+      if (err instanceof Error) {
+        console.error('[motores] Stack:', err.stack);
+      }
       setMotorState(req.user!.id, type, 'error');
       res.status(500).json({ error: 'Error generando contenido' });
     }
@@ -792,10 +929,6 @@ router.post('/:type/stream', motorLimiterHourly, motorLimiterDaily, async (req: 
   res.end();
 });
 
-router.get('/:type/:jobId', (req, res) => {
-  res.json({ data: { jobId: req.params.jobId, status: 'done', result: {} } });
-});
-
 // ─── Motor result persistence ────────────────────────────────────────
 
 const MOTOR_TYPES = [
@@ -895,6 +1028,11 @@ router.get('/results/:id', authMiddleware, async (req: AuthRequest, res: Respons
     console.error('[motores/results GET]', err);
       res.status(500).json({ error: 'Error al cargar resultado' });
   }
+});
+
+// Catch-all for legacy /:type/:jobId route — MUST be last to not shadow specific routes
+router.get('/:type/:jobId', (req, res) => {
+  res.json({ data: { jobId: req.params.jobId, status: 'done', result: {} } });
 });
 
 export default router;

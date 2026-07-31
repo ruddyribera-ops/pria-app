@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '../components/Layout/Header';
 import { useToast } from '../components/UI/Toast';
-import { listDiagnosticos, uploadDiagnostico, deleteDiagnostico } from '../api/diagnosticos';
+import { listDiagnosticos, uploadDiagnostico, deleteDiagnostico, createDiagnostico } from '../api/diagnosticos';
 import { formatFileSize } from '../api/materials';
 import type { Diagnostico } from '../types';
 import styles from './DiagnosticosPage.module.css';
@@ -12,6 +12,10 @@ export default function DiagnosticosPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const nombreRef = useRef<HTMLInputElement>(null);
+  const nivelRef = useRef<HTMLSelectElement>(null);
+  const areaRef = useRef<HTMLSelectElement>(null);
+  const fechaRef = useRef<HTMLInputElement>(null);
 
   const loadDiagnosticos = useCallback(async () => {
     setLoading(true);
@@ -34,16 +38,9 @@ export default function DiagnosticosPage() {
     try {
       await uploadDiagnostico(file, 'diagnostico');
       await loadDiagnosticos();
-    } catch {
-      const newDiag: Diagnostico = {
-        id: Date.now(),
-        estudiante: '',
-        nivel: '',
-        filename: file.name,
-        tipo: file.name.split('.').pop() || 'unknown',
-        size: file.size,
-      };
-      setDiagnosticos((prev) => [...prev, newDiag]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      showToast(`Error al subir archivo: ${msg}`, 'error');
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -115,15 +112,16 @@ export default function DiagnosticosPage() {
           </div>
         ) : showForm ? (
           <div className={styles.formCard}>
-            <h4 className={styles.formTitle}>
+            <h2 className={styles.formTitle}>
               Registrar Nuevo Diagnóstico
-            </h4>
+            </h2>
             <div className={styles.formGrid}>
               <div className={styles.formField}>
                 <label htmlFor="diag-nombre" className={styles.formLabel}>
                   Nombre del Estudiante
                 </label>
                 <input
+                  ref={nombreRef}
                   id="diag-nombre"
                   type="text"
                   placeholder="Ej: María García"
@@ -134,7 +132,7 @@ export default function DiagnosticosPage() {
                 <label htmlFor="diag-nivel" className={styles.formLabel}>
                   Nivel
                 </label>
-                <select id="diag-nivel" className={styles.formSelect}>
+                <select ref={nivelRef} id="diag-nivel" className={styles.formSelect}>
                   <option>Primaria</option>
                   <option>Secundaria</option>
                 </select>
@@ -143,7 +141,7 @@ export default function DiagnosticosPage() {
                 <label htmlFor="diag-area" className={styles.formLabel}>
                   Área de Diagnóstico
                 </label>
-                <select id="diag-area" className={styles.formSelect}>
+                <select ref={areaRef} id="diag-area" className={styles.formSelect}>
                   <option>TDAH</option>
                   <option>TEA</option>
                   <option>Dislexia</option>
@@ -156,6 +154,7 @@ export default function DiagnosticosPage() {
                   Fecha
                 </label>
                 <input
+                  ref={fechaRef}
                   id="diag-fecha"
                   type="date"
                   defaultValue={new Date().toISOString().split('T')[0]}
@@ -172,9 +171,25 @@ export default function DiagnosticosPage() {
               </button>
               <button
                 className={styles.saveBtn}
-                onClick={() => {
-                  showToast('Diagnóstico creado (simulación).', 'success');
-                  setShowForm(false);
+                type="button"
+                onClick={async () => {
+                  const estudiante = nombreRef.current?.value || '';
+                  const nivel = nivelRef.current?.value || '';
+                  const area = areaRef.current?.value || '';
+                  const fecha = fechaRef.current?.value || '';
+                  if (!estudiante.trim()) {
+                    showToast('El nombre del estudiante es obligatorio.', 'error');
+                    return;
+                  }
+                  try {
+                    await createDiagnostico({ estudiante, nivel, area, fecha });
+                    showToast('Diagnóstico guardado correctamente.', 'success');
+                    setShowForm(false);
+                    await loadDiagnosticos();
+                  } catch (err) {
+                    const msg = err instanceof Error ? err.message : 'Error desconocido';
+                    showToast(`Error al guardar: ${msg}`, 'error');
+                  }
                 }}
               >
                 Guardar Diagnóstico
@@ -187,14 +202,14 @@ export default function DiagnosticosPage() {
               <div className={styles.fileInfo}>
                 <span aria-hidden="true">📄</span>
                 <span>
-                  <strong className={styles.fileName}>{d.filename}</strong>
+                  <strong className={styles.fileName}>{d.estudiante || d.filename}</strong>
                   {d.size && <span className={styles.fileSize}> — {formatFileSize(d.size)}</span>}
                 </span>
               </div>
               <button
                 className={styles.deleteBtn}
                 onClick={() => handleDelete(d.id)}
-                aria-label={`Eliminar archivo ${d.filename}`}
+                aria-label={`Eliminar archivo ${d.estudiante || d.filename}`}
               >
                 ✕
               </button>

@@ -14,10 +14,30 @@ interface PromptVariation {
   herramienta_recomendada: string;
 }
 
+/**
+ * Normalize a motor result that may be a raw array OR a wrapper object
+ * ({ output: [...], quality, fidelity }) into a guaranteed array.
+ * Prevents `TypeError: result.reduce is not a function` when the slides
+ * motor returns its output wrapped.
+ */
+function extractArray(data: unknown): any[] {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === 'object') {
+    const obj = data as Record<string, unknown>;
+    if (Array.isArray(obj.output)) return obj.output as any[];
+    if (Array.isArray(obj.slides)) return obj.slides as any[];
+    if (Array.isArray(obj.data)) return obj.data as any[];
+  }
+  return [];
+}
+
 export default function MotorSection_Slides({ result, fidelity, showToast }: Props) {
   const [expandedSlide, setExpandedSlide] = useState<number | null>(null);
 
   if (!result) return null;
+
+  // Normalize: result may be a raw SlideItem[] or a wrapper { output, quality, fidelity }
+  const slides = extractArray(result);
 
   // Build a map of slide_number -> warnings for quick lookup
   const warningsBySlide = new Map<number, FidelityWarning[]>();
@@ -34,18 +54,18 @@ export default function MotorSection_Slides({ result, fidelity, showToast }: Pro
   const score = fidelity?.score ?? null;
 
   // Count total prompt variations across all slides
-  const totalVariations = (result as any[]).reduce((sum: number, s: any) =>
+  const totalVariations = slides.reduce((sum: number, s: any) =>
     sum + (s.prompt_imagen_variations?.length || 0), 0);
 
   // ── Copy prompts to clipboard ──
   const handleCopyPrompts = async () => {
     const lines: string[] = [
-      `🎨 PROMPTS PARA GENERAR IMÁNGENES — ${result.length} diapositivas`,
+      `🎨 PROMPTS PARA GENERAR IMÁNGENES — ${slides.length} diapositivas`,
       `Total prompts optimizados: ${totalVariations}`,
       '',
     ];
 
-    (result as any[]).forEach((s: any) => {
+    slides.forEach((s: any) => {
       if (!s.prompt_imagen_variations || s.prompt_imagen_variations.length === 0) return;
       lines.push(`═══ Slide ${s.numero}: ${s.titulo} ═══`);
       s.prompt_imagen_variations.forEach((v: PromptVariation, idx: number) => {
@@ -85,7 +105,7 @@ export default function MotorSection_Slides({ result, fidelity, showToast }: Pro
         marginBottom: '0.5rem'
       }}>
         <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#1e1e2f' }}>
-          🖼️ Diapositivas ({result.length || 0} slides)
+          🖼️ Diapositivas ({slides.length || 0} slides)
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           {totalVariations > 0 && (
@@ -130,7 +150,7 @@ export default function MotorSection_Slides({ result, fidelity, showToast }: Pro
         </div>
       </div>
       <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-        {result.map((s, j) => {
+        {slides.map((s, j) => {
           const slideNum = s.numero || j + 1;
           const warnings = warningsBySlide.get(slideNum);
           const hasFlag = warnings && warnings.length > 0;

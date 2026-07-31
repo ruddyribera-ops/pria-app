@@ -41,7 +41,7 @@ export default function AdminCachePanel() {
   return (
     <div>
       <div className={styles.card}>
-        <h4 className={styles.heading}>⚡ Estado de la Caché</h4>
+        <h2 className={styles.heading}>⚡ Estado de la Caché</h2>
         {loading ? (
           <p className={styles.loadingText}>Cargando estadísticas...</p>
         ) : stats ? (

@@ -166,7 +166,7 @@ export default function UnitTopicSelector({
 
                 {/* Unit info */}
                 <span style={{ flex: 1, fontSize: '0.8125rem', fontWeight: 600, color: '#1e1e2f' }}>
-                  Unidad {unit.number}: {unit.name}
+                  Unidad {unit.number}: {unit.nombre || unit.titulo || unit.name}
                 </span>
 
                 {/* Per-unit select button */}

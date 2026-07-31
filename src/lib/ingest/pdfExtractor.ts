@@ -42,11 +42,24 @@ export async function ingestPdf(
       onProgress('Procesando pagina ' + i + '/' + pagesToProcess + '...', Math.round((i / pagesToProcess) * 90));
     }
 
-    if (itemCount === 0) {
-      // No text layer — render page as image and OCR
-      warnings.push({ code: 'OCR_USED', message: 'Page ' + i + ' has no text layer — running OCR' });
+    // Extract text layer first
+    const pageText = content.items
+      .map((item: any) => ('str' in item ? item.str : ''))
+      .join(' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+
+    const MIN_CHARS_PER_PAGE = 50;
+    const needsOcr = itemCount === 0 || pageText.length < MIN_CHARS_PER_PAGE;
+
+    if (needsOcr) {
+      if (itemCount > 0) {
+        warnings.push({ code: 'LOW_TEXT_LAYER', message: 'Page ' + i + ' has only ' + pageText.length + ' chars (' + itemCount + ' items) — running OCR for better extraction' });
+      } else {
+        warnings.push({ code: 'OCR_USED', message: 'Page ' + i + ' has no text layer — running OCR' });
+      }
       try {
-        console.log('[ingestPdf] Page ' + i + ' running OCR...');
+        console.log('[ingestPdf] Page ' + i + ' running OCR (items=' + itemCount + ', chars=' + pageText.length + ')...');
         const viewport = page.getViewport({ scale: 2.0 });
         const canvas = document.createElement('canvas');
         canvas.width = viewport.width;
@@ -67,7 +80,14 @@ export async function ingestPdf(
 
         const ocrText = (data && data.text) ? data.text.trim() : '';
         console.log('[ingestPdf] Page ' + i + ' OCR done, text length: ' + ocrText.length + ', confidence: ' + (data ? Math.round(data.confidence || 0) : 0) + '%');
-        texts.push({ pageNumber: i, text: ocrText, pageUrl: dataUrl });
+
+        // Use OCR text only if it meaningfully improves over the text layer
+        if (ocrText.length > pageText.length) {
+          texts.push({ pageNumber: i, text: ocrText, pageUrl: dataUrl });
+        } else {
+          // OCR didn't extract more than the text layer — keep the text layer
+          texts.push({ pageNumber: i, text: pageText, pageUrl: dataUrl });
+        }
 
         if (data && typeof data.confidence === 'number' && data.confidence < 70) {
           warnings.push({ code: 'IMAGE_QUALITY_LOW', message: 'Page ' + i + ' OCR confidence only ' + Math.round(data.confidence) + '%' });
@@ -75,19 +95,12 @@ export async function ingestPdf(
       } catch (e) {
         console.error('[ingestPdf] Page ' + i + ' OCR failed:', e);
         warnings.push({ code: 'OCR_USED', message: 'Page ' + i + ' OCR failed' });
-        texts.push({ pageNumber: i, text: '' });
+        texts.push({ pageNumber: i, text: pageText });
       }
-      continue;
+    } else {
+      // Substantial text layer — use it directly
+      texts.push({ pageNumber: i, text: pageText });
     }
-
-    // Text layer exists — extract normally
-    const pageText = content.items
-      .map((item: any) => ('str' in item ? item.str : ''))
-      .join(' ')
-      .replace(/\s{2,}/g, ' ')
-      .trim();
-
-    texts.push({ pageNumber: i, text: pageText });
   }
 
   return { texts, warnings, images };

@@ -140,3 +140,58 @@
   color: #6b6b80;
   font-size: 0.8125rem;
 }
+
+/* ============================================
+   TODAY EMPTY STATE — friendly CTA when no classes scheduled for today
+   ============================================ */
+.todayEmpty {
+  padding: 3rem 2rem;
+  text-align: center;
+  color: #6b6b80;
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+}
+
+.todayEmptyIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.55;
+  line-height: 1;
+}
+
+.todayEmptyTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e1e2f;
+  margin: 0 0 0.5rem 0;
+}
+
+.todayEmptyText {
+  font-size: 0.875rem;
+  color: #6b6b80;
+  margin: 0 0 1.5rem 0;
+  line-height: 1.5;
+}
+
+.todayEmptyCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: #3A9E5E;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.todayEmptyCta:hover {
+  background: #2d7a4a;
+  transform: translateY(-1px);
+}
+
+.todayEmptyCta:focus-visible {
+  outline: 2px solid #3A9E5E;
+  outline-offset: 2px;
+}

@@ -15,14 +15,17 @@ import MotorSection_PDC from '../Motores/MotorSection_PDC';
 import MotorSection_Recalibrate from '../Motores/MotorSection_Recalibrate';
 import MotorSection_Micro from '../Motores/MotorSection_Micro';
 import MotorButtonRow from '../Motores/MotorButtonRow';
+import QualityBadge from '../Quality/QualityBadge';
+import type { QualityScore } from '../Quality/QualityBadge';
 import styles from './MaterialesMotorPanel.module.css';
 
 interface MotorHook {
   result: unknown;
   loading: boolean;
   simulated: boolean;
-  generate: (params: Record<string, unknown>, onStream?: (text: string) => void) => Promise<void>;
+  generate: (params: Record<string, unknown>, onStream?: (text: string) => void) => Promise<unknown>;
   generateStreaming: (params: Record<string, unknown>, onStream?: (text: string) => void) => Promise<void>;
+  quality?: QualityScore | null;
 }
 
 interface Props {
@@ -43,7 +46,7 @@ interface Props {
 
 const SimulatedBanner = () => (
   <div className={styles.simulatedBanner}>
-    ✨ Vista previa generada. Edita los parámetros para refinar.
+    ⚠️ Generado con datos simulados (la IA no respondió). Vuelve a intentar o contacta soporte.
   </div>
 );
 
@@ -75,9 +78,19 @@ export default function MaterialesMotorPanel({
         showToast={showToast}
       />
       {synthesis.simulated && synthesis.result && <SimulatedBanner />}
+      {synthesis.result && synthesis.quality && (
+        <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+          <QualityBadge quality={synthesis.quality} compact />
+        </div>
+      )}
 
       <MotorSection_ABP result={abp.result} />
       {abp.simulated && abp.result && <SimulatedBanner />}
+      {abp.result && abp.quality && (
+        <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+          <QualityBadge quality={abp.quality} compact />
+        </div>
+      )}
 
       {abp.result && (
         <MotorButton
@@ -94,6 +107,11 @@ export default function MaterialesMotorPanel({
       )}
       <MotorSection_Assessment result={assessment.result} />
       {assessment.simulated && assessment.result && <SimulatedBanner />}
+      {assessment.result && assessment.quality && (
+        <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+          <QualityBadge quality={assessment.quality} compact />
+        </div>
+      )}
 
       {(curriculumPreview?.temas?.length ?? 0) > 0 || synthesis.result ? (
         <MotorButton
@@ -113,6 +131,11 @@ export default function MaterialesMotorPanel({
       ) : null}
       <MotorSection_Plan result={plan.result} />
       {plan.simulated && plan.result && <SimulatedBanner />}
+      {plan.result && plan.quality && (
+        <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+          <QualityBadge quality={plan.quality} compact />
+        </div>
+      )}
 
       <MotorButtonRow
         curriculumPreview={curriculumPreview ?? undefined}
@@ -143,9 +166,19 @@ export default function MaterialesMotorPanel({
         />
       )}
       {slides.simulated && slides.result && <SimulatedBanner />}
+      {slides.result && slides.quality && (
+        <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+          <QualityBadge quality={slides.quality} compact />
+        </div>
+      )}
 
       <MotorSection_Ficha result={ficha.result} />
       {ficha.simulated && ficha.result && <SimulatedBanner />}
+      {ficha.result && ficha.quality && (
+        <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+          <QualityBadge quality={ficha.quality} compact />
+        </div>
+      )}
 
       {(curriculumPreview?.temas?.length ?? 0) > 0 || synthesis.result ? (
         <MotorButton
@@ -165,6 +198,11 @@ export default function MaterialesMotorPanel({
       ) : null}
       <MotorSection_Quiz result={quiz.result} />
       {quiz.simulated && quiz.result && <SimulatedBanner />}
+      {quiz.result && quiz.quality && (
+        <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+          <QualityBadge quality={quiz.quality} compact />
+        </div>
+      )}
 
       {synthesis.result && (
         <MotorButton
@@ -181,6 +219,11 @@ export default function MaterialesMotorPanel({
       )}
       <MotorSection_Tutor result={tutor.result} />
       {tutor.simulated && tutor.result && <SimulatedBanner />}
+      {tutor.result && tutor.quality && (
+        <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+          <QualityBadge quality={tutor.quality} compact />
+        </div>
+      )}
 
       {synthesis.result ? (
         <MotorButton
@@ -208,6 +251,11 @@ export default function MaterialesMotorPanel({
       )}
       <MotorSection_PDC result={pdc.result} />
       {pdc.simulated && pdc.result && <SimulatedBanner />}
+      {pdc.result && pdc.quality && (
+        <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+          <QualityBadge quality={pdc.quality} compact />
+        </div>
+      )}
 
       {assessment.result && (
         <MotorButton
@@ -224,6 +272,11 @@ export default function MaterialesMotorPanel({
       )}
       <MotorSection_Recalibrate result={recalibrate.result} />
       {recalibrate.simulated && recalibrate.result && <SimulatedBanner />}
+      {recalibrate.result && recalibrate.quality && (
+        <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+          <QualityBadge quality={recalibrate.quality} compact />
+        </div>
+      )}
 
       {plan.result && (
         <MotorButton
@@ -240,6 +293,11 @@ export default function MaterialesMotorPanel({
       )}
       <MotorSection_Micro result={micro.result} />
       {micro.simulated && micro.result && <SimulatedBanner />}
+      {micro.result && micro.quality && (
+        <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+          <QualityBadge quality={micro.quality} compact />
+        </div>
+      )}
     </>
   );
 }

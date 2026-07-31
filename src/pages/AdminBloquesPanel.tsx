@@ -112,9 +112,9 @@ export default function AdminBloquesPanel({ teacherCode, showToast }: Props) {
     <div>
       {/* Create Block Form */}
       <div style={{ background: '#fff', border: '1px solid #e6e6eb', borderRadius: '8px', padding: '1.25rem', marginBottom: '1.25rem' }}>
-        <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1e1e2f', marginBottom: '1rem' }}>
+        <h2 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1e1e2f', marginBottom: '1rem' }}>
           Crear Bloque Horario
-        </h4>
+        </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
           <div>
             <label htmlFor="bloque-dia" className={styles.adminLabel}>Dia</label>

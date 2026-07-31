@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { useToast } from '../components/UI/Toast';
+import { useAuth } from '../context/AuthContext';
 import { fetchMotorHistory, type MotorHistoryEntry } from '../hooks/useMotorHistory';
 import styles from './DashboardPage.module.css';
 
@@ -21,6 +22,13 @@ const MOTOR_CONFIG: Record<string, { icon: string; label: string; color: string 
   micro: { icon: '🎯', label: 'Micro-obj', color: '#DB2777' },
   source_narrator: { icon: '📜', label: 'Narrador', color: '#0D9488' },
 };
+
+const QUICK_ACTIONS = [
+  { icon: '🖼️', label: 'Generar Diapositivas', hint: 'Crea slides con IA', to: '/slides', accent: '#059669' },
+  { icon: '📚', label: 'Subir Material', hint: 'Sube tu libro de texto', to: '/materiales', accent: '#3A9E5E' },
+  { icon: '📅', label: 'Plan Trimestral', hint: 'Planifica el trimestre', to: '/trimestral', accent: '#D97706' },
+  { icon: '🩺', label: 'Diagnósticos', hint: 'Evalúa a tus estudiantes', to: '/diagnosticos', accent: '#0891B2' },
+] as const;
 
 /**
  * Extract class title from motor result preview.
@@ -137,17 +145,23 @@ function formatDate(dateStr: string): string {
   }
 }
 
-function StatCard({ icon, label, value, accent }: {
+function StatCard({ icon, label, value, subLabel, accent, accentDark }: {
   icon: string;
   label: string;
   value: string | number;
+  subLabel?: string;
   accent?: string;
+  accentDark?: string;
 }) {
+  const styleVars = (accent && accentDark)
+    ? ({ '--accent': accent, '--accent-dark': accentDark } as CSSProperties)
+    : undefined;
   return (
-    <div className={styles.statCard} style={accent ? { borderTop: `3px solid ${accent}` } : undefined}>
-      <div className={styles.statIcon}>{icon}</div>
+    <div className={styles.statCard} style={styleVars}>
+      <div className={styles.statIconWrap}>{icon}</div>
       <div className={styles.statValue}>{value}</div>
       <div className={styles.statLabel}>{label}</div>
+      {subLabel && <div className={styles.statSubLabel}>{subLabel}</div>}
     </div>
   );
 }
@@ -232,6 +246,7 @@ function ClassCard({ title, motors, lastUpdate, avgFidelity }: {
 
 export default function DashboardPage() {
   const { showToast } = useToast();
+  const { user } = useAuth();
   const [results, setResults] = useState<MotorResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'real' | 'preview'>('all');
@@ -287,15 +302,26 @@ export default function DashboardPage() {
     return { totalClasses, totalOutputs, avgFidelityAll, realOutputs, lastWeek };
   }, [results, classes]);
 
+  const firstName = user?.nombre?.split(' ')[0] || 'Profesor';
+  const initials = user?.nombre
+    ?.split(' ')
+    .map((w: string) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || '??';
+
   return (
     <div className={styles.page}>
-      {/* Hero header */}
+      {/* Hero header — sticky */}
       <header className={styles.hero}>
-        <div>
-          <h1 className={styles.heroTitle}>Mis clases</h1>
-          <p className={styles.heroSubtitle}>
-            Vista general de tus planificaciones y materiales generados
-          </p>
+        <div className={styles.heroLeft}>
+          <div className={styles.heroAvatar}>{initials}</div>
+          <div className={styles.heroText}>
+            <h1 className={styles.heroTitle}>Hola, {firstName} 👋</h1>
+            <p className={styles.heroSubtitle}>
+              Vista general de tus planificaciones y materiales generados
+            </p>
+          </div>
         </div>
         <Link to="/wizard" className={styles.heroCTA}>
           ✨ Crear nueva clase
@@ -304,19 +330,53 @@ export default function DashboardPage() {
 
       {/* Stats row */}
       <div className={styles.statsRow}>
-        <StatCard icon="📚" label="Clases únicas" value={stats.totalClasses} />
-        <StatCard icon="📊" label="Outputs generados" value={stats.totalOutputs} />
+        <StatCard icon="📚" label="Clases" value={stats.totalClasses} accent="#3B82F6" accentDark="#2563EB" />
+        <StatCard icon="📦" label="Materiales" value={stats.totalOutputs} accent="#10B981" accentDark="#059669" />
         <StatCard
-          icon="✓"
-          label="Fidelity promedio"
-          value={stats.avgFidelityAll !== null ? `${stats.avgFidelityAll}/100` : '—'}
-          accent={stats.avgFidelityAll !== null && stats.avgFidelityAll >= 90 ? '#10B981' : undefined}
+          icon={stats.avgFidelityAll === null ? '🎯' : stats.avgFidelityAll >= 90 ? '✓' : stats.avgFidelityAll >= 70 ? '⚡' : '⚠'}
+          label="Calidad promedio"
+          value={stats.avgFidelityAll !== null ? `${stats.avgFidelityAll}/100` : 'Sin datos'}
+          subLabel={stats.avgFidelityAll === null ? 'Genera materiales para ver tu calidad promedio' : undefined}
+          accent={
+            stats.avgFidelityAll === null ? '#9CA3AF'
+            : stats.avgFidelityAll >= 90 ? '#10B981'
+            : stats.avgFidelityAll >= 70 ? '#F59E0B'
+            : '#EF4444'
+          }
+          accentDark={
+            stats.avgFidelityAll === null ? '#6B7280'
+            : stats.avgFidelityAll >= 90 ? '#059669'
+            : stats.avgFidelityAll >= 70 ? '#D97706'
+            : '#DC2626'
+          }
         />
-        <StatCard icon="🔥" label="Esta semana" value={stats.lastWeek} accent="#F59E0B" />
+        <StatCard icon="🔥" label="Esta semana" value={stats.lastWeek} accent="#F97316" accentDark="#EA580C" />
       </div>
 
-      {/* Filters */}
-      <div className={styles.filters}>
+      {/* Quick actions */}
+      <div className={styles.quickActions}>
+        {QUICK_ACTIONS.map(action => (
+          <Link
+            key={action.to}
+            to={action.to}
+            className={styles.quickTile}
+            style={{ '--tile-accent': action.accent } as CSSProperties}
+          >
+            <span className={styles.quickTileIcon}>{action.icon}</span>
+            <div className={styles.quickTileBody}>
+              <p className={styles.quickTileLabel}>{action.label}</p>
+              <p className={styles.quickTileHint}>{action.hint}</p>
+            </div>
+            <span className={styles.quickTileArrow}>→</span>
+          </Link>
+        ))}
+      </div>
+
+      {/* Mis Clases section */}
+      <section>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Mis Clases</h2>
+          <div className={styles.filters}>
         <div className={styles.filterGroup}>
           <span className={styles.filterLabel}>Tipo:</span>
           <button
@@ -356,6 +416,8 @@ export default function DashboardPage() {
           </select>
         </div>
       </div>
+        </div>
+      </section>
 
       {/* Classes grid */}
       {loading ? (
@@ -365,9 +427,9 @@ export default function DashboardPage() {
         </div>
       ) : classes.length === 0 ? (
         <div className={styles.empty}>
-          <div className={styles.emptyIcon}>📭</div>
-          <h2>Aún no tienes clases</h2>
-          <p>Genera tu primera clase con PRIA para verla aquí.</p>
+          <div className={styles.emptyIcon}>📚</div>
+          <h2 className={styles.emptyTitle}>Aún no tienes clases creadas</h2>
+          <p className={styles.emptyText}>Empieza subiendo tu primer libro de texto.</p>
           <Link to="/wizard" className={styles.heroCTA}>
             ✨ Crear primera clase
           </Link>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/Layout/Header';
 import ProgressBar from '../components/UI/ProgressBar';
@@ -30,7 +31,7 @@ export default function DiarioPage() {
   const [teacherCode, setTeacherCode] = useState(user?.teacher_code || 'ADMIN');
   const [teachers, setTeachers] = useState<{code: string; name: string}[]>([]);
   const [teachersLoading, setTeachersLoading] = useState(true);
-  const [progressInfo] = useState({ current: 33, total: 51 });
+  const progressInfo = { current: schedule.length, total: 8 };
   const { data: estadoData } = useEstadoSistema();
 
   // Load teachers list (docentes only)
@@ -71,6 +72,8 @@ export default function DiarioPage() {
   const goToday = () => {
     setCurrentDate(new Date());
   };
+
+  const isToday = currentDate.toDateString() === new Date().toDateString();
 
   return (
     <div>
@@ -138,7 +141,7 @@ export default function DiarioPage() {
       <div className={styles.sectionTitle}>
         Tu Ruta del Día
         <span className={styles.sectionBadge}>
-          3er año · Secundaria
+          {user?.grado || '—'} · {user?.nivel || '—'}
         </span>
       </div>
 
@@ -156,11 +159,28 @@ export default function DiarioPage() {
           </thead>
           <tbody>
             {schedule.length === 0 ? (
-              <tr>
-                <td colSpan={5} className={styles.emptyRow}>
-                  No hay clases para este día
-                </td>
-              </tr>
+              isToday ? (
+                <tr>
+                  <td colSpan={5} className={styles.todayEmpty}>
+                    <div className={styles.todayEmptyIcon}>📅</div>
+                    <p className={styles.todayEmptyTitle}>
+                      No tienes clases programadas para hoy.
+                    </p>
+                    <p className={styles.todayEmptyText}>
+                      Ve a la planificación semanal para agregar una.
+                    </p>
+                    <Link to="/semanal" className={styles.todayEmptyCta}>
+                      📅 Ir a Semanal →
+                    </Link>
+                  </td>
+                </tr>
+              ) : (
+                <tr>
+                  <td colSpan={5} className={styles.emptyRow}>
+                    No hay clases para este día
+                  </td>
+                </tr>
+              )
             ) : (
               schedule.map((entry) => (
                 <tr key={`${entry.hora}-${entry.materia}`} style={entry.tipo === 'recess' ? { background: '#fffbeb' } : undefined}>

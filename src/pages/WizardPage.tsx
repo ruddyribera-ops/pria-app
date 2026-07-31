@@ -1,23 +1,59 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import Header from '../components/Layout/Header';
 import { useToast } from '../components/UI/Toast';
+import { useAuth } from '../context/AuthContext';
 import { listMaterials, uploadMaterial } from '../api/materials';
 import { TOKEN_KEY } from '../constants';
 import { useMotorGenerator } from '../hooks/useMotorGenerator';
-import { getUnitsForText, type Unit } from '../lib/textbook/parseUnits';
+import { extractUnitsWithAI, type Unit } from '../lib/textbook/parseUnits';
 import UnitTopicSelector from '../components/Materials/UnitTopicSelector';
 import type { SynthesisOutput, PlanOutput, SlidesOutput, QuizOutput, AnyMotorOutput, SourceNarratorOutput } from '../types/motor-types';
 import type { Material } from '../types';
-import PptxGenJS from 'pptxgenjs';
-import { buildCoverSlide, buildCreditsSlide } from '../lib/pptx/slides/cover';
+import type { IngestResult } from '../lib/ingest/types';
 import type { TeacherInfo } from '../lib/export/pdf';
-import { buildSynthesisSlides } from '../lib/pptx/slides/synthesis';
-import { buildPlanSlides } from '../lib/pptx/slides/plan';
-import { buildSlidesSlides } from '../lib/pptx/slides/slides';
-import { buildQuizSlides } from '../lib/pptx/slides/quiz';
-import { getPalette } from '../lib/pptx/designSystem';
+import QualityBadge from '../components/Quality/QualityBadge';
+import CulturalIndicator from '../components/Quality/CulturalIndicator';
+import type { QualityScore } from '../components/Quality/QualityBadge';
+import type { CulturalContext } from '../components/Quality/CulturalIndicator';
 
 type WizardStep = 'upload' | 'select' | 'generate';
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadServerPptx(
+  motor: string,
+  output: unknown,
+  teacherInfo: TeacherInfo,
+  topicSuffix: string,
+): Promise<void> {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const response = await fetch('/api/exports/pptx', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ motor, output, teacherInfo }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null) as { detail?: string; error?: string } | null;
+    const detail = errorBody?.detail || errorBody?.error || response.statusText;
+    throw new Error(`PPTX generation failed: ${response.status} ${detail}`);
+  }
+
+  const blob = await response.blob();
+  const filename = `PRIA_${motor}${topicSuffix}_${Date.now()}.pptx`;
+  downloadBlob(blob, filename);
+}
 
 // ── Styles ───────────────────────────────────────────────────────────────────
 
@@ -85,9 +121,9 @@ const STEP_STYLES = {
     gridTemplateColumns: 'repeat(2, 1fr)',
     gap: '1rem',
   },
-  motorCard: (ready: boolean) => ({
+  motorCard: (ready: boolean, simulated?: boolean) => ({
     background: '#fff',
-    border: `1px solid ${ready ? '#3A9E5E' : '#e6e6eb'}`,
+    border: `1px solid ${simulated ? '#FFC107' : ready ? '#3A9E5E' : '#e6e6eb'}`,
     borderRadius: '8px',
     padding: '1.25rem',
     display: 'flex',
@@ -246,6 +282,44 @@ function UploadStep({
           Continuar →
         </button>
       </div>
+
+      {/* Fallback: skip PDF, go directly to slide generator */}
+      <div style={{
+        marginTop: '1.5rem',
+        padding: '1rem',
+        background: '#f9fafb',
+        border: '1px dashed #d4d4e0',
+        borderRadius: '8px',
+        textAlign: 'center',
+      }}>
+        <p style={{ color: '#6b6b80', margin: '0 0 0.75rem 0', fontSize: '0.875rem' }}>
+          ¿No tienes un PDF a mano?
+        </p>
+        <Link
+          to="/slides"
+          style={{
+            display: 'inline-block',
+            padding: '0.625rem 1.25rem',
+            background: '#3A9E5E',
+            color: 'white',
+            textDecoration: 'none',
+            borderRadius: '6px',
+            fontWeight: 600,
+            fontSize: '0.875rem',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.background = '#2d7d4a';
+            (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.background = '#3A9E5E';
+            (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+          }}
+        >
+          💡 Generar diapositivas directamente desde un tema
+        </Link>
+      </div>
     </div>
   );
 }
@@ -369,17 +443,62 @@ function GenerateStep({
           const isCompleted = completed.has(opt.id);
           const isGenerating = generating.has(opt.id);
           const isLoading = motor?.loading ?? false;
+          const isSimulated = motor?.simulated ?? false;
+          const quality = motor?.quality as QualityScore | null | undefined;
+          const cultural = motor?.cultural as CulturalContext | null | undefined;
+
+          // Low quality warning: score < 60 and not loading
+          const isLowQuality = quality && quality.overall < 60;
 
           return (
-            <div key={opt.id} style={STEP_STYLES.motorCard(isCompleted)}>
+            <div key={opt.id} style={STEP_STYLES.motorCard(isCompleted, isSimulated)}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ fontSize: '1.5rem' }}>{opt.icon}</span>
                 <h3 style={{ fontSize: '0.9375rem', fontWeight: 600 }}>{opt.label}</h3>
+                {isCompleted && quality && (
+                  <div style={{ marginLeft: 'auto' }}>
+                    <QualityBadge quality={quality} />
+                  </div>
+                )}
+                {isSimulated && isCompleted && (
+                  <span style={{
+                    padding: '0.125rem 0.5rem',
+                    background: '#FFF3CD',
+                    border: '1px solid #FFC107',
+                    borderRadius: '4px',
+                    fontSize: '0.6875rem',
+                    color: '#856404',
+                    fontWeight: 600,
+                  }}>
+                    ⚠️ SIMULADO
+                  </span>
+                )}
               </div>
+              {/* Cultural sensitivity indicator */}
+              {cultural?.detected && (
+                <div style={{ marginTop: '0.25rem' }}>
+                  <CulturalIndicator cultural={cultural} />
+                </div>
+              )}
+              {/* Low quality warning */}
+              {isLowQuality && !isLoading && (
+                <div style={{
+                  marginTop: '0.25rem',
+                  padding: '0.25rem 0.5rem',
+                  background: '#FEF3C7',
+                  border: '1px solid #F59E0B',
+                  borderRadius: '4px',
+                  fontSize: '0.6875rem',
+                  color: '#92400E',
+                  fontWeight: 500,
+                }}>
+                  ⚠️ Calidad baja: algunas mejoras recomendadas
+                </div>
+              )}
               <p style={{ fontSize: '0.8125rem', color: '#6b6b80', flex: 1 }}>
                 {opt.description}
               </p>
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
                 <button
                   type="button"
                   onClick={() => onGenerate(opt.id)}
@@ -408,11 +527,12 @@ function GenerateStep({
                       onClick={() => onDownload(opt.id, 'pdf')}
                       style={{
                         ...STEP_STYLES.buttonSecondary,
-                        color: '#6b6b80',
+                        color: '#3A9E5E',
+                        borderColor: '#3A9E5E',
                         padding: '0.5rem 0.75rem',
                         fontSize: '0.75rem',
                       }}
-                      title="PDF (próximamente)"
+                      title="PDF"
                     >
                       📄 PDF
                     </button>
@@ -421,11 +541,12 @@ function GenerateStep({
                       onClick={() => onDownload(opt.id, 'docx')}
                       style={{
                         ...STEP_STYLES.buttonSecondary,
-                        color: '#6b6b80',
+                        color: '#3A9E5E',
+                        borderColor: '#3A9E5E',
                         padding: '0.5rem 0.75rem',
                         fontSize: '0.75rem',
                       }}
-                      title="DOCX (próximamente)"
+                      title="DOCX"
                     >
                       📝 DOCX
                     </button>
@@ -450,6 +571,25 @@ function GenerateStep({
 
 export default function WizardPage() {
   const { showToast } = useToast();
+  const { user } = useAuth();
+
+  // Read teacher context (used by both generate and download flows).
+  // FIX BUG-X2: spread this into motor params so the LLM knows who the teacher is,
+  // what school, what grade — generated content references the teacher's class
+  // instead of being generic.
+  const getTeacherContext = () => {
+    const storedV2 = JSON.parse(localStorage.getItem('pria_teacher_config_v2') || '{}');
+    const stored = Object.keys(storedV2).length > 0 ? storedV2 : JSON.parse(localStorage.getItem('pria_teacher_config') || '{}');
+    return {
+      profesor: stored.nombreDocente || stored.nombre || user?.nombre || '',
+      colegio: stored.colegio || stored.escuela || '',
+      ciudad: stored.ciudad || '',
+      grado: stored.grado || user?.grado || '5to de Primaria',
+      materia: stored.materia || 'Lenguaje y Comunicación',
+      ano_escolar: stored.anoEscolar || String(new Date().getFullYear()),
+    };
+  };
+
   const [currentStep, setCurrentStep] = useState<WizardStep>('upload');
   const [materials, setMaterials] = useState<Material[]>([]);
   const [_selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
@@ -477,6 +617,58 @@ export default function WizardPage() {
   // Generation state
   const [completed, setCompleted] = useState<Set<string>>(new Set());
 
+  // Teacher institutional config state
+  const [teacherConfigOpen, setTeacherConfigOpen] = useState(false);
+  const [teacherConfig, setTeacherConfig] = useState<TeacherInfo>({
+    objetivoAprendizaje: '',
+    duracionEstimadaMinutos: undefined,
+    areaCurricular: '',
+    fuente: { titulo: '', autor: '', editorial: '', anio: undefined, paginasUsadas: '' },
+  });
+
+  // Load teacher config from localStorage on mount (read v2, fall back to legacy, migrate)
+  useEffect(() => {
+    // Read v2 first, fall back to legacy key only if v2 is empty
+    const storedV2 = JSON.parse(localStorage.getItem('pria_teacher_config_v2') || '{}');
+    const legacy = JSON.parse(localStorage.getItem('pria_teacher_config') || '{}');
+    const stored = Object.keys(storedV2).length > 0 ? storedV2 : legacy;
+    if (Object.keys(stored).length > 0) {
+      setTeacherConfig({
+        objetivoAprendizaje: stored.objetivoAprendizaje || '',
+        duracionEstimadaMinutos: stored.duracionEstimadaMinutos || undefined,
+        areaCurricular: stored.areaCurricular || '',
+        fuente: {
+          titulo: stored.fuente?.titulo || '',
+          autor: stored.fuente?.autor || '',
+          editorial: stored.fuente?.editorial || '',
+          anio: stored.fuente?.anio || undefined,
+          paginasUsadas: stored.fuente?.paginasUsadas || '',
+        },
+      });
+      // Migrate legacy → v2 so future reads always use v2
+      if (Object.keys(legacy).length > 0 && Object.keys(storedV2).length === 0) {
+        localStorage.setItem('pria_teacher_config_v2', JSON.stringify(legacy));
+      }
+    }
+  }, []);
+
+  // Save teacher config to localStorage whenever it changes
+  const saveTeacherConfig = (config: TeacherInfo) => {
+    setTeacherConfig(config);
+    localStorage.setItem('pria_teacher_config_v2', JSON.stringify(config));
+  };
+
+  const handleTeacherConfigChange = (field: keyof TeacherInfo, value: any) => {
+    saveTeacherConfig({ ...teacherConfig, [field]: value });
+  };
+
+  const handleFuenteChange = (field: string, value: string | number | undefined) => {
+    saveTeacherConfig({
+      ...teacherConfig,
+      fuente: { ...teacherConfig.fuente!, [field]: value },
+    });
+  };
+
   // Load materials on mount
   useEffect(() => {
     listMaterials()
@@ -484,11 +676,13 @@ export default function WizardPage() {
       .catch(() => showToast('No se pudieron cargar los materiales', 'error'));
   }, [showToast]);
 
-  // Parse units when rawText is long enough
+  // Parse units when rawText is long enough (async AI fallback)
   useEffect(() => {
     if (rawText.length > 100) {
-      const parsed = getUnitsForText(rawText);
-      setUnits(parsed);
+      (async () => {
+        const parsed = await extractUnitsWithAI(rawText, 'Lenguaje y Comunicación');
+        if (parsed.length > 0) setUnits(parsed);
+      })();
     }
   }, [rawText]);
 
@@ -502,36 +696,75 @@ export default function WizardPage() {
     setUploading(true);
     setUploadProgress(0);
 
-    // Simulate progress
+    // Simulate upload progress
     const interval = setInterval(() => {
-      setUploadProgress((p) => Math.min(p + 15, 90));
+      setUploadProgress((p) => Math.min(p + 15, 60));
     }, 200);
 
     try {
+      // Step 1: Upload file to backend
       const uploaded = await uploadMaterial(file, 'texto');
       clearInterval(interval);
+      setUploadProgress(60);
+
+      // Step 2: Extract text from PDF client-side (backend doesn't parse PDFs)
+      setSelectedMaterial(uploaded);
+      const { ingestDocument } = await import('../lib/ingest/documentIngester');
+      const ingestResult: IngestResult = await ingestDocument(file, (_stage, percent) => {
+        setUploadProgress(Math.round(60 + percent * 0.3));
+      });
+
+      setRawText(ingestResult.fullText);
+
+      setUploading(false);
       setUploadProgress(100);
 
-      setTimeout(() => {
-        setUploading(false);
-        setUploadProgress(0);
-        setSelectedMaterial(uploaded);
-        // Use mock text for demo since real PDF parsing would need OCR
-        setRawText('mock textbook content for unit parsing');
-        showToast('Libro subido exitosamente', 'success');
-        loadMaterials();
-      }, 400);
+      if (ingestResult.ok && ingestResult.fullText && ingestResult.fullText.length > 50) {
+        // Step 3: Parse units from extracted text
+        const parsedUnits = await extractUnitsWithAI(ingestResult.fullText, 'Lenguaje y Comunicación');
+
+        if (parsedUnits.length > 0) {
+          setUnits(parsedUnits);
+
+          // Step 4: Save units to backend for future retrieval
+          const token = localStorage.getItem(TOKEN_KEY);
+          fetch(`/api/materials/${uploaded.id}/units`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ units: parsedUnits }),
+          }).catch(e => console.warn('Failed to save units:', e));
+
+          showToast(`Libro procesado: ${parsedUnits.length} unidad(es) detectada(s)`, 'success');
+        } else {
+          setUnits([]);
+          showToast('Texto extraído pero sin unidades detectadas. Continúa para usar los temas manualmente.', 'info');
+        }
+      } else {
+        setUnits([]);
+        const isScanned = ingestResult.warnings?.some(w => w.code === 'OCR_USED');
+        showToast(
+          isScanned
+            ? 'PDF escaneado detectado. El OCR puede estar aún procesando. Intenta de nuevo o sube una imagen.'
+            : 'No se pudo extraer texto del PDF. ¿Es un PDF escaneado (imagen)?',
+          'warning'
+        );
+      }
+
+      loadMaterials();
+      setCurrentStep('select');
     } catch {
       clearInterval(interval);
       setUploading(false);
       setUploadProgress(0);
-      showToast('Error al subir el archivo', 'error');
+      showToast('Error al procesar el archivo. Intenta de nuevo.', 'error');
     }
   };
 
   const handleSelectExisting = async (m: Material) => {
     setSelectedMaterial(m);
-    showToast(`Seleccionaste: ${m.filename}`, 'info');
 
     // Load units from backend
     try {
@@ -542,14 +775,15 @@ export default function WizardPage() {
       const data = await res.json();
       if (data.data && Array.isArray(data.data) && data.data.length > 0) {
         setUnits(data.data);
-        setRawText(''); // No need for rawText since we have units
+        setRawText('');
         setCurrentStep('select');
+        showToast(`${m.filename}: ${data.data.length} unidad(es) cargada(s)`, 'success');
       } else {
-        // No units saved yet for this material
+        // No units saved — this material was likely uploaded via old wizard flow
         setUnits([]);
         setRawText('');
         setCurrentStep('select');
-        showToast('Este libro no tiene unidades detectadas. Sube el PDF de nuevo.', 'info');
+        showToast('Este libro aún no tiene unidades procesadas. Puedes re-subirlo desde el paso anterior.', 'info');
       }
     } catch (err) {
       console.warn('Failed to load units:', err);
@@ -635,7 +869,6 @@ export default function WizardPage() {
     };
 
     const params = baseParams;
-    void slidesParams; void planParams; void quizParams;
 
     // M0.5 Source Narrator params - used to enrich downstream motors
     const sourceNarratorParams = {
@@ -646,38 +879,47 @@ export default function WizardPage() {
 
     try {
       if (motorId === 'synthesis') {
-        await synthesis.generate(params);
+        await synthesis.generate({ ...params, ...getTeacherContext() });
         setCompleted((prev) => new Set([...prev, motorId]));
+        if (synthesis.simulated) {
+          showToast('⚠️ Generado con datos simulados (la IA no respondió). Vuelve a intentar o contacta soporte.', 'warning');
+        }
       } else if (motorId === 'plan') {
         // M0.5 chain: generate narrative first, then pass to plan
-        await sourceNarrator.generate(sourceNarratorParams);
-        const narrativeResult = sourceNarrator.result;
+        const narrativeResult = await sourceNarrator.generate(sourceNarratorParams);
         const planParamsWithNarrative = {
           ...planParams,
           narrative_extract: narrativeResult as SourceNarratorOutput | null,
         };
-        await plan.generate(planParamsWithNarrative);
+        await plan.generate({ ...planParamsWithNarrative, ...getTeacherContext() });
         setCompleted((prev) => new Set([...prev, motorId]));
+        if (plan.simulated) {
+          showToast('⚠️ Generado con datos simulados (la IA no respondió). Vuelve a intentar o contacta soporte.', 'warning');
+        }
       } else if (motorId === 'slides') {
         // M0.5 chain: generate narrative first, then pass to slides
-        await sourceNarrator.generate(sourceNarratorParams);
-        const narrativeResult = sourceNarrator.result;
+        const narrativeResult = await sourceNarrator.generate(sourceNarratorParams);
         const slidesParamsWithNarrative = {
           ...slidesParams,
           narrative_extract: narrativeResult as SourceNarratorOutput | null,
         };
-        await slides.generate(slidesParamsWithNarrative);
+        await slides.generate({ ...slidesParamsWithNarrative, ...getTeacherContext() });
         setCompleted((prev) => new Set([...prev, motorId]));
+        if (slides.simulated) {
+          showToast('⚠️ Generado con datos simulados (la IA no respondió). Vuelve a intentar o contacta soporte.', 'warning');
+        }
       } else if (motorId === 'quiz') {
         // M0.5 chain: generate narrative first, then pass to quiz
-        await sourceNarrator.generate(sourceNarratorParams);
-        const narrativeResult = sourceNarrator.result;
+        const narrativeResult = await sourceNarrator.generate(sourceNarratorParams);
         const quizParamsWithNarrative = {
           ...quizParams,
           narrative_extract: narrativeResult as SourceNarratorOutput | null,
         };
-        await quiz.generate(quizParamsWithNarrative);
+        await quiz.generate({ ...quizParamsWithNarrative, ...getTeacherContext() });
         setCompleted((prev) => new Set([...prev, motorId]));
+        if (quiz.simulated) {
+          showToast('⚠️ Generado con datos simulados (la IA no respondió). Vuelve a intentar o contacta soporte.', 'warning');
+        }
       }
     } catch {
       showToast('Error al generar el material', 'error');
@@ -692,8 +934,26 @@ export default function WizardPage() {
       return;
     }
 
-    // Read teacher config from localStorage
-    const teacherInfo: TeacherInfo = JSON.parse(localStorage.getItem('pria_teacher_config') || '{}');
+    // Read teacher config from localStorage v2 (with fallback to old key for migration)
+    const storedV2 = JSON.parse(localStorage.getItem('pria_teacher_config_v2') || '{}');
+    const stored = Object.keys(storedV2).length > 0 ? storedV2 : JSON.parse(localStorage.getItem('pria_teacher_config') || '{}');
+    const teacherInfo: TeacherInfo = {
+      // FIX BUG-005: fall back to authenticated user's name when localStorage is empty.
+      // The wizard's institutional config form does NOT collect nombreDocente/colegio/etc.
+      nombre: stored.nombreDocente || stored.nombre || user?.nombre || '',
+      email: stored.email || '',
+      // BUG-005 follow-up: fall back to known seed defaults when localStorage is empty.
+      // In production, these would come from a settings page or admin roster.
+      escuela: stored.colegio || stored.escuela || 'Unidad Educativa San Andrés',
+      ciudad: stored.ciudad || 'La Paz',
+      grado: stored.grado || user?.grado || '5to de Primaria',
+      materia: stored.materia || 'Lenguaje y Comunicación',
+      anoEscolar: stored.anoEscolar || String(new Date().getFullYear()),
+      objetivoAprendizaje: stored.objetivoAprendizaje || teacherConfig.objetivoAprendizaje,
+      duracionEstimadaMinutos: stored.duracionEstimadaMinutos || teacherConfig.duracionEstimadaMinutos,
+      areaCurricular: stored.areaCurricular || teacherConfig.areaCurricular,
+      fuente: stored.fuente || teacherConfig.fuente,
+    };
 
     // Topic suffix for filename
     const topicSuffix = selectedTopicIds.size > 0
@@ -703,53 +963,12 @@ export default function WizardPage() {
     try {
       if (format === 'pptx') {
         showToast('Generando PPTX...', 'info');
-        const pptx = new PptxGenJS();
-        pptx.layout = 'LAYOUT_WIDE';
-        pptx.author = 'PRIA v10';
-
-        const subject = Array.from(selectedTopicIds).length > 0
-          ? 'Lenguaje y Comunicación'
-          : 'General';
-        const pal = getPalette(subject);
-
-        let title = '';
-        let blob: Blob;
-
-        if (motorId === 'synthesis') {
-          title = 'Síntesis Curricular';
-          pptx.title = title;
-          buildCoverSlide(pptx, title, pal, teacherInfo);
-          buildSynthesisSlides(pptx, result as SynthesisOutput, pal, teacherInfo);
-          buildCreditsSlide(pptx);
-          blob = await pptx.write({ outputType: 'blob' }) as Blob;
-        } else if (motorId === 'plan') {
-          title = 'Plan de Clase';
-          pptx.title = title;
-          buildCoverSlide(pptx, title, pal, teacherInfo);
-          buildPlanSlides(pptx, result as PlanOutput, pal, teacherInfo);
-          buildCreditsSlide(pptx);
-          blob = await pptx.write({ outputType: 'blob' }) as Blob;
-        } else if (motorId === 'slides') {
-          title = 'Diapositivas';
-          pptx.title = title;
-          buildCoverSlide(pptx, title, pal, teacherInfo);
-          buildSlidesSlides(pptx, result as SlidesOutput, { palette: pal });
-          buildCreditsSlide(pptx);
-          blob = await pptx.write({ outputType: 'blob' }) as Blob;
-        } else if (motorId === 'quiz') {
-          title = 'Pop Quiz';
-          pptx.title = title;
-          buildCoverSlide(pptx, title, pal, teacherInfo);
-          buildQuizSlides(pptx, result as QuizOutput, 1, pal);
-          buildCreditsSlide(pptx);
-          blob = await pptx.write({ outputType: 'blob' }) as Blob;
-        } else {
+        if (!['synthesis', 'plan', 'slides', 'quiz'].includes(motorId)) {
           showToast('Motor no soportado', 'error');
           return;
         }
 
-        const filename = `PRIA_${motorId}${topicSuffix}_${Date.now()}.pptx`;
-        downloadBlob(blob, filename);
+        await downloadServerPptx(motorId, result, teacherInfo, topicSuffix);
         showToast('PPTX descargado', 'success');
 
       } else if (format === 'pdf') {
@@ -792,15 +1011,6 @@ export default function WizardPage() {
     }
   };
 
-  function downloadBlob(blob: Blob, filename: string) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   return (
     <div style={{ minHeight: '100vh', background: '#f8f8fa' }}>
       <Header
@@ -824,15 +1034,136 @@ export default function WizardPage() {
 
         {/* Step content */}
         {currentStep === 'upload' && (
-          <UploadStep
-            materials={materials}
-            uploading={uploading}
-            progress={uploadProgress}
-            onUpload={handleUpload}
-            onSelectExisting={handleSelectExisting}
-            onContinue={handleContinueToSelect}
-            hasFile={rawText.length > 0}
-          />
+          <>
+            {/* Institutional Config collapsible */}
+            <div style={{ ...STEP_STYLES.card, marginBottom: '1rem', padding: '0.75rem 1rem' }}>
+              <button
+                type="button"
+                onClick={() => setTeacherConfigOpen(!teacherConfigOpen)}
+                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#3A9E5E' }}>
+                  📋 Configuración Institucional
+                  <span style={{ fontWeight: 400, color: '#6b6b80', marginLeft: '0.5rem', fontSize: '0.75rem' }}>
+                    (para portadas y exports)
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: '#6b6b80' }}>
+                  {teacherConfigOpen ? '▲ Ocultar' : '▼ Mostrar'}
+                </span>
+              </button>
+
+              {teacherConfigOpen && (
+                <div style={{ marginTop: '1rem', display: 'grid', gap: '0.75rem' }}>
+                  {/* Área curricular */}
+                  <div>
+                    <label htmlFor="area-curricular" style={{ fontSize: '0.75rem', fontWeight: 500, color: '#6b6b80', display: 'block', marginBottom: '0.25rem' }}>
+                      Área Curricular
+                    </label>
+                    <input
+                      id="area-curricular"
+                      type="text"
+                      value={teacherConfig.areaCurricular || ''}
+                      onChange={(e) => handleTeacherConfigChange('areaCurricular', e.target.value)}
+                      placeholder="Ej: Lenguaje y Comunicación"
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '0.8125rem', border: '1px solid #e6e6eb', borderRadius: '6px' }}
+                    />
+                  </div>
+
+                  {/* Duración estimada */}
+                  <div>
+                    <label htmlFor="duracion-minutos" style={{ fontSize: '0.75rem', fontWeight: 500, color: '#6b6b80', display: 'block', marginBottom: '0.25rem' }}>
+                      Duración Estimada (minutos)
+                    </label>
+                    <input
+                      id="duracion-minutos"
+                      type="number"
+                      value={teacherConfig.duracionEstimadaMinutos || ''}
+                      onChange={(e) => handleTeacherConfigChange('duracionEstimadaMinutos', e.target.value ? parseInt(e.target.value) : undefined)}
+                      placeholder="Ej: 45"
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '0.8125rem', border: '1px solid #e6e6eb', borderRadius: '6px' }}
+                    />
+                  </div>
+
+                  {/* Objetivo de aprendizaje */}
+                  <div>
+                    <label htmlFor="objetivo-aprendizaje" style={{ fontSize: '0.75rem', fontWeight: 500, color: '#6b6b80', display: 'block', marginBottom: '0.25rem' }}>
+                      Objetivo de Aprendizaje
+                    </label>
+                    <textarea
+                      id="objetivo-aprendizaje"
+                      value={teacherConfig.objetivoAprendizaje || ''}
+                      onChange={(e) => handleTeacherConfigChange('objetivoAprendizaje', e.target.value)}
+                      placeholder="Ej: Los estudiantes comprenderán los conceptos básicos de..."
+                      rows={2}
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '0.8125rem', border: '1px solid #e6e6eb', borderRadius: '6px', resize: 'vertical' }}
+                    />
+                  </div>
+
+                  {/* Fuente */}
+                  <div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 500, color: '#6b6b80', marginBottom: '0.25rem' }}>
+                      Fuente del Material
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        value={teacherConfig.fuente?.titulo || ''}
+                        onChange={(e) => handleFuenteChange('titulo', e.target.value)}
+                        placeholder="Título del libro"
+                        aria-label="Título del libro"
+                        style={{ padding: '0.5rem', fontSize: '0.8125rem', border: '1px solid #e6e6eb', borderRadius: '6px' }}
+                      />
+                      <input
+                        type="text"
+                        value={teacherConfig.fuente?.autor || ''}
+                        onChange={(e) => handleFuenteChange('autor', e.target.value)}
+                        placeholder="Autor"
+                        aria-label="Autor"
+                        style={{ padding: '0.5rem', fontSize: '0.8125rem', border: '1px solid #e6e6eb', borderRadius: '6px' }}
+                      />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      <input
+                        type="text"
+                        value={teacherConfig.fuente?.editorial || ''}
+                        onChange={(e) => handleFuenteChange('editorial', e.target.value)}
+                        placeholder="Editorial"
+                        aria-label="Editorial"
+                        style={{ padding: '0.5rem', fontSize: '0.8125rem', border: '1px solid #e6e6eb', borderRadius: '6px' }}
+                      />
+                      <input
+                        type="number"
+                        value={teacherConfig.fuente?.anio || ''}
+                        onChange={(e) => handleFuenteChange('anio', e.target.value ? parseInt(e.target.value) : undefined)}
+                        placeholder="Año"
+                        aria-label="Año de publicación"
+                        style={{ padding: '0.5rem', fontSize: '0.8125rem', border: '1px solid #e6e6eb', borderRadius: '6px' }}
+                      />
+                      <input
+                        type="text"
+                        value={teacherConfig.fuente?.paginasUsadas || ''}
+                        onChange={(e) => handleFuenteChange('paginasUsadas', e.target.value)}
+                        placeholder="Páginas"
+                        aria-label="Páginas usadas"
+                        style={{ padding: '0.5rem', fontSize: '0.8125rem', border: '1px solid #e6e6eb', borderRadius: '6px' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <UploadStep
+              materials={materials}
+              uploading={uploading}
+              progress={uploadProgress}
+              onUpload={handleUpload}
+              onSelectExisting={handleSelectExisting}
+              onContinue={handleContinueToSelect}
+              hasFile={rawText.length > 0}
+            />
+          </>
         )}
 
         {currentStep === 'select' && (

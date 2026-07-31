@@ -15,6 +15,9 @@ import healthRouter from './routes/health.js';
 import authRouter from './routes/auth.js';
 import adminRouter from './routes/admin.js';
 import materialsRouter from './routes/materials.js';
+import exportsRouter from './routes/exports.js';
+import motoresSlidesRouter from './routes/motores-slides.js';
+import motoresSlidesRegenerateRouter from './routes/motores-slides-regenerate.js';
 import motoresRouter from './routes/motores.js';
 import scheduleRouter from './routes/schedule.js';
 import diagnosticosRouter from './routes/diagnosticos.js';
@@ -40,6 +43,13 @@ if (process.env.SENTRY_DSN) {
 
 export async function createApp() {
   const app = express();
+
+  // Ensure uploads/ exists at startup so /uploads static route + multer destinations
+  // never ENOENT on first upload. Idempotent: existsSync guards the mkdirSync.
+  const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
 
   // SEC-02: Trust proxy so req.ip reflects real client IP behind Railway reverse proxy
   app.set('trust proxy', 1);
@@ -111,6 +121,9 @@ export async function createApp() {
   app.use('/api/auth', passwordResetRouter);  // forgot-password + reset-password
   app.use('/api/admin', adminRouter);
   app.use('/api/materials', materialsRouter);
+  app.use('/api/exports', exportsRouter);
+  app.use('/api', motoresSlidesRouter);
+  app.use('/api', motoresSlidesRegenerateRouter);
   app.use('/api/motores', motoresRouter);
   app.use('/api/schedule', scheduleRouter);
   app.use('/api/diagnosticos', diagnosticosRouter);

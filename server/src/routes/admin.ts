@@ -21,31 +21,31 @@ router.get('/estado-sistema', authMiddleware, (req: AuthRequest, res: Response) 
 });
 
 router.get('/users', authMiddleware, adminOnly, async (req, res) => {
-  const users = await dbAll('SELECT id, username, nombre, role, nivel, grado, created_at FROM users');
+  const users = await dbAll('SELECT id, username, nombre, role, nivel, grado, teacher_code, created_at FROM users');
   res.json({ data: users });
 });
 
 router.get('/users/', authMiddleware, adminOnly, async (req, res) => {
-  const users = await dbAll('SELECT id, username, nombre, role, nivel, grado, created_at FROM users');
+  const users = await dbAll('SELECT id, username, nombre, role, nivel, grado, teacher_code, created_at FROM users');
   res.json({ data: users });
 });
 
 router.post('/users', authMiddleware, adminOnly, validateBody(CreateUserSchema), async (req, res) => {
-  const { nombre, usuario, password, nivel, grado } = req.body;
+  const { nombre, usuario, password, correo, nivel, grado, teacher_code } = req.body;
   const hash = bcrypt.hashSync(password, 12);
   const info = await dbRun(
-    'INSERT INTO users (username, password_hash, nombre, nivel, grado) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-    [usuario, hash, nombre, nivel || 'Primaria', grado || '5to']
+    'INSERT INTO users (username, password_hash, email, nombre, nivel, grado, teacher_code) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+    [usuario, hash, correo || null, nombre, nivel || 'Primaria', grado || '5to', teacher_code || null]
   );
   res.json({ data: { id: info.id, created: new Date().toISOString() } });
 });
 
 router.post('/users/', authMiddleware, adminOnly, validateBody(CreateUserSchema), async (req, res) => {
-  const { nombre, usuario, password, nivel, grado } = req.body;
+  const { nombre, usuario, password, correo, nivel, grado, teacher_code } = req.body;
   const hash = bcrypt.hashSync(password, 12);
   const info = await dbRun(
-    'INSERT INTO users (username, password_hash, nombre, nivel, grado) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-    [usuario, hash, nombre, nivel || 'Primaria', grado || '5to']
+    'INSERT INTO users (username, password_hash, email, nombre, nivel, grado, teacher_code) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+    [usuario, hash, correo || null, nombre, nivel || 'Primaria', grado || '5to', teacher_code || null]
   );
   res.json({ data: { id: info.id, created: new Date().toISOString() } });
 });
@@ -64,6 +64,52 @@ router.delete('/users/:id', authMiddleware, adminOnly, async (req: AuthRequest, 
   const id = req.params.id as string;
   await dbRun('DELETE FROM users WHERE id = $1', [id]);
   res.json({ data: { id: parseInt(id), deleted: new Date().toISOString() } });
+});
+
+// GET /api/admin/archivos — list all user-uploaded files (materials + diagnosticos)
+router.get('/archivos', authMiddleware, adminOnly, async (_req, res) => {
+  try {
+    const [materials, diagnosticos] = await Promise.all([
+      dbAll(`
+        SELECT m.id, m.user_id, m.filename, m.tipo, m.size, m.created_at,
+               u.nombre as user_nombre, u.username as user_username,
+               'material' as source
+        FROM materials m
+        JOIN users u ON u.id = m.user_id
+        ORDER BY m.created_at DESC
+      `),
+      dbAll(`
+        SELECT d.id, d.user_id, d.tipo, d.filepath as filename, d.created_at,
+               u.nombre as user_nombre, u.username as user_username,
+               'diagnostico' as source
+        FROM diagnosticos d
+        JOIN users u ON u.id = d.user_id
+        ORDER BY d.created_at DESC
+      `),
+    ]);
+    res.json({ data: { materials, diagnosticos } });
+  } catch (err) {
+    console.error('[/admin/archivos GET]', err);
+    res.status(500).json({ error: 'Error al obtener archivos' });
+  }
+});
+
+// DELETE /api/admin/archivos/:source/:id — delete a file by source and id
+router.delete('/archivos/:source/:id', authMiddleware, adminOnly, async (req: AuthRequest, res: Response) => {
+  try {
+    const { source, id } = req.params;
+    if (source === 'material') {
+      await dbRun('DELETE FROM materials WHERE id = $1', [id]);
+    } else if (source === 'diagnostico') {
+      await dbRun('DELETE FROM diagnosticos WHERE id = $1', [id]);
+    } else {
+      return res.status(400).json({ error: 'Tipo de archivo inválido' });
+    }
+    res.json({ data: { deleted: true } });
+  } catch (err) {
+    console.error('[/admin/archivos DELETE]', err);
+    res.status(500).json({ error: 'Error al eliminar archivo' });
+  }
 });
 
 router.get('/cache/stats', authMiddleware, adminOnly, async (_req, res) => {
@@ -101,11 +147,19 @@ router.delete('/cache', authMiddleware, adminOnly, async (_req, res) => {
 router.post('/reset-day', authMiddleware, adminOnly, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
+    const { date } = req.body;
     if (!userId) return res.status(401).json({ error: 'No autenticado' });
-    await dbRun(
-      `DELETE FROM motor_results WHERE user_id = $1 AND DATE(created_at) = CURRENT_DATE`,
-      [userId]
-    );
+    if (date) {
+      await dbRun(
+        `DELETE FROM motor_results WHERE user_id = $1 AND DATE(created_at) = $2`,
+        [userId, date]
+      );
+    } else {
+      await dbRun(
+        `DELETE FROM motor_results WHERE user_id = $1 AND DATE(created_at) = CURRENT_DATE`,
+        [userId]
+      );
+    }
     res.json({ data: { reset: true } });
   } catch (err) {
     console.error('[/admin/reset-day]', err);

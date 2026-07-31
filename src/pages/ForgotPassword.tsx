@@ -36,7 +36,7 @@ export default function ForgotPasswordPage() {
       <div className={styles.page}>
         <div className={styles.card}>
           <div className={styles.icon}>✉️</div>
-          <h2 className={styles.heading}>Revisa tu correo</h2>
+          <h1 className={styles.heading}>Revisa tu correo</h1>
           <p className={styles.message}>
             Si existe una cuenta con ese email, te hemos enviado un enlace para restablecer tu contraseña.
           </p>
@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
     <div className={styles.page}>
       <div className={styles.card}>
         <div className={styles.logo}>PR</div>
-        <h2 className={styles.heading}>Restablecer contraseña</h2>
+        <h1 className={styles.heading}>Restablecer contraseña</h1>
         <p className={styles.subheading}>
           Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña.
         </p>

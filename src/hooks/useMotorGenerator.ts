@@ -2,6 +2,8 @@
 import { executePrompt, executePromptStreaming } from '../lib/pptx/promptRunner';
 import { streamMotor, getMotorResult } from '../api/motores';
 import type { FidelityReport } from '../lib/ai/minimaxClient';
+import type { QualityScore } from '../components/Quality/QualityBadge';
+import type { CulturalContext } from '../components/Quality/CulturalIndicator';
 
 export function useMotorGenerator<T = unknown>(
   motorType: string,
@@ -12,6 +14,8 @@ export function useMotorGenerator<T = unknown>(
   const [error, setError] = useState<string | null>(null);
   const [simulated, setSimulated] = useState(false);
   const [fidelity, setFidelity] = useState<FidelityReport | null>(null);
+  const [quality, setQuality] = useState<QualityScore | null>(null);
+  const [cultural, setCultural] = useState<CulturalContext | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
@@ -65,14 +69,16 @@ export function useMotorGenerator<T = unknown>(
   const generate = useCallback(async (
     params: Record<string, unknown>,
     onStream?: (text: string) => void,
-  ) => {
+  ): Promise<T | null> => {
     abortRef.current = new AbortController();
-    if (!isMountedRef.current) return;
+    if (!isMountedRef.current) return null;
     setLoading(true);
     setError(null);
     setResult(null);
     setSimulated(false);
     setFidelity(null);
+    setQuality(null);
+    setCultural(null);
 
     try {
       const context = {
@@ -86,7 +92,7 @@ export function useMotorGenerator<T = unknown>(
         ? await executePromptStreaming(context as Parameters<typeof executePromptStreaming>[0], 'FULL_AI', onStream)
         : await executePrompt(context as Parameters<typeof executePrompt>[0], 'FULL_AI');
 
-      if (!isMountedRef.current) return;
+      if (!isMountedRef.current) return null;
       if (res.error) {
         setError(res.error);
         showToast(res.error.slice(0, 100));
@@ -94,16 +100,23 @@ export function useMotorGenerator<T = unknown>(
       if (res.structuredOutput) {
         setResult(res.structuredOutput as T);
         setSimulated(res.simulated ?? false);
-        // Capture fidelity from the promptRunner result if present
+        // Capture fidelity, quality, and cultural from the promptRunner result if present
         const fidelityFromRes = (res as { fidelity?: FidelityReport }).fidelity;
         if (fidelityFromRes) setFidelity(fidelityFromRes);
+        const qualityFromRes = (res as { quality?: QualityScore }).quality;
+        if (qualityFromRes) setQuality(qualityFromRes as QualityScore);
+        const culturalFromRes = (res as { cultural?: CulturalContext }).cultural;
+        if (culturalFromRes) setCultural(culturalFromRes as CulturalContext);
         showToast('¡Generado!');
+        return res.structuredOutput as T;
       }
+      return null;
     } catch (err) {
-      if (!isMountedRef.current) return;
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (!isMountedRef.current) return null;
+      if (err instanceof Error && err.name === 'AbortError') return null;
       setError(String(err));
       showToast('Error al generar.');
+      return null;
     } finally {
       if (isMountedRef.current) setLoading(false);
       abortRef.current = null;
@@ -163,5 +176,5 @@ export function useMotorGenerator<T = unknown>(
     }
   }, [motorType, showToast]);
 
-  return { result, loading, error, simulated, fidelity, generate, generateStreaming } as const;
+  return { result, loading, error, simulated, fidelity, quality, cultural, generate, generateStreaming } as const;
 }

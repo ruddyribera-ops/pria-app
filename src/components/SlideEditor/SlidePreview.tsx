@@ -3,11 +3,12 @@
  * Supports inline editing: click any text to edit, click image slots to upload.
  */
 
-import type { EditorSlide } from './types';
+import type { EditorSlide, PromptVariation } from './types';
 import type { Palette } from '../../lib/pptx/types';
 import { FONTS } from '../../lib/pptx/designSystem';
 import ImageUpload from './ImageUpload';
 import InlineText from './InlineText';
+import ImagePromptCard from '../Slides/ImagePromptCard';
 
 interface SlidePreviewProps {
   slide: EditorSlide;
@@ -52,7 +53,8 @@ export default function SlidePreview({
       )}
       {slide.type === 'content' && (
         <ContentSlide elements={slide.elements} palette={palette} edits={edits}
-          onUpdateText={onUpdateText} images={images} onSetImage={onSetImage} s={s} disabled={disabled} />
+          onUpdateText={onUpdateText} images={images} onSetImage={onSetImage} s={s} disabled={disabled}
+          promptVariations={slide.promptVariations} />
       )}
       {slide.type === 'activity' && (
         <ActivitySlide elements={slide.elements} palette={palette} edits={edits}
@@ -172,11 +174,26 @@ function ObjectivesSlide({ elements, palette, edits, onUpdateText, s, disabled }
 
 // ═══════════════════ CONTENT ═══════════════════
 
-function ContentSlide({ elements, palette, edits, onUpdateText, images, onSetImage, s, disabled }: any) {
+function ContentSlide({ elements, palette, edits, onUpdateText, images, onSetImage, s, disabled, promptVariations }: {
+  elements: any[];
+  palette: Palette;
+  edits: Record<string, string>;
+  onUpdateText: (elementId: string, newContent: string) => void;
+  images: Record<string, string>;
+  onSetImage: (elementId: string, dataUrl: string) => void;
+  s: number;
+  disabled?: boolean;
+  promptVariations?: PromptVariation[];
+}) {
   const title = edits['content-title'] ?? elements.find((e: any) => e.id === 'content-title')?.content ?? '';
   const paras = elements.filter((e: any) => e.id.startsWith('content-para'));
   const copyBox = elements.find((e: any) => e.id === 'content-copy');
   const imgData = images['content-img'] ?? '';
+
+  // Show ImagePromptCard when there's no image but there are prompt variations
+  const hasImage = !!imgData;
+  const hasPrompts = promptVariations && promptVariations.length > 0;
+  const showPromptCard = !hasImage && hasPrompts;
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -209,7 +226,11 @@ function ContentSlide({ elements, palette, edits, onUpdateText, images, onSetIma
             />
           ))}
         </div>
-        <ImageUpload elementId="content-img" currentDataUrl={imgData} onImage={onSetImage} disabled={disabled} />
+        {showPromptCard ? (
+          <ImagePromptCard variations={promptVariations} compact />
+        ) : (
+          <ImageUpload elementId="content-img" currentDataUrl={imgData} onImage={onSetImage} disabled={disabled} />
+        )}
         {copyBox && (
           <div style={{
             marginTop: 8 * s, padding: `${8 * s}px ${10 * s}px`,

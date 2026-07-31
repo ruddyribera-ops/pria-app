@@ -4,14 +4,11 @@
  */
 import multer from 'multer';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 import { mkdirSync } from 'fs';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-// Files stored relative to server root (works locally; ephemeral on Railway)
-const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
+// Files stored at process.cwd()/uploads (project root) — matches the static route in app.ts.
+// WARNING: Railway ephemeral filesystem — files vanish on redeploy. Migrate to Railway Blob for persistence.
+const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 const MATERIALS_DIR = path.join(UPLOADS_DIR, 'materials');
 const DIAG_DIR = path.join(UPLOADS_DIR, 'diagnosticos');
 

@@ -3,7 +3,6 @@
  */
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import AppLayout from './AppLayout';
 
 // Mock useHealthCheck hook
@@ -17,20 +16,9 @@ vi.mock('../../hooks/useHealthCheck', () => ({
   }),
 }));
 
-// Mock Sidebar component
+// Mock Sidebar component (simplified — no longer accepts props)
 vi.mock('./Sidebar', () => ({
-  default: ({ nivel, grado, onNivelChange, onGradoChange }: {
-    nivel: string;
-    grado: string;
-    onNivelChange: (n: string) => void;
-    onGradoChange: (g: string) => void;
-  }) => (
-    <div data-testid="sidebar">
-      <span>Sidebar: {nivel} - {grado}</span>
-      <button type="button" onClick={() => onNivelChange('Secundaria')}>Change Nivel</button>
-      <button type="button" onClick={() => onGradoChange('1er año')}>Change Grado</button>
-    </div>
-  ),
+  default: () => <div data-testid="sidebar">Sidebar</div>,
 }));
 
 // Mock Outlet to render children
@@ -49,24 +37,9 @@ describe('AppLayout', () => {
     expect(screen.getByTestId('outlet')).toBeTruthy();
   });
 
-  test('renders with default nivel and grado', () => {
-    render(<AppLayout />);
-    expect(screen.getByText('Sidebar: Primaria - 5to primaria')).toBeTruthy();
-  });
-
-  test('nivel and grado changes update sidebar', async () => {
-    const user = userEvent.setup();
-    render(<AppLayout />);
-    
-    const changeNivelBtn = screen.getByText('Change Nivel');
-    await user.click(changeNivelBtn);
-    
-    expect(screen.getByText('Sidebar: Secundaria - 5to primaria')).toBeTruthy();
-  });
-
   test('renders health warning banner when status is unknown', () => {
     render(<AppLayout />);
-    // The component shows a warning when health status is unknown
     expect(screen.getByTestId('sidebar')).toBeTruthy();
+    expect(screen.getByTestId('outlet')).toBeTruthy();
   });
 });

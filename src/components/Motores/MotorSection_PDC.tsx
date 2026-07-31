@@ -6,19 +6,24 @@ interface Props {
 
 export default function MotorSection_PDC({ result }: Props) {
   if (!result) return null;
+
+  // Normalize: result may be the raw PDCOutput OR a wrapper { output: {...}, quality: {...} }
+  const wrapped = result as any;
+  const pdcData = wrapped.pdc ?? wrapped.output?.pdc ?? (wrapped.output ?? wrapped);
+
   return (
     <div style={{ borderTop: '1px solid #e6e6eb', padding: '1rem' }}>
       <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#1e1e2f', marginBottom: '0.5rem' }}>
         📆 Currículo PDC Trimestral
       </div>
-      {result.pdc ? (
+      {pdcData ? (
           <div style={{ fontSize: '0.75rem', color: '#4a4a5a' }}>
-            {result.pdc.encabezado && (
+            {pdcData.encabezado && (
               <div style={{ background: '#f5f3ff', borderRadius: '4px', padding: '0.5rem', marginBottom: '0.5rem' }}>
-                <strong>{result.pdc.encabezado.materia}</strong> — {result.pdc.encabezado.nivel} {result.pdc.encabezado.grado} | Trimestre {result.pdc.encabezado.trimestre}
+                <strong>{pdcData.encabezado.materia}</strong> — {pdcData.encabezado.nivel} {pdcData.encabezado.grado} | Trimestre {pdcData.encabezado.trimestre}
               </div>
             )}
-            {(result.pdc.unidades || []).map((u, idx) => (
+            {(pdcData.unidades || []).map((u: any, idx: number) => (
               <div key={u.numero ?? `unidad-${idx}`} style={{ marginBottom: '0.5rem', padding: '0.5rem', borderLeft: '3px solid #6D28D9' }}>
                 <strong>Unidad {u.numero}: {u.titulo}</strong>
                 <div style={{ color: '#6b6b80' }}>{u.semanas} — {u.horas} horas | {u.objetivo_holistico?.slice(0, 120)}</div>

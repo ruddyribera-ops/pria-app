@@ -5,6 +5,13 @@
 
 import type { Palette } from '../../lib/pptx/types';
 
+/** Prompt variation for AI image generation */
+export interface PromptVariation {
+  estilo: string;
+  prompt: string;
+  herramienta_recomendada: string;
+}
+
 /** One visual slide in the editor carousel */
 export interface EditorSlide {
   id: string;
@@ -15,6 +22,8 @@ export interface EditorSlide {
   number: number;
   /** All editable elements on this slide */
   elements: EditorElement[];
+  /** Image prompt variations from the motor (optional) */
+  promptVariations?: PromptVariation[];
 }
 
 /** A single editable element on a slide */

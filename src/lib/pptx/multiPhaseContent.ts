@@ -301,6 +301,25 @@ export function mergePhaseResults(
     }
   }
 
+  // Slide-specific: detect slides array from phase results
+  // The slides motor returns [SlideItem, ...] directly (mock) or {slides: [...]} (FULL_AI)
+  for (const phaseId of phases) {
+    const phaseContent = results[phaseId];
+    if (Array.isArray(phaseContent)) {
+      merged.slides = phaseContent;
+      break;
+    }
+    if (
+      phaseContent &&
+      typeof phaseContent === 'object' &&
+      'slides' in (phaseContent as Record<string, unknown>) &&
+      Array.isArray((phaseContent as Record<string, unknown>).slides)
+    ) {
+      merged.slides = (phaseContent as Record<string, unknown>).slides;
+      break;
+    }
+  }
+
   // Slide-specific: map esquema fields
   const esquema = results['esquema'] as Record<string, unknown> | undefined;
   if (esquema) {

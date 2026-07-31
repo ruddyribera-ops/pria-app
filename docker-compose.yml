@@ -1,8 +1,9 @@
-﻿services:
-  postgres:
-    image: postgres:16
+﻿version: '3.8'
+
+services:
+  pria-postgres:
+    image: postgres:16-alpine
     container_name: pria-postgres
-    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: pria_local
@@ -10,12 +11,59 @@
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # Reference EXISTING volume from previous stack to preserve seeded data
+      - pria-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pria"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - pria-net
+    restart: unless-stopped
+
+  pria-backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: pria-backend
+    env_file:
+      - ./server/.env.docker
+    environment:
+      - PGCLIENTENCODING=UTF8
+      - DATABASE_URL=postgresql://postgres:pria_local@pria-postgres:5432/pria
+    ports:
+      - "3000:3000"
+    depends_on:
+      pria-postgres:
+        condition: service_healthy
+    networks:
+      - pria-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pria-frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    container_name: pria-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - pria-backend
+    networks:
+      - pria-net
+    restart: unless-stopped
 
 volumes:
-  pgdata:
+  pria-postgres-data:
+    external: true
+    name: priav10_pgdata
+
+networks:
+  pria-net:
+    driver: bridge

@@ -3,7 +3,7 @@
  * Converts merged results to visual slides, tracks edits, handles image uploads.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import type { EditorSlide, EditsMap, ImageMap } from './types';
 import type { Palette } from '../../lib/pptx/types';
 import { mapToEditorSlides, getEditorPalette } from './slideMapper';
@@ -18,6 +18,16 @@ interface MergedData {
   activities: Array<{ title: string; instructions?: string; questions?: Array<{ text: string; options?: string[] }> }>;
   copyBoxes: string[];
   paginas?: string;
+  /** Raw slides array from slides motor */
+  slides?: Array<{
+    numero: number;
+    tipo: string;
+    titulo: string;
+    texto_pantalla?: string;
+    guion_docente?: string;
+    prompt_imagen?: string;
+    callout?: string;
+  }>;
   [key: string]: unknown;
 }
 
@@ -46,6 +56,8 @@ export interface SlideEditorReturn {
   setImage: (elementId: string, dataUrl: string) => void;
   /** Reset all edits */
   resetEdits: () => void;
+  /** Update a slide at a given index (used after regeneration) */
+  updateSlideAt: (index: number, slide: EditorSlide) => void;
   /** Get the original merged data with user edits applied */
   getEditedData: () => MergedData;
   /** Get image map for PPTX embedding */
@@ -58,15 +70,26 @@ export interface SlideEditorReturn {
 
 export function useSlideEditor(
   mergedData: MergedData | null,
+  slidesOutput?: { numero?: number; prompt_imagen_variations?: Array<{ estilo: string; prompt: string; herramienta_recomendada: string }> }[],
 ): SlideEditorReturn {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [edits, setEdits] = useState<EditsMap>({});
   const [images, setImages] = useState<ImageMap>({});
 
-  const slides = useMemo(() => {
+  // Use useMemo to derive initial slides, but store in useState so parent can update via updateSlideAt
+  const [slides, setSlides] = useState<EditorSlide[]>(() => {
     if (!mergedData) return [];
-    return mapToEditorSlides(mergedData);
-  }, [mergedData]);
+    return mapToEditorSlides(mergedData, slidesOutput);
+  });
+
+  // Re-initialize slides when mergedData or slidesOutput changes (but not when setSlides is called)
+  // We use a ref to track whether the change came from parent props or from internal updateSlideAt
+  const mergedDataRef = useRef(mergedData);
+  if (mergedData !== mergedDataRef.current) {
+    mergedDataRef.current = mergedData;
+    setSlides(mergedData ? mapToEditorSlides(mergedData, slidesOutput) : []);
+    setCurrentIndex(0);
+  }
 
   const subject = mergedData?.subject || 'Matemáticas';
   const palette = useMemo(() => getEditorPalette(subject), [subject]);
@@ -100,6 +123,17 @@ export function useSlideEditor(
   const resetEdits = useCallback(() => {
     setEdits({});
     setImages({});
+  }, []);
+
+  /** Replace a slide at a specific index (used after regeneration) */
+  const updateSlideAt = useCallback((index: number, slide: EditorSlide) => {
+    setSlides(prev => {
+      const next = [...prev];
+      if (index >= 0 && index < next.length) {
+        next[index] = slide;
+      }
+      return next;
+    });
   }, []);
 
   /** Merge edits back into the original data for PPTX export */
@@ -187,6 +221,7 @@ export function useSlideEditor(
     updateText,
     setImage,
     resetEdits,
+    updateSlideAt,
     getEditedData,
     getImageMap,
     rawEdits: edits,

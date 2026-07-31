@@ -18,3 +18,14 @@ export async function uploadDiagnostico(file: File, tipo: string): Promise<Diagn
 export async function deleteDiagnostico(diagnosticoId: number): Promise<void> {
   await client.delete(`/diagnosticos/${diagnosticoId}`);
 }
+
+export async function createDiagnostico(data: {
+  estudiante: string;
+  nivel: string;
+  area?: string;
+  fecha?: string;
+  resultado?: string;
+}): Promise<{ id: number }> {
+  const response = await client.post('/diagnosticos/', data);
+  return response.data.data;
+}

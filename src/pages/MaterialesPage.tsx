@@ -19,7 +19,7 @@ import { getPalette } from '../lib/pptx/designSystem';
 import type { Material } from '../types';
 import type { IngestResult, CurriculumResult } from '../lib/ingest/types';
 import type { SynthesisOutput, ABPOutput, AssessmentOutput, PlanOutput, SlidesOutput, FichaOutput, QuizOutput, TutorOutput, PDCOutput, RecalibrateOutput, MicroOutput } from '../types/motor-types';
-import { getUnitsForText, type Unit, type Topic } from '../lib/textbook/parseUnits';
+import { extractUnitsWithAI, type Unit, type Topic } from '../lib/textbook/parseUnits';
 import { getPromptEnhancement } from '../lib/textbook/contentLibrary';
 import MaterialesUpload from '../components/Materials/MaterialesUpload';
 import MaterialesMotorPanel from '../components/Materials/MaterialesMotorPanel';
@@ -101,8 +101,11 @@ export default function MaterialesPage() {
 
   // Parse units from rawText once available and persist to backend
   useEffect(() => {
-    if (rawText && rawText.length > 100) {
-      const parsed = getUnitsForText(rawText, 'Lenguaje y Comunicación');
+    if (!rawText || rawText.length <= 100) return;
+    let cancelled = false;
+    (async () => {
+      const parsed = await extractUnitsWithAI(rawText, 'Lenguaje y Comunicación');
+      if (cancelled) return;
       setUnits(parsed);
 
       // Find the most recently uploaded material (by newest created_at)
@@ -124,7 +127,8 @@ export default function MaterialesPage() {
           body: JSON.stringify({ units: parsed }),
         }).catch(err => console.warn('Failed to save units:', err));
       }
-    }
+    })();
+    return () => { cancelled = true; };
   }, [rawText, materials]);
 
   // CLEANED-OCR OVERRIDE: When ?cleaned=1, fetch the cleaned TXT from /public
@@ -207,17 +211,31 @@ export default function MaterialesPage() {
     setIngestWarnings([]);
     setOcrProgress(null);
 
+    // G-3.2: Reject non-PDF files BEFORE attempting upload
+    if (file.type !== 'application/pdf') {
+      showToast('Solo se aceptan archivos PDF.', 'error');
+      setIngesting(false);
+      return;
+    }
+
     try {
       await uploadMaterial(file, 'textbook');
       await loadMaterials();
-    } catch {
-      const newMaterial: Material = {
-        id: Date.now(),
-        filename: file.name,
-        tipo: 'textbook',
-        size: file.size,
-      };
-      setMaterials((prev) => [...prev, newMaterial]);
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 413) {
+        showToast('El archivo es demasiado grande. Máximo 50 MB.', 'error');
+      } else if (status === 401) {
+        showToast('Tu sesión ha expirado. Inicia sesión nuevamente.', 'error');
+      } else if (status === 403) {
+        showToast('No tienes permiso para subir este archivo.', 'error');
+      } else if (status === 400) {
+        showToast('Archivo no válido. Solo se aceptan PDFs.', 'error');
+      } else if (status === 0 || !status) {
+        showToast('Sin conexión con el servidor. Verifica tu red.', 'error');
+      } else {
+        showToast(`Error al subir el material (código ${status}). Intenta de nuevo.`, 'error');
+      }
     }
 
     try {
@@ -324,6 +342,14 @@ export default function MaterialesPage() {
       URL.revokeObjectURL(url);
       showToast('PPTX descargado.', 'success');
     } catch { showToast('Error al exportar.', 'error'); }
+  };
+
+  const onRegenerateSlides = () => {
+    const curriculumTemas: string[] = curriculumPreview?.temas ?? [];
+    const synthesisTemas: string[] = synthesis.result?.unidad_sintetizada?.temas_desarrollados?.map((t: { nombre: string }) => t.nombre) ?? [];
+    const temas = curriculumTemas.length > 0 ? curriculumTemas : synthesisTemas;
+    if (!temas.length) { showToast('Primero genera la Síntesis o carga un material con temas.', 'warning'); return; }
+    slides.generateStreaming({ grado_nivel: '5to Primaria', tema_clase: temas[0], palabras_clave: temas });
   };
 
   const onExportSynthesis = async () => {
@@ -556,11 +582,14 @@ export default function MaterialesPage() {
         hasSynthesis={!!synthesis.result}
         hasPlan={!!plan.result}
         hasQuiz={!!quiz.result}
+        slidesQuality={slides.quality}
         onExportAll={onExportAll}
         onExportSlides={onExportSlides}
         onExportSynthesis={onExportSynthesis}
         onExportPlan={onExportPlan}
         onExportQuiz={onExportQuiz}
+        onRegenerateSlides={onRegenerateSlides}
+        regenerateSlidesLoading={slides.loading}
       />
     </div>
   );

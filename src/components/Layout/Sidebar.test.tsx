@@ -11,18 +11,6 @@ vi.mock('../../context/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
 
-// Mock useEstadoSistema
-vi.mock('../../hooks/useAdmin', () => ({
-  useEstadoSistema: vi.fn(() => ({ data: { motors: {} } })),
-}));
-
-// Mock MOTORS
-vi.mock('../../api/admin', () => ({
-  MOTORS: [
-    { key: 'test', label: 'Test Motor', icon: '🔧' },
-  ],
-}));
-
 import { useAuth } from '../../context/AuthContext';
 
 describe('Sidebar', () => {
@@ -40,25 +28,42 @@ describe('Sidebar', () => {
     });
   });
 
-  test('Renders navigation links', () => {
+  test('Renders brand logo', () => {
     render(
       <MemoryRouter>
-        <Sidebar nivel="Primaria" grado="5to" onNivelChange={vi.fn()} onGradoChange={vi.fn()} />
+        <Sidebar />
       </MemoryRouter>
     );
+    expect(screen.getByText('PRIA')).toBeTruthy();
+  });
 
-    expect(screen.getByText('Mis Clases')).toBeTruthy();
-    expect(screen.getByText('Nuevo Material')).toBeTruthy();
-    expect(screen.getByText('Diapositivas')).toBeTruthy();
+  test('Renders profile name', () => {
+    render(
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>
+    );
+    expect(screen.getAllByText(/Test User/).length).toBeGreaterThan(0);
+  });
+
+  test('Renders the 4 main nav links', () => {
+    render(
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>
+    );
+    expect(screen.getByText('Inicio')).toBeTruthy();
+    expect(screen.getByText('Crear Material')).toBeTruthy();
+    expect(screen.getByText('Historial')).toBeTruthy();
+    expect(screen.getByText('Configuración')).toBeTruthy();
   });
 
   test('Non-admin user does not see Admin link', () => {
     render(
       <MemoryRouter>
-        <Sidebar nivel="Primaria" grado="5to" onNivelChange={vi.fn()} onGradoChange={vi.fn()} />
+        <Sidebar />
       </MemoryRouter>
     );
-
     expect(screen.queryByText('Panel Admin')).toBeNull();
   });
 
@@ -75,33 +80,35 @@ describe('Sidebar', () => {
 
     render(
       <MemoryRouter>
-        <Sidebar nivel="Primaria" grado="5to" onNivelChange={vi.fn()} onGradoChange={vi.fn()} />
+        <Sidebar />
       </MemoryRouter>
     );
 
     expect(screen.getByText('Panel Admin')).toBeTruthy();
   });
 
-  test('Shows user name and role in profile', () => {
+  test('Renders logout button', () => {
     render(
       <MemoryRouter>
-        <Sidebar nivel="Primaria" grado="5to" onNivelChange={vi.fn()} onGradoChange={vi.fn()} />
+        <Sidebar />
       </MemoryRouter>
     );
-
-    expect(screen.getAllByText(/Test User/).length).toBeGreaterThan(0);
+    expect(screen.getByText('Cerrar sesión')).toBeTruthy();
   });
 
-  test('Shows correct navigation sections', () => {
+  test('Does NOT show old nav items that moved to deep-link', () => {
     render(
       <MemoryRouter>
-        <Sidebar nivel="Primaria" grado="5to" onNivelChange={vi.fn()} onGradoChange={vi.fn()} />
+        <Sidebar />
       </MemoryRouter>
     );
-
-    expect(screen.getByText(/Crear/)).toBeTruthy();
-    expect(screen.getByText(/Generación/)).toBeTruthy();
-    expect(screen.getByText(/Planificación/)).toBeTruthy();
-    expect(screen.getByText(/Recursos/)).toBeTruthy();
+    expect(screen.queryByText('Mis Clases')).toBeNull();
+    expect(screen.queryByText('Nuevo Material')).toBeNull();
+    expect(screen.queryByText('Diapositivas')).toBeNull();
+    expect(screen.queryByText('Diario')).toBeNull();
+    expect(screen.queryByText('Semanal')).toBeNull();
+    expect(screen.queryByText('Trimestral')).toBeNull();
+    expect(screen.queryByText('Materiales')).toBeNull();
+    expect(screen.queryByText('Diagnósticos')).toBeNull();
   });
 });

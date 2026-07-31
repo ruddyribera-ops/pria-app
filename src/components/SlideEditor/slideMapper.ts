@@ -5,7 +5,7 @@
 
 import type { Palette } from '../../lib/pptx/types';
 import { getPalette } from '../../lib/pptx/designSystem';
-import type { EditorSlide, EditorElement } from './types';
+import type { EditorSlide, EditorElement, PromptVariation } from './types';
 
 /** The shape produced by mergePhaseResults() */
 interface MergedData {
@@ -17,17 +17,179 @@ interface MergedData {
   activities: Array<{ title: string; instructions?: string; questions?: Array<{ text: string; options?: string[] }> }>;
   copyBoxes: string[];
   paginas?: string;
+  /** Raw slides array from slides motor (10 SlideItems) */
+  slides?: Array<{
+    numero: number;
+    tipo: string;
+    titulo: string;
+    texto_pantalla?: string;
+    guion_docente?: string;
+    prompt_imagen?: string;
+    callout?: string;
+    prompt_imagen_variations?: PromptVariation[];
+  }>;
   [key: string]: unknown;
 }
 
 const BLOOM_LABELS = ['Recordar', 'Comprender', 'Aplicar', 'Analizar', 'Evaluar', 'Crear'];
 
+/** Slides output from motor with prompt variations */
+interface SlidesOutputItem {
+  numero?: number;
+  prompt_imagen_variations?: PromptVariation[];
+}
+
 /**
  * Map merged phase results → array of visual slides for the editor.
+ * If data.slides (raw SlideItem[]) is present, use it directly.
+ * Otherwise, fall back to concepts/activities pattern.
+ * If slidesOutput is provided, attaches prompt_variations to each slide.
  */
-export function mapToEditorSlides(data: MergedData): EditorSlide[] {
+export function mapToEditorSlides(
+  data: MergedData,
+  slidesOutput?: SlidesOutputItem[],
+): EditorSlide[] {
+  // ── NEW: Use data.slides if available (slides motor raw output) ──
+  if (data.slides && Array.isArray(data.slides) && data.slides.length > 0) {
+    return mapSlidesFromMotorOutput(data, slidesOutput);
+  }
+
+  // ── LEGACY: Build from concepts/activities (plan, ficha, etc.) ──
+  return mapSlidesFromConcepts(data, slidesOutput);
+}
+
+/**
+ * Build editor slides directly from the motor's SlideItem[] output.
+ * Each slide already has titulo, texto_pantalla, guion_docente, etc.
+ */
+function mapSlidesFromMotorOutput(
+  data: MergedData,
+  slidesOutput?: SlidesOutputItem[],
+): EditorSlide[] {
+  const slides: EditorSlide[] = [];
+
+  // Build a map of slide number → prompt variations from slidesOutput prop
+  const promptsBySlide = new Map<number, PromptVariation[]>();
+  if (slidesOutput) {
+    for (const slide of slidesOutput) {
+      if (slide.numero && slide.prompt_imagen_variations?.length) {
+        promptsBySlide.set(slide.numero, slide.prompt_imagen_variations);
+      }
+    }
+  }
+
+  // Also extract prompt_imagen_variations from the data.slides themselves
+  for (const slide of data.slides!) {
+    if (slide.numero && slide.prompt_imagen_variations?.length) {
+      promptsBySlide.set(slide.numero, slide.prompt_imagen_variations);
+    }
+  }
+
+  for (const raw of data.slides!) {
+    const tipo = raw.tipo || 'concepto';
+    const num = raw.numero;
+
+    if (tipo === 'portada') {
+      slides.push({
+        id: `slide-${num}`,
+        type: 'cover' as const,
+        label: raw.titulo || 'Portada',
+        number: num,
+        elements: [
+          { id: 'cover-title', type: 'title' as const, content: raw.titulo || data.title || 'Título' },
+          { id: 'cover-subtitle', type: 'text' as const, content: raw.texto_pantalla || `${data.subject}${data.grade ? ` · ${data.grade}` : ''}` },
+          { id: 'cover-img', type: 'image' as const, content: '', imageData: '' },
+        ],
+        promptVariations: promptsBySlide.get(num) || raw.prompt_imagen_variations,
+      });
+    } else if (tipo === 'objetivos') {
+      const lines = (raw.texto_pantalla || '').split('\n').filter(l => l.trim());
+      slides.push({
+        id: `slide-${num}`,
+        type: 'objectives' as const,
+        label: raw.titulo || 'Objetivos',
+        number: num,
+        elements: [
+          { id: 'obj-title', type: 'title' as const, content: raw.titulo || '🎯 Objetivos de Aprendizaje' },
+          ...lines.map((line, i) => ({
+            id: `obj-${i}`,
+            type: 'badge' as const,
+            content: line.replace(/^[-•]\s*/, '').replace(/^\d+\.\s*/, ''),
+            badgeLabel: BLOOM_LABELS[Math.min(i, BLOOM_LABELS.length - 1)],
+            orderIndex: i + 1,
+          })),
+        ],
+        promptVariations: promptsBySlide.get(num) || raw.prompt_imagen_variations,
+      });
+    } else if (tipo === 'pausa') {
+      // Pausa activa → render as content with the texto_pantalla as instructions
+      const lines = (raw.texto_pantalla || '').split('\n').filter(l => l.trim());
+      slides.push({
+        id: `slide-${num}`,
+        type: 'content' as const,
+        label: raw.titulo || 'Actividad',
+        number: num,
+        elements: [
+          { id: 'content-title', type: 'title' as const, content: raw.titulo || '¡Movimiento!' },
+          { id: 'content-img', type: 'image' as const, content: '', imageData: '' },
+          ...lines.map((line, i) => ({
+            id: `content-para-${i}`,
+            type: 'text' as const,
+            content: line,
+          })),
+          ...(raw.callout
+            ? [{ id: 'content-copy', type: 'copyBox' as const, content: raw.callout }]
+            : []),
+        ],
+        promptVariations: promptsBySlide.get(num) || raw.prompt_imagen_variations,
+      });
+    } else {
+      // concepto, cierre, or any other type → render as content slide
+      const lines = (raw.texto_pantalla || '').split('\n').filter(l => l.trim());
+      slides.push({
+        id: `slide-${num}`,
+        type: 'content' as const,
+        label: raw.titulo || 'Concepto',
+        number: num,
+        elements: [
+          { id: 'content-title', type: 'title' as const, content: raw.titulo || 'Concepto' },
+          { id: 'content-img', type: 'image' as const, content: '', imageData: '' },
+          ...lines.map((line, i) => ({
+            id: `content-para-${i}`,
+            type: 'text' as const,
+            content: line,
+          })),
+          ...(raw.callout
+            ? [{ id: 'content-copy', type: 'copyBox' as const, content: raw.callout }]
+            : []),
+        ],
+        promptVariations: promptsBySlide.get(num) || raw.prompt_imagen_variations,
+      });
+    }
+  }
+
+  return slides;
+}
+
+/**
+ * Legacy: build editor slides from concepts/activities (for plan, ficha, etc.)
+ */
+function mapSlidesFromConcepts(
+  data: MergedData,
+  slidesOutput?: SlidesOutputItem[],
+): EditorSlide[] {
   const slides: EditorSlide[] = [];
   let slideNum = 0;
+
+  // Build a map of slide number → prompt variations
+  const promptsBySlide = new Map<number, PromptVariation[]>();
+  if (slidesOutput) {
+    for (const slide of slidesOutput) {
+      if (slide.numero && slide.prompt_imagen_variations?.length) {
+        promptsBySlide.set(slide.numero, slide.prompt_imagen_variations);
+      }
+    }
+  }
 
   // ── 1. Cover slide ──
   slideNum++;
@@ -37,6 +199,7 @@ export function mapToEditorSlides(data: MergedData): EditorSlide[] {
     label: 'Portada',
     number: slideNum,
     elements: buildCoverElements(data),
+    promptVariations: promptsBySlide.get(slideNum),
   });
 
   // ── 2. Objectives slide ──
@@ -48,6 +211,7 @@ export function mapToEditorSlides(data: MergedData): EditorSlide[] {
       label: 'Objetivos de Aprendizaje',
       number: slideNum,
       elements: buildObjectiveElements(data.bloomObjectives),
+      promptVariations: promptsBySlide.get(slideNum),
     });
   }
 
@@ -62,6 +226,7 @@ export function mapToEditorSlides(data: MergedData): EditorSlide[] {
         label: concept.title,
         number: slideNum,
         elements: buildContentElements(concept, data.copyBoxes?.[i]),
+        promptVariations: promptsBySlide.get(slideNum),
       });
     }
   }
@@ -77,6 +242,7 @@ export function mapToEditorSlides(data: MergedData): EditorSlide[] {
         label: act.title,
         number: slideNum,
         elements: buildActivityElements(act),
+        promptVariations: promptsBySlide.get(slideNum),
       });
     }
   }
@@ -96,6 +262,7 @@ export function mapToEditorSlides(data: MergedData): EditorSlide[] {
         type: 'copyBox' as const,
         content: box,
       })),
+      promptVariations: promptsBySlide.get(slideNum),
     });
   }
 

@@ -66,7 +66,7 @@ export default function ResetPasswordPage() {
       <div className={styles.page}>
         <div className={styles.card}>
           <div className={styles.iconError}>⚠️</div>
-          <h2 className={styles.heading}>Enlace inválido</h2>
+          <h1 className={styles.heading}>Enlace inválido</h1>
           <p className={styles.message}>
             El enlace de restablecimiento no es válido o ha expirado.
           </p>
@@ -93,7 +93,7 @@ export default function ResetPasswordPage() {
     <div className={styles.page}>
       <div className={styles.card}>
         <div className={styles.logo}>PR</div>
-        <h2 className={styles.heading}>Nueva contraseña</h2>
+        <h1 className={styles.heading}>Nueva contraseña</h1>
         <p className={styles.subheading}>
           Ingresa tu nueva contraseña. Debe tener al menos 8 caracteres.
         </p>

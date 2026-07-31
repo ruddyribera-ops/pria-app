@@ -1,0 +1,22 @@
+{
+  "name": "PRIA — Planificación docente con IA",
+  "short_name": "PRIA",
+  "description": "De un documento a una clase completa. Hecho para Bolivia.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3A9E5E",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -5,6 +5,9 @@ import {
   applyBulkCorrection,
   type ClientFidelityWarning,
 } from '../../lib/fidelity/client-validator';
+import ImagePromptCard from '../Slides/ImagePromptCard';
+import type { PromptVariation } from '../SlideEditor/types';
+import { useSlideEditor } from '../../hooks/useSlideEditor';
 
 const SIZE_LIMIT = 4_500_000; // 4.5MB safety margin (browsers cap at 5MB)
 
@@ -26,28 +29,67 @@ function saveSlides(jobKey: string, slides: unknown): { ok: boolean; reason?: 's
   }
 }
 
+function normalizeSlides(result: SlidesOutput | null): SlidesOutput | null {
+  // Runtime may deliver either the array directly or a wrapper
+  // { output: SlideItem[], quality?: unknown } — extract the real array.
+  if (!result) return null;
+  if (Array.isArray(result)) return result;
+  const wrapped = result as unknown as { output?: unknown };
+  return Array.isArray(wrapped.output) ? (wrapped.output as SlidesOutput) : null;
+}
+
 interface Props {
   result: SlidesOutput | null;
   fullText?: string;
   showToast?: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+  /** Callback when quality is updated from the server after a save */
+  onQualityUpdate?: (quality: unknown) => void;
 }
 
 /**
  * InlineSlideEditor — Edit slides without regenerating.
  * Real-time fidelity validation as user edits.
- * Auto-saves to localStorage. Bulk corrections for flagged patterns.
+ * Debounced auto-save to backend + localStorage fallback.
+ * Add/remove slides with type selector.
  */
-export default function InlineSlideEditor({ result, fullText, showToast }: Props) {
+export default function InlineSlideEditor({ result, fullText, showToast, onQualityUpdate }: Props) {
+  // result may arrive as the array directly OR as a wrapper { output: [...], quality: {...} }
+  // (runtime divergence from the declared SlidesOutput type). Normalize once.
+  const slidesInput = normalizeSlides(result);
   const [editedSlides, setEditedSlides] = useState<SlidesOutput | null>(null);
   const [expandedSlide, setExpandedSlide] = useState<number | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [workflowDismissed, setWorkflowDismissed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('pria_image_workflow_dismissed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [showAddSlide, setShowAddSlide] = useState(false);
+
+  // ── Slide editor hook (debounced auto-save, add/remove) ─────────────────────
+  const {
+    slides: serverSlides,
+    status: saveStatus,
+    error: saveError,
+    updateSlide: hookUpdateSlide,
+    addSlide,
+    removeSlide,
+    retrySave,
+  } = useSlideEditor({
+    initialSlides: editedSlides ?? slidesInput ?? [],
+    onQualityUpdate,
+    onSaveError: (msg) => showToast?.(`Error al guardar: ${msg}`, 'error'),
+    onSaveSuccess: () => showToast?.('✓ Diapositivas actualizadas', 'success'),
+  });
 
   // Sync from result prop (initial load or regeneration)
   useEffect(() => {
-    if (result) {
+    if (slidesInput) {
       // Try to load edited version from localStorage
-      const stored = localStorage.getItem(`pria-slides-edit-${getJobKey(result)}`);
+      const stored = localStorage.getItem(`pria-slides-edit-${getJobKey(slidesInput)}`);
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
@@ -58,12 +100,13 @@ export default function InlineSlideEditor({ result, fullText, showToast }: Props
           // fall through
         }
       }
-      setEditedSlides(result);
+      setEditedSlides(slidesInput);
       setIsDirty(false);
     }
-  }, [result, showToast]);
+  }, [slidesInput, showToast]);
 
-  const slidesToShow = editedSlides ?? result;
+  // Use server-synced slides when available, fall back to local edits
+  const slidesToShow = serverSlides.length > 0 ? serverSlides : (editedSlides ?? slidesInput);
 
   // Real-time fidelity validation
   const fidelity = useMemo(() => {
@@ -84,13 +127,16 @@ export default function InlineSlideEditor({ result, fullText, showToast }: Props
     return map;
   }, [fidelity]);
 
-  const handleFieldEdit = useCallback((slideNum: number, field: 'titulo' | 'texto_pantalla' | 'guion_docente' | 'callout', value: string) => {
+  const handleFieldEdit = useCallback((slideIndex: number, field: 'titulo' | 'texto_pantalla' | 'guion_docente' | 'callout', value: string) => {
+    // Also update local state for immediate UI feedback
     setEditedSlides(prev => {
       if (!prev) return prev;
-      return prev.map(s => s.numero === slideNum ? { ...s, [field]: value } : s);
+      return prev.map((s, i) => i === slideIndex ? { ...s, [field]: value } : s);
     });
     setIsDirty(true);
-  }, []);
+    // Trigger debounced auto-save via hook
+    hookUpdateSlide(slideIndex, { [field]: value });
+  }, [hookUpdateSlide]);
 
   const handleSave = useCallback(() => {
     if (!editedSlides) return;
@@ -111,14 +157,14 @@ export default function InlineSlideEditor({ result, fullText, showToast }: Props
   }, [editedSlides, showToast]);
 
   const handleReset = useCallback(() => {
-    if (!result) return;
+    if (!slidesInput) return;
     if (!window.confirm('¿Descartar todos los cambios y volver a la versión original?')) return;
-    setEditedSlides(result);
+    setEditedSlides(slidesInput);
     setIsDirty(false);
-    const jobKey = getJobKey(result);
+    const jobKey = getJobKey(slidesInput);
     localStorage.removeItem(`pria-slides-edit-${jobKey}`);
     showToast?.('✓ Cambios descartados', 'info');
-  }, [result, showToast]);
+  }, [slidesInput, showToast]);
 
   const handleBulkFix = useCallback((find: string, replace: string, label: string) => {
     if (!editedSlides) return;
@@ -127,6 +173,18 @@ export default function InlineSlideEditor({ result, fullText, showToast }: Props
     setIsDirty(true);
     showToast?.(`✓ "${label}" aplicado a todas las slides`, 'success');
   }, [editedSlides, showToast]);
+
+  const handleDismissWorkflow = useCallback(() => {
+    setWorkflowDismissed(true);
+    try {
+      localStorage.setItem('pria_image_workflow_dismissed', 'true');
+    } catch {
+      // localStorage unavailable
+    }
+  }, []);
+
+  // Check if any slide has prompt variations
+  const hasAnyPromptVariations = slidesToShow?.some((s: any) => s.prompt_imagen_variations?.length > 0);
 
   if (!slidesToShow) return null;
 
@@ -160,12 +218,28 @@ export default function InlineSlideEditor({ result, fullText, showToast }: Props
                 : `⚠️ ${fidelity.total_flags} flagged`}
             </span>
           )}
-          {isDirty && (
+          {/* Save status indicator */}
+          {saveStatus === 'saving' && (
+            <span style={{ fontSize: '0.6875rem', color: '#D97706', fontWeight: 600 }}>
+              💾 Guardando...
+            </span>
+          )}
+          {saveStatus === 'saved' && (
+            <span style={{ fontSize: '0.6875rem', color: '#059669' }}>
+              ✅ Guardado
+            </span>
+          )}
+          {saveStatus === 'error' && (
+            <span style={{ fontSize: '0.6875rem', color: '#DC2626', fontWeight: 600 }} title={saveError ?? undefined}>
+              ❌ Error {saveError ? `- ${saveError.slice(0, 30)}` : ''}
+            </span>
+          )}
+          {isDirty && saveStatus === 'idle' && (
             <span style={{ fontSize: '0.6875rem', color: '#DC2626', fontWeight: 600 }}>
               ● Sin guardar
             </span>
           )}
-          {savedAt && !isDirty && (
+          {savedAt && !isDirty && saveStatus === 'idle' && (
             <span style={{ fontSize: '0.6875rem', color: '#059669' }}>
               ✓ Guardado
             </span>
@@ -174,20 +248,20 @@ export default function InlineSlideEditor({ result, fullText, showToast }: Props
         <div style={{ display: 'flex', gap: '0.375rem' }}>
           <button
             type="button"
-            onClick={handleSave}
-            disabled={!isDirty}
+            onClick={saveStatus === 'error' ? retrySave : handleSave}
+            disabled={!isDirty && saveStatus !== 'error'}
             style={{
               padding: '0.375rem 0.75rem',
               borderRadius: '6px',
               border: 'none',
-              background: isDirty ? '#3A9E5E' : '#E5E7EB',
-              color: isDirty ? '#fff' : '#9CA3AF',
+              background: saveStatus === 'error' ? '#DC2626' : (isDirty ? '#3A9E5E' : '#E5E7EB'),
+              color: saveStatus === 'error' ? '#fff' : (isDirty ? '#fff' : '#9CA3AF'),
               fontSize: '0.75rem',
               fontWeight: 600,
-              cursor: isDirty ? 'pointer' : 'not-allowed',
+              cursor: (isDirty || saveStatus === 'error') ? 'pointer' : 'not-allowed',
             }}
           >
-            💾 Guardar
+            {saveStatus === 'error' ? '↻ Reintentar' : '💾 Guardar'}
           </button>
           <button
             type="button"
@@ -208,6 +282,55 @@ export default function InlineSlideEditor({ result, fullText, showToast }: Props
           </button>
         </div>
       </div>
+
+      {/* Workflow instructions banner */}
+      {hasAnyPromptVariations && !workflowDismissed && (
+        <div style={{
+          background: '#EFF6FF',
+          border: '1px solid #93C5FD',
+          borderRadius: '6px',
+          padding: '0.625rem 0.75rem',
+          marginBottom: '0.75rem',
+          fontSize: '0.6875rem',
+          color: '#1E40AF',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '0.5rem',
+        }}>
+          <div style={{ fontSize: '1rem', flexShrink: 0 }}>💡</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
+              Workflow para generar imágenes:
+            </div>
+            <div style={{ lineHeight: 1.5 }}>
+              1. Click <strong>"Abrir en Bing"</strong> para ir a Bing Image Creator.
+            </div>
+            <div style={{ lineHeight: 1.5 }}>
+              2. Pegá el prompt y generá la imagen.
+            </div>
+            <div style={{ lineHeight: 1.5 }}>
+              3. Pegá la imagen de vuelta en PowerPoint.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleDismissWorkflow}
+            style={{
+              padding: '0.125rem 0.375rem',
+              background: 'transparent',
+              border: '1px solid #93C5FD',
+              borderRadius: '4px',
+              fontSize: '0.5625rem',
+              color: '#1E40AF',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+            title="No mostrar de nuevo"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Bulk fix bar */}
       {fidelity && fidelity.warnings.length > 0 && (
@@ -244,6 +367,102 @@ export default function InlineSlideEditor({ result, fullText, showToast }: Props
                 ✕ Quitar "{phrase}"
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add slide button */}
+      <div style={{ marginBottom: '0.75rem' }}>
+        <button
+          type="button"
+          onClick={() => setShowAddSlide(true)}
+          style={{
+            padding: '0.375rem 0.75rem',
+            borderRadius: '6px',
+            border: '1px dashed #3A9E5E',
+            background: '#F0FDF4',
+            color: '#3A9E5E',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          + Agregar diapositiva
+        </button>
+      </div>
+
+      {/* Add slide modal */}
+      {showAddSlide && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '8px',
+            padding: '1.5rem',
+            width: '320px',
+            maxWidth: '90vw',
+          }}>
+            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: '#1e1e2f' }}>
+              Nueva diapositiva
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {([
+                ['portada', '🎨 Portada'],
+                ['objetivos', '🎯 Objetivos'],
+                ['concepto', '📖 Concepto'],
+                ['ejemplo', '💡 Ejemplo'],
+                ['practica', '✏️ Práctica'],
+                ['pausa', '⏸️ Pausa'],
+                ['cierre', '🏁 Cierre'],
+              ] as const).map(([tipo, label]) => (
+                <button
+                  key={tipo}
+                  type="button"
+                  onClick={() => {
+                    addSlide(tipo);
+                    setShowAddSlide(false);
+                    showToast?.(`Nueva diapositiva "${label}" agregada`, 'success');
+                  }}
+                  style={{
+                    padding: '0.625rem 1rem',
+                    borderRadius: '6px',
+                    border: '1px solid #E5E7EB',
+                    background: '#fff',
+                    color: '#1e1e2f',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAddSlide(false)}
+              style={{
+                marginTop: '1rem',
+                width: '100%',
+                padding: '0.5rem',
+                borderRadius: '6px',
+                border: '1px solid #E5E7EB',
+                background: '#fff',
+                color: '#6B7280',
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+              }}
+            >
+              Cancelar
+            </button>
           </div>
         </div>
       )}
@@ -318,23 +537,55 @@ export default function InlineSlideEditor({ result, fullText, showToast }: Props
               </div>
               {isExpanded && (
                 <div style={{ padding: '0 0.75rem 0.75rem 0.75rem' }}>
+                  {/* Slide header with remove button */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.6875rem', color: '#6B7280', fontWeight: 600 }}>
+                      Diapositiva {slideNum}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (slidesToShow.length <= 1) {
+                          showToast?.('No se puede eliminar la última diapositiva.', 'warning');
+                          return;
+                        }
+                        if (window.confirm(`¿Eliminar diapositiva ${slideNum}?`)) {
+                          removeSlide(j);
+                          showToast?.(`Diapositiva ${slideNum} eliminada`, 'success');
+                        }
+                      }}
+                      title="Eliminar esta diapositiva"
+                      style={{
+                        padding: '0.125rem 0.5rem',
+                        borderRadius: '4px',
+                        border: '1px solid #FCA5A5',
+                        background: '#FEF2F2',
+                        color: '#DC2626',
+                        fontSize: '0.6875rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ✕ Eliminar
+                    </button>
+                  </div>
                   <FieldEditor
                     label="Título"
                     value={s.titulo || ''}
-                    onChange={(v) => handleFieldEdit(slideNum, 'titulo', v)}
+                    onChange={(v) => handleFieldEdit(j, 'titulo', v)}
                     multiline={false}
                   />
                   <FieldEditor
                     label="Texto en pantalla"
                     value={s.texto_pantalla || ''}
-                    onChange={(v) => handleFieldEdit(slideNum, 'texto_pantalla', v)}
+                    onChange={(v) => handleFieldEdit(j, 'texto_pantalla', v)}
                     multiline={true}
                     helpText="Lo que ve el estudiante en la diapositiva"
                   />
                   <FieldEditor
                     label="Guion del docente"
                     value={s.guion_docente || ''}
-                    onChange={(v) => handleFieldEdit(slideNum, 'guion_docente', v)}
+                    onChange={(v) => handleFieldEdit(j, 'guion_docente', v)}
                     multiline={true}
                     helpText="Lo que dices al explicar esta diapositiva"
                   />
@@ -342,9 +593,30 @@ export default function InlineSlideEditor({ result, fullText, showToast }: Props
                     <FieldEditor
                       label="Callout"
                       value={s.callout || ''}
-                      onChange={(v) => handleFieldEdit(slideNum, 'callout', v)}
+                      onChange={(v) => handleFieldEdit(j, 'callout', v)}
                       multiline={false}
                     />
+                  )}
+
+                  {/* Image prompt variations */}
+                  {(s as any).prompt_imagen_variations?.length > 0 && (
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <div style={{
+                        fontSize: '0.6875rem',
+                        fontWeight: 600,
+                        color: '#1e1e2f',
+                        marginBottom: '0.375rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.375rem',
+                      }}>
+                        🎨 Prompts para generar imágenes
+                      </div>
+                      <ImagePromptCard
+                        variations={(s as any).prompt_imagen_variations as PromptVariation[]}
+                        compact
+                      />
+                    </div>
                   )}
 
                   {hasFlag && (

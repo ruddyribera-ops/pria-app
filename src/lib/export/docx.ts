@@ -16,10 +16,27 @@ const toUint8Array = (buf: any): Uint8Array => {
   return new Uint8Array(buf);
 };
 
+export interface FuenteMetadata {
+  titulo: string;
+  autor?: string;
+  editorial?: string;
+  anio?: number;
+  paginasUsadas?: string;
+}
+
 export interface TeacherInfo {
   nombre?: string;
   email?: string;
   escuela?: string;
+  ciudad?: string;
+  grado?: string;
+  materia?: string;
+  anoEscolar?: string;
+  // NEW: institutional metadata for Bolivia
+  objetivoAprendizaje?: string;
+  duracionEstimadaMinutos?: number;
+  areaCurricular?: string;
+  fuente?: FuenteMetadata;
 }
 
 export type SlideData = {
@@ -63,7 +80,7 @@ function extractSlides(output: any, motorId: string): { title: string; slides: S
     const title = 'Diapositivas';
     const slides: SlideData[] = slidesOut.map((slide) => ({
       title: slide.titulo,
-      content: slide.texto_pantalla,
+      content: slide.texto_pantalla || slide.titulo || '',
       type: 'content' as const,
     }));
     return { title, slides };
@@ -72,11 +89,17 @@ function extractSlides(output: any, motorId: string): { title: string; slides: S
   if (isQuizOutput(output)) {
     const quiz = output as QuizOutput;
     const title = 'Pop Quiz';
-    const slides: SlideData[] = quiz.quiz.preguntas.map((pregunta) => ({
-      title: `Pregunta ${pregunta.numero}`,
-      content: pregunta.pregunta + (pregunta.opciones ? '\n\nOpciones:\n' + pregunta.opciones.join('\n') : ''),
-      type: 'content' as const,
-    }));
+    const slides: SlideData[] = quiz.quiz.preguntas.map((pregunta) => {
+      const letras = ['a', 'b', 'c', 'd', 'e'];
+      const opcionesTexto = pregunta.opciones?.length
+        ? '\n\nOpciones:\n' + pregunta.opciones.map((op, i) => `  ${letras[i] ?? String(i + 1)}) ${op}`).join('\n')
+        : '';
+      return {
+        title: `Pregunta ${pregunta.numero}`,
+        content: pregunta.pregunta + opcionesTexto,
+        type: 'content' as const,
+      };
+    });
     return { title, slides };
   }
 
@@ -141,6 +164,42 @@ export async function exportToDOCX(output: any, teacherInfo?: TeacherInfo): Prom
           children: [new TextRun({ text: [teacherInfo.email, teacherInfo.escuela].filter(Boolean).join(' · '), size: 16, color: '6B7280' })],
           alignment: AlignmentType.CENTER,
           spacing: { after: 120 },
+        }),
+      ] : []),
+    ] : []),
+    // Institutional metadata block
+    ...(teacherInfo && (teacherInfo.objetivoAprendizaje || teacherInfo.duracionEstimadaMinutos || teacherInfo.areaCurricular || teacherInfo.fuente?.titulo) ? [
+      new Paragraph({
+        children: [new TextRun({ text: '───────────────────────', size: 14, color: 'E5E5E0' })],
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 200, after: 100 },
+      }),
+      ...(teacherInfo.areaCurricular ? [
+        new Paragraph({
+          children: [new TextRun({ text: `📚 Área: ${teacherInfo.areaCurricular}`, size: 16, color: '6B7280' })],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 80 },
+        }),
+      ] : []),
+      ...(teacherInfo.duracionEstimadaMinutos ? [
+        new Paragraph({
+          children: [new TextRun({ text: `⏱ Duración: ${teacherInfo.duracionEstimadaMinutos} minutos`, size: 16, color: '6B7280' })],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 80 },
+        }),
+      ] : []),
+      ...(teacherInfo.objetivoAprendizaje ? [
+        new Paragraph({
+          children: [new TextRun({ text: `🎯 Objetivo: ${teacherInfo.objetivoAprendizaje.length > 120 ? teacherInfo.objetivoAprendizaje.slice(0, 117) + '...' : teacherInfo.objetivoAprendizaje}`, size: 16, color: '6B7280' })],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 80 },
+        }),
+      ] : []),
+      ...(teacherInfo.fuente?.titulo ? [
+        new Paragraph({
+          children: [new TextRun({ text: `📖 Fuente: ${teacherInfo.fuente.titulo}`, size: 16, color: '6B7280' })],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 80 },
         }),
       ] : []),
     ] : []),

@@ -19,6 +19,8 @@ export interface AiResult {
   error?: string;
   simulated?: boolean;
   fidelity?: FidelityReport;
+  quality?: unknown;
+  cultural?: unknown;
 }
 
 export interface FidelityWarning {
@@ -143,6 +145,8 @@ export async function callMinimax(
         output?: unknown;
         simulated?: boolean;
         fidelity?: FidelityReport;
+        quality?: unknown;
+        cultural?: unknown;
       };
       error?: string;
     };
@@ -154,12 +158,14 @@ export async function callMinimax(
     const output = data.data?.output;
     const simulated = data.data?.simulated === true;
     const fidelity = data.data?.fidelity;
+    const quality = data.data?.quality;
+    const cultural = data.data?.cultural;
     if (!output) {
       return { ok: false, text: '', error: 'Backend no devolvi output' };
     }
 
     // Serializar el output como JSON para mantener compatibilidad con AiResult.text
-    return { ok: true, text: JSON.stringify(output), simulated, fidelity };
+    return { ok: true, text: JSON.stringify(output), simulated, fidelity, quality, cultural };
   } catch (err: any) {
     const msg = err?.response?.data?.error
       || err?.message

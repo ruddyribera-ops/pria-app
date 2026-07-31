@@ -9,6 +9,8 @@
  * topic structure (Aprende boxes, quoted titles).
  */
 
+import type { IngestResult } from '../ingest/types';
+
 export interface Topic {
   id: string;
   unitId: string;
@@ -24,6 +26,8 @@ export interface Unit {
   id: string;
   number: number;
   name: string;
+  nombre?: string;
+  titulo?: string;
   fullName: string;
   pageStart?: number;
   pageEnd?: number;
@@ -511,7 +515,7 @@ export function populateTopicTexts(units: Unit[], cleanedText: string): Unit[] {
  */
 export function parseUnitsFromText(text: string): Unit[] {
   // 1. Find all unit markers "EN ESTA UNIDAD" or "UNIDAD N"
-  const unitRegex = /EN\s+ESTA\s+UNIDAD[:\s]+([^\n]+)|UNIDAD\s+(\d+)[:\s]+([^\n]+)/gi;
+  const unitRegex = /(?:EN\s+ESTA\s+UNIDAD|CAPÍTULO|TEMA\s+PRINCIPAL|TÍTULO\s+DE\s+LA\s+UNIDAD)[:\s]+([^\n]+)|UNIDAD\s+(\d+)\s*[.:\-—]?\s*([^\n]+)/gi;
   const unitMatches: { start: number; end: number; name: string; number: number }[] = [];
   let match;
   while ((match = unitRegex.exec(text)) !== null) {
@@ -553,9 +557,10 @@ function extractTopicsFromUnitText(text: string, unitNumber: number, unitName: s
 
   // Detect "Aprende" boxes (grammar topics)
   const aprendeRegex = />\s*Aprende\s*([^\n]+)/gi;
-  let match;
+  let match: RegExpExecArray | null;
   while ((match = aprendeRegex.exec(text)) !== null) {
     const topicName = match[1].trim();
+    const fullText = extractAroundAnchor(text, topicName, 2500);
     topics.push({
       id: `u${unitNumber}-t${topics.length + 1}`,
       unitId: `u${unitNumber}`,
@@ -563,8 +568,8 @@ function extractTopicsFromUnitText(text: string, unitNumber: number, unitName: s
       topicNumber: topics.length + 1,
       topicName,
       topicType: 'gramatica',
-      textExcerpt: match[0],
-      fullText: extractAprendeContext(text, match.index),
+      textExcerpt: fullText.slice(0, 500).replace(/\s+/g, ' ').trim(),
+      fullText,
     });
   }
 
@@ -573,6 +578,7 @@ function extractTopicsFromUnitText(text: string, unitNumber: number, unitName: s
   while ((match = lecturaRegex.exec(text)) !== null) {
     const title = match[1].trim();
     if (title.length > 8 && !topics.some((t) => t.topicName === title)) {
+      const fullText = extractAroundAnchor(text, title, 2500);
       topics.push({
         id: `u${unitNumber}-t${topics.length + 1}`,
         unitId: `u${unitNumber}`,
@@ -580,24 +586,54 @@ function extractTopicsFromUnitText(text: string, unitNumber: number, unitName: s
         topicNumber: topics.length + 1,
         topicName: title,
         topicType: 'lectura',
-        textExcerpt: match[0],
-        fullText: extractLecturaContext(text, match.index),
+        textExcerpt: fullText.slice(0, 500).replace(/\s+/g, ' ').trim(),
+        fullText,
       });
     }
+  }
+
+  // Detect lesson/topic markers: "LECCIÓN N:", "TEMA N:", "CAPÍTULO N:"
+  const lessonRegex = /(?:LECCIÓN|TEMA|CAPÍTULO)\s+(\d+)[:\s]+([^\n]+)/gi;
+  while ((match = lessonRegex.exec(text)) !== null) {
+    const topicName = `${match[1]}. ${match[2].trim()}`;
+    const lessonTitle = match[2].trim();
+    if (!topics.some((t) => t.topicName.includes(lessonTitle))) {
+      const fullText = extractAroundAnchor(text, match[2].trim(), 2500);
+      topics.push({
+        id: `u${unitNumber}-t${topics.length + 1}`,
+        unitId: `u${unitNumber}`,
+        unitName: `Unidad ${unitNumber}: ${unitName}`,
+        topicNumber: topics.length + 1,
+        topicName,
+        topicType: 'lectura',
+        textExcerpt: fullText.slice(0, 500).replace(/\s+/g, ' ').trim(),
+        fullText,
+      });
+    }
+  }
+
+  // Fallback: use first 5 substantial paragraphs as topics
+  if (topics.length === 0) {
+    const paragraphs = text.split(/\n+/).filter((p) => p.trim().length > 30);
+    paragraphs.slice(0, 6).forEach((para, idx) => {
+      const firstLine = para.split(/\n/)[0].slice(0, 80);
+      topics.push({
+        id: `u${unitNumber}-t${idx + 1}`,
+        unitId: `u${unitNumber}`,
+        unitName: `Unidad ${unitNumber}: ${unitName}`,
+        topicNumber: idx + 1,
+        topicName: firstLine,
+        topicType: 'lectura',
+        textExcerpt: para.slice(0, 500).replace(/\s+/g, ' ').trim(),
+        fullText: para,
+      });
+    });
   }
 
   return topics;
 }
 
-function extractAprendeContext(text: string, startPos: number): string {
-  // Get 2000 chars after the "Aprende" marker
-  return text.substring(startPos, startPos + 2000);
-}
 
-function extractLecturaContext(text: string, startPos: number): string {
-  // Get 3000 chars centered on the quote
-  return text.substring(Math.max(0, startPos - 500), startPos + 2500);
-}
 
 /**
  * Returns units for a given text. Uses generic detection first,
@@ -613,6 +649,66 @@ export function getUnitsForText(text: string, subjectHint?: string): Unit[] {
   if (subjectHint?.toLowerCase().includes('lenguaje')) {
     return getLenguajeUnits();
   }
+  return [];
+}
+
+/**
+ * NEW: Async function that uses the AI extractor first, falls back to regex + hardcoded map.
+ * Tries regex (fast path) first, then AI extraction, then hardcoded Lenguaje fallback.
+ */
+export async function extractUnitsWithAI(text: string, subjectHint?: string): Promise<Unit[]> {
+  // Try regex first (fast path) with the improved flexible regex
+  const regexUnits = parseUnitsFromText(text);
+  if (regexUnits.length > 0) {
+    return regexUnits;
+  }
+
+  // Fallback to AI extraction via Alpha-2 prompt
+  try {
+    const { extractCurriculumWithAI } = await import('../ingest/curriculumExtractor');
+
+    // Build a synthetic IngestResult from the raw text
+    const syntheticIngest: IngestResult = {
+      ok: true,
+      fullText: text,
+      texts: text.split(/\n+/).map((t, i) => ({ pageNumber: i + 1, text: t })),
+      metadata: { fileName: '', fileType: 'pdf', fileSize: 0, pageCount: 0, language: 'es' },
+      warnings: [],
+      tables: [],
+      images: [],
+    };
+
+    const curriculum = await extractCurriculumWithAI(syntheticIngest, subjectHint || 'Primaria');
+
+    if (curriculum.temas && curriculum.temas.length > 0) {
+      const units: Unit[] = [{
+        id: 'u1',
+        number: 1,
+        name: curriculum.unidad_real,
+        fullName: curriculum.unidad_real,
+        mainText: text.slice(0, 5000),
+        topics: curriculum.temas.map((tema, idx) => ({
+          id: `u1-t${idx + 1}`,
+          unitId: 'u1',
+          unitName: curriculum.unidad_real,
+          topicNumber: idx + 1,
+          topicName: tema,
+          topicType: 'lectura' as const,
+          textExcerpt: (curriculum.contenido_temas?.[tema] ?? '').slice(0, 200) || tema,
+          fullText: curriculum.contenido_temas?.[tema] || '',
+        })),
+      }];
+      return units;
+    }
+  } catch (err) {
+    console.warn('[extractUnitsWithAI] AI extraction failed:', err);
+  }
+
+  // Last fallback: hardcoded Lenguaje (only if subject hint matches)
+  if (subjectHint?.toLowerCase().includes('lenguaje')) {
+    return getLenguajeUnits();
+  }
+
   return [];
 }
 

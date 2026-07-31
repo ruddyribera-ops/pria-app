@@ -158,7 +158,10 @@ function getPgPoolRef(): pg.Pool {
       return null as unknown as pg.Pool;
     }
     const connectionString = dbUrl || 'postgresql://postgres:pria_local@localhost:5432/pria';
-    pgPoolRef = new Pool({ connectionString });
+    pgPoolRef = new Pool({
+      connectionString,
+      options: '-c client_encoding=UTF8',
+    });
   }
   return pgPoolRef;
 }

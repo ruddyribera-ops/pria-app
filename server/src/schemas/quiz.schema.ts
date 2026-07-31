@@ -5,13 +5,13 @@ const PreguntaQuizSchema = z.object({
   tipo: z.enum(['escrita', 'oral', 'visual', 'desafio']),
   pregunta: z.string(),
   opciones: z.array(z.string()).optional(),
-  respuesta: z.string().optional(),
+  respuesta: z.string().nullish(), // nullish permite null E undefined — necesario para preguntas orales/visuales sin respuesta de texto
 });
 
 const ClaveRespuestaSchema = z.object({
   pregunta: z.number(),
-  respuesta: z.string(),
-  explicacion: z.string(),
+  respuesta: z.string().nullish(),
+  explicacion: z.string().nullish(),
 });
 
 export const QuizSchema = z.object({

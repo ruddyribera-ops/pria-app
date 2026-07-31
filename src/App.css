@@ -139,6 +139,52 @@ tbody tr:hover td {
   }
 }
 
+/* AppLayout — sidebar is position:fixed, so main content offsets via margin.
+   Block flow (not grid) avoids the overlap bug where the fixed sidebar
+   floated over the grid's reserved first column. */
+.app-layout {
+  min-height: 100vh;
+}
+
+.app-layout-banner {
+  margin-left: var(--sidebar-width, 260px);
+  background: #fef3c7;
+  border-bottom: 1px solid #fbbf24;
+  padding: 0.5rem 1.5rem;
+  font-size: 0.8125rem;
+  color: #92400e;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-layout-main {
+  padding: 1.75rem 2.25rem;
+  min-height: 100vh;
+  background: #ffffff;
+  box-sizing: border-box;
+  /* Offset for the fixed sidebar (260px). Block flow auto-fills the
+     remaining width — no explicit width needed, which also avoids the
+     100vw-scrollbar-overflow bug. */
+  margin-left: var(--sidebar-width, 260px);
+}
+
+@media (max-width: 768px) {
+  /* Sidebar slides off-screen (translateX(-100%) via Sidebar.module.css),
+     so main content goes full-width and the hamburger menu takes over. */
+  .app-layout-banner {
+    margin-left: 0;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+  }
+
+  .app-layout-main {
+    margin-left: 0;
+    padding: 1rem;
+  }
+}
+
 
 @keyframes spin {
   to { transform: rotate(360deg); }

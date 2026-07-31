@@ -15,9 +15,12 @@ import DocumentEditor from './DocumentEditor';
 import { useSlideEditor } from './useSlideEditor';
 import { applyEditsToDocument } from './documentMapper';
 import { buildSlideDeck } from '../../lib/pptx/generator';
-import type { SlideContent } from '../../lib/pptx/types';
+import { mergedToSlideContent } from '../../lib/pptx/mergedToSlideContent';
 import { getPalette } from '../../lib/pptx/designSystem';
 import { useToast } from '../UI/Toast';
+import RegenerateSlideModal from './RegenerateSlideModal';
+import { regenerateSlide } from '../../api/slides';
+import type { EditorSlide } from './types';
 
 /** The shape produced by mergePhaseResults() */
 export interface MergedData {
@@ -29,6 +32,16 @@ export interface MergedData {
   activities: Array<{ title: string; instructions?: string; questions?: Array<{ text: string; options?: string[] }> }>;
   copyBoxes: string[];
   paginas?: string;
+  /** Raw slides array from slides motor */
+  slides?: Array<{
+    numero: number;
+    tipo: string;
+    titulo: string;
+    texto_pantalla?: string;
+    guion_docente?: string;
+    prompt_imagen?: string;
+    callout?: string;
+  }>;
   [key: string]: unknown;
 }
 
@@ -38,9 +51,13 @@ interface SlideEditorPanelProps {
   filenameExtra?: string;
   motorType?: 'slides' | 'plan' | 'ficha' | 'quiz' | 'pdc' | 'synthesis';
   resultId?: number | null;
+  /** Raw slides output from motor, used to extract prompt_imagen_variations */
+  slidesOutput?: SlidesOutput;
   onSave?: (resultId: number, data: MergedData) => Promise<void>;
   onClear?: () => void;
 }
+
+import type { SlidesOutput } from '../../types/motor-types';
 
 const DOC_TYPE_LABELS: Record<string, string> = {
   plan: 'Plan de Clase',
@@ -51,7 +68,7 @@ const DOC_TYPE_LABELS: Record<string, string> = {
 };
 
 export default function SlideEditorPanel({
-  mergedData, typeLabel, filenameExtra, motorType = 'slides', resultId, onSave, onClear,
+  mergedData, typeLabel, filenameExtra, motorType = 'slides', resultId, slidesOutput, onSave, onClear,
 }: SlideEditorPanelProps) {
   const [downloading, setDownloading] = useState(false);
   const [previewScale, setPreviewScale] = useState(0.6);
@@ -61,14 +78,17 @@ export default function SlideEditorPanel({
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Regenerate modal state
+  const [regenerating, setRegenerating] = useState(false);
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
   const { showToast } = useToast();
 
   const isSlides = motorType === 'slides';
   const palette = useMemo(() => getPalette(mergedData.subject || 'Matemáticas'), [mergedData.subject]);
   const docLabel = DOC_TYPE_LABELS[motorType] || typeLabel;
 
-  // Slides-only: carousel editor
-  const editor = useSlideEditor(isSlides ? mergedData : null);
+  // Slides-only: carousel editor — pass slidesOutput for prompt_variations
+  const editor = useSlideEditor(isSlides ? mergedData : null, isSlides ? slidesOutput : undefined);
 
   const hasEdits = isSlides ? editor.hasEdits : Object.keys(docEdits).length > 0;
 
@@ -106,9 +126,12 @@ export default function SlideEditorPanel({
         ? editor.getEditedData()
         : applyEditsToDocument(mergedData, docEdits);
 
-      const blob = await buildSlideDeck(finalData as unknown as SlideContent, subject);
+      // Transform MergedData (flat) → SlideContent (nested, what buildSlideDeck expects)
+      const slideContent = mergedToSlideContent(finalData);
 
-      const safeTitle = (finalData.title || typeLabel)
+      const blob = await buildSlideDeck(slideContent, subject);
+
+      const safeTitle = (slideContent.cover?.title || typeLabel)
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_').slice(0, 30);
       const safeType = typeLabel.replace(/\s/g, '_');
@@ -138,6 +161,60 @@ export default function SlideEditorPanel({
     }
     onClear?.();
   }, [editor, isSlides, onClear]);
+
+  /** Convert EditorSlide to raw slide object for the regenerate API */
+  const editorSlideToRawSlide = useCallback((slide: EditorSlide): Record<string, unknown> => {
+    const titleEl = slide.elements.find(el => el.type === 'title');
+    const textEls = slide.elements.filter(el => el.type === 'text');
+    const textoPantalla = textEls.map(el => el.content).join('\n');
+
+    const tipoMap: Record<string, string> = {
+      cover: 'portada',
+      objectives: 'objetivos',
+      content: 'concepto',
+      activity: 'concepto',
+      copy: 'concepto',
+    };
+
+    return {
+      numero: slide.number,
+      tipo: tipoMap[slide.type] || 'concepto',
+      titulo: titleEl?.content || slide.label || '',
+      texto_pantalla: textoPantalla || null,
+      guion_docente: null,
+      prompt_imagen: slide.promptVariations?.[0]?.prompt || null,
+    };
+  }, []);
+
+  /** Handle regeneration: call API, update local slide, show toast */
+  const handleRegenerate = useCallback(async (feedback: string) => {
+    if (!resultId || !editor.currentSlide) return;
+
+    const rawSlide = editorSlideToRawSlide(editor.currentSlide);
+    setRegenerating(true);
+    try {
+      const result = await regenerateSlide(resultId, editor.currentIndex, feedback, rawSlide);
+      // Update the local editor slide with the new content via updateSlideAt
+      const newSlide = result.slide;
+      const updatedEditorSlide: EditorSlide = {
+        ...editor.currentSlide,
+        label: newSlide.titulo,
+        elements: [
+          { id: 'cover-title', type: 'title', content: newSlide.titulo },
+          { id: 'cover-subtitle', type: 'text', content: newSlide.texto_pantalla || '' },
+        ],
+      };
+      editor.updateSlideAt(editor.currentIndex, updatedEditorSlide);
+      showToast('✅ Slide regenerada', 'success');
+      setShowRegenerateModal(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al regenerar slide';
+      showToast(`❌ ${msg}`, 'error');
+      throw err; // Re-throw so modal shows error
+    } finally {
+      setRegenerating(false);
+    }
+  }, [resultId, editor, editorSlideToRawSlide, showToast]);
 
   const zoomIn = () => setPreviewScale(s => Math.min(s + 0.1, 1.2));
   const zoomOut = () => setPreviewScale(s => Math.max(s - 0.1, 0.3));
@@ -281,6 +358,28 @@ export default function SlideEditorPanel({
               {isSaving ? '⏳ Guardando...' : '💾 Guardar'}
             </button>
           )}
+          {isSlides && resultId && (
+            <button
+              type="button"
+              onClick={() => setShowRegenerateModal(true)}
+              disabled={regenerating}
+              style={{
+                padding: '0.5rem 0.75rem',
+                border: '1px solid #e6e6eb',
+                borderRadius: '4px',
+                background: regenerating ? '#f0f9f4' : '#fff',
+                color: regenerating ? '#3A9E5E' : '#6b6b80',
+                fontSize: '0.75rem',
+                cursor: regenerating ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+              }}
+              title="Regenerar esta slide con feedback del docente"
+            >
+              {regenerating ? '⏳ Regenerando...' : '🔄 Regenerar esta slide'}
+            </button>
+          )}
           <button type="button" onClick={handleDownload} disabled={downloading} style={{
             padding: '0.5rem 1.25rem',
             background: downloading ? '#b3b3cc' : '#3A9E5E',
@@ -293,6 +392,18 @@ export default function SlideEditorPanel({
           </button>
         </div>
       </div>
+
+      {/* ── Regenerate Slide Modal ── */}
+      {showRegenerateModal && editor.currentSlide && (
+        <RegenerateSlideModal
+          slideIndex={editor.currentIndex}
+          totalSlides={editor.totalSlides}
+          currentSlide={editor.currentSlide}
+          onRegenerate={handleRegenerate}
+          onClose={() => setShowRegenerateModal(false)}
+          isRegenerating={regenerating}
+        />
+      )}
     </div>
   );
 }

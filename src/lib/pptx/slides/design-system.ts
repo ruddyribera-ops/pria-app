@@ -186,7 +186,7 @@ export const TIPO_TEMPLATES: Record<string, TipoTemplate> = {
     showPageNumber: false,
   },
   objetivos: {
-    badgeText: '🎯 OBJETIVOS',
+    badgeText: 'OBJETIVOS',
     badgeColor: 'primary',
     titlePosition: 'left',
     decorations: 'none',
@@ -194,7 +194,7 @@ export const TIPO_TEMPLATES: Record<string, TipoTemplate> = {
     showPageNumber: true,
   },
   concepto: {
-    badgeText: '💡 CONCEPTO',
+    badgeText: 'CONCEPTO',
     badgeColor: 'secondary',
     titlePosition: 'left',
     decorations: 'none',
@@ -202,7 +202,7 @@ export const TIPO_TEMPLATES: Record<string, TipoTemplate> = {
     showPageNumber: true,
   },
   pausa: {
-    badgeText: '🎬 PAUSA ACTIVA',
+    badgeText: 'PAUSA ACTIVA',
     badgeColor: 'accent',
     titlePosition: 'left',
     decorations: 'dots',
@@ -210,7 +210,7 @@ export const TIPO_TEMPLATES: Record<string, TipoTemplate> = {
     showPageNumber: true,
   },
   cierre: {
-    badgeText: '🎉 LO QUE APRENDIMOS',
+    badgeText: 'LO QUE APRENDIMOS',
     badgeColor: 'warm',
     titlePosition: 'left',
     decorations: 'wave',

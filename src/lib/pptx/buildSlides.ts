@@ -43,6 +43,9 @@ export async function buildSlideDeck(
   const pptx = new PptxGenJS();
   pptx.defineLayout({ name: 'WIDE', width: SLIDE_W, height: SLIDE_H });
   pptx.layout = 'WIDE';
+  pptx.title = content.cover.title || 'Presentación Educativa';
+  pptx.author = 'PRIA v10';
+  pptx.subject = subject || 'Contenido Educativo';
 
   const pal = getPalette(subject);
   let slideNum = 0;
@@ -162,7 +165,7 @@ function addObjectivesSlide(
   });
 
   // Title
-  slide.addText('🎯 Objetivos de Aprendizaje', {
+  slide.addText('Objetivos de Aprendizaje', {
     x: MARGIN, y: 0.4, w: CONTENT_W, h: 0.6,
     fontSize: FONT_SIZES.slideTitle,
     fontFace: TITLE_FONT,
@@ -295,7 +298,7 @@ function addContentSlide(
       rectRadius: CARD_RADIUS,
     });
 
-    slide.addText(`📝 ${slideContent.copyToNotebook}`, {
+    slide.addText(`Apunte: ${slideContent.copyToNotebook}`, {
       x: MARGIN + 0.3, y: yPos, w: CONTENT_W - 0.6, h: boxH,
       fontSize: FONT_SIZES.bodySmall, fontFace: FONTS.body,
       color: '#92400E', align: 'left', valign: 'middle',

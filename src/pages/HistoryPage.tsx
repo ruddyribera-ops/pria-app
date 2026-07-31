@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useMotorHistory } from '../hooks/useMotorHistory';
 import { useToast } from '../components/UI/Toast';
+import QualityBadge from '../components/Quality/QualityBadge';
+import type { QualityScore } from '../components/Quality/QualityBadge';
 import styles from './HistoryPage.module.css';
 
 const MOTOR_ICONS: Record<string, string> = {
@@ -16,6 +18,7 @@ const MOTOR_ICONS: Record<string, string> = {
   pdc: '📅',
   recalibrate: '🔄',
   micro: '🎯',
+  source_narrator: '📜',
 };
 
 const MOTOR_LABELS: Record<string, string> = {
@@ -31,6 +34,7 @@ const MOTOR_LABELS: Record<string, string> = {
   pdc: 'PDC Trimestral',
   recalibrate: 'Recalibración',
   micro: 'Micro-Objetivos',
+  source_narrator: 'Narrador',
 };
 
 const MOTOR_OPTIONS = [
@@ -47,6 +51,7 @@ const MOTOR_OPTIONS = [
   { value: 'pdc', label: '📅 PDC Trimestral' },
   { value: 'recalibrate', label: '🔄 Recalibración' },
   { value: 'micro', label: '🎯 Micro-Objetivos' },
+  { value: 'source_narrator', label: '📜 Narrador' },
 ];
 
 const PAGE_SIZE = 20;
@@ -63,6 +68,19 @@ function formatDate(dateStr: string): string {
     });
   } catch {
     return dateStr;
+  }
+}
+
+function parseQuality(resultJsonPreview: string | null): QualityScore | null {
+  if (!resultJsonPreview) return null;
+  try {
+    const parsed = JSON.parse(resultJsonPreview);
+    if (parsed && typeof parsed === 'object' && typeof parsed.quality === 'object' && typeof parsed.quality.overall === 'number') {
+      return parsed.quality as QualityScore;
+    }
+    return null;
+  } catch {
+    return null;
   }
 }
 
@@ -142,6 +160,7 @@ export default function HistoryPage() {
               const label = MOTOR_LABELS[entry.motor_type] ?? entry.motor_type;
               const isExpanded = expandedId === entry.id;
               const isSimulated = entry.simulated === true;
+              const quality = parseQuality(entry.result_json_preview);
 
               return (
                 <div key={entry.id} className={styles.entryCard}>
@@ -169,6 +188,9 @@ export default function HistoryPage() {
                         <span className={`${styles.badge} ${styles.badgeReal}`}>
                           ✅ Real
                         </span>
+                      )}
+                      {quality && (
+                        <QualityBadge quality={quality} compact />
                       )}
                       <span className={styles.expandIcon}>
                         {isExpanded ? '▲' : '▼'}

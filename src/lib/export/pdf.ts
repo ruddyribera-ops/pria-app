@@ -5,10 +5,27 @@
 
 import type { SlidesOutput, PlanOutput, SynthesisOutput, QuizOutput } from '../../types/motor-types';
 
+export interface FuenteMetadata {
+  titulo: string;
+  autor?: string;
+  editorial?: string;
+  anio?: number;
+  paginasUsadas?: string;
+}
+
 export interface TeacherInfo {
   nombre?: string;
   email?: string;
   escuela?: string;
+  ciudad?: string;
+  grado?: string;
+  materia?: string;
+  anoEscolar?: string;
+  // NEW: institutional metadata for Bolivia
+  objetivoAprendizaje?: string;
+  duracionEstimadaMinutos?: number;
+  areaCurricular?: string;
+  fuente?: FuenteMetadata;
 }
 
 export type SlideData = {
@@ -52,7 +69,7 @@ function extractSlides(output: any, motorId: string): { title: string; slides: S
     const title = 'Diapositivas';
     const slides: SlideData[] = slidesOut.map((slide) => ({
       title: slide.titulo,
-      content: slide.texto_pantalla,
+      content: slide.texto_pantalla || slide.titulo || '',
       type: 'content' as const,
     }));
     return { title, slides };
@@ -61,11 +78,17 @@ function extractSlides(output: any, motorId: string): { title: string; slides: S
   if (isQuizOutput(output)) {
     const quiz = output as QuizOutput;
     const title = 'Pop Quiz';
-    const slides: SlideData[] = quiz.quiz.preguntas.map((pregunta) => ({
-      title: `Pregunta ${pregunta.numero}`,
-      content: pregunta.pregunta + (pregunta.opciones ? '\n\nOpciones:\n' + pregunta.opciones.join('\n') : ''),
-      type: 'content' as const,
-    }));
+    const slides: SlideData[] = quiz.quiz.preguntas.map((pregunta) => {
+      const letras = ['a', 'b', 'c', 'd', 'e'];
+      const opcionesTexto = pregunta.opciones?.length
+        ? '\n\nOpciones:\n' + pregunta.opciones.map((op, i) => `  ${letras[i] ?? String(i + 1)}) ${op}`).join('\n')
+        : '';
+      return {
+        title: `Pregunta ${pregunta.numero}`,
+        content: pregunta.pregunta + opcionesTexto,
+        type: 'content' as const,
+      };
+    });
     return { title, slides };
   }
 
@@ -139,9 +162,42 @@ export async function exportToPDF(output: any, teacherInfo?: TeacherInfo): Promi
     teacherY += 16;
   }
 
+  // Institutional metadata block (only show if any field is present)
+  if (teacherInfo && (teacherInfo.objetivoAprendizaje || teacherInfo.duracionEstimadaMinutos || teacherInfo.areaCurricular || teacherInfo.fuente?.titulo)) {
+    let metaY = teacherY + (teacherInfo.nombre ? 30 : 10);
+
+    // Thin separator line
+    pdf.setDrawColor(230, 230, 230);
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, metaY - 5, pageW - margin, metaY - 5);
+
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(100, 100, 100);
+
+    if (teacherInfo.areaCurricular) {
+      pdf.text(`📚 Área: ${teacherInfo.areaCurricular}`, margin, metaY);
+      metaY += 14;
+    }
+    if (teacherInfo.duracionEstimadaMinutos) {
+      pdf.text(`⏱ Duración: ${teacherInfo.duracionEstimadaMinutos} minutos`, margin, metaY);
+      metaY += 14;
+    }
+    if (teacherInfo.objetivoAprendizaje) {
+      const objetivo = teacherInfo.objetivoAprendizaje.length > 120
+        ? teacherInfo.objetivoAprendizaje.slice(0, 117) + '...'
+        : teacherInfo.objetivoAprendizaje;
+      pdf.text(`🎯 Objetivo: ${objetivo}`, margin, metaY);
+      metaY += 14;
+    }
+    if (teacherInfo.fuente?.titulo) {
+      pdf.text(`📖 Fuente: ${teacherInfo.fuente.titulo}`, margin, metaY);
+    }
+  }
+
   pdf.setFontSize(11);
   pdf.setTextColor(150, 150, 150);
-  pdf.text(`${slides.length} sección${slides.length !== 1 ? 'es' : ''}`, margin, teacherY + (teacherInfo?.nombre ? 20 : 0));
+  pdf.text(`${slides.length} sección${slides.length !== 1 ? 'es' : ''}`, margin, teacherY + (teacherInfo?.nombre ? 20 : 0) + 40);
 
   // Slides
   for (let i = 0; i < slides.length; i++) {

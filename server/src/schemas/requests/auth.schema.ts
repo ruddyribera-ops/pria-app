@@ -18,6 +18,7 @@ export const RegisterSchema = z.object({
   nombre: z.string().min(2).max(100),
   nivel: z.enum(['Primaria', 'Secundaria']).optional(),
   grado: z.string().optional(),
+  teacher_code: z.string().optional(),
 });
 
 export const UpdateMeSchema = z.object({

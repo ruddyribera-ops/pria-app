@@ -38,6 +38,7 @@ export default function AdminUsuariosPanel({ showToast }: Props) {
       await createUser({
         username: newUser.usuario,
         nombre: newUser.nombre,
+        correo: newUser.correo,
         role: newUser.rol,
         password: newUser.contrasena,
         teacher_code: newUser.usuario.toUpperCase(),
@@ -122,7 +123,7 @@ export default function AdminUsuariosPanel({ showToast }: Props) {
 
       {/* Create User Form */}
       <div style={{ background: '#fff', border: '1px solid #e6e6eb', borderRadius: '8px', padding: '1.25rem' }}>
-        <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1e1e2f', marginBottom: '1rem' }}>➕ Crear Nuevo Usuario</h4>
+        <h2 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1e1e2f', marginBottom: '1rem' }}>➕ Crear Nuevo Usuario</h2>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <div>
             <label htmlFor="new-user-nombre" className={styles.adminLabel}>Nombre Completo</label>
