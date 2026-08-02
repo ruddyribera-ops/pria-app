@@ -1,25 +1,40 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest';
 
 // Mock docx library
+// NOTE: implementations use `function` (not arrow) because the SUT calls these
+// as constructors (`new Document(...)`, `new Paragraph(...)`, etc.).
+// `vi.fn().mockImplementation(() => ({}))` uses an arrow which throws
+// "X is not a constructor" when `new`'d, masking test results.
 vi.mock('docx', () => ({
-  Document: vi.fn().mockImplementation(() => ({})),
+  Document: vi.fn().mockImplementation(function () { return {}; }),
   Packer: {
     toBuffer: vi.fn().mockResolvedValue(new Uint8Array([80, 75, 3, 4])), // PK header for ZIP/DOCX
   },
-  Paragraph: vi.fn().mockImplementation(() => ({})),
+  Paragraph: vi.fn().mockImplementation(function () { return {}; }),
   HeadingLevel: { TITLE: 'title' },
-  TextRun: vi.fn().mockImplementation(() => ({})),
+  TextRun: vi.fn().mockImplementation(function () { return {}; }),
   AlignmentType: { CENTER: 'center' },
-  Footer: vi.fn().mockImplementation(() => ({})),
+  Footer: vi.fn().mockImplementation(function () { return {}; }),
   PageNumber: { CURRENT: 'current' },
 }));
 
-// Mock globalThis.Buffer
-;(globalThis as any).Buffer = {
-  isBuffer: (obj: any) => obj instanceof Uint8Array === false && ArrayBuffer.isView(obj) === false,
-};
-
 describe('export/docx', () => {
+  // Stub globalThis.Buffer for the lifetime of this file only.
+  // The previous version did a module-level assignment that leaked across
+  // the whole Vitest worker, breaking other tests with
+  // "TypeError: Right-hand side of 'instanceof' is not callable".
+  // `vi.stubGlobal` records the original so `unstubAllGlobals` can restore it.
+  beforeAll(() => {
+    vi.stubGlobal('Buffer', {
+      isBuffer: (obj: any) =>
+        obj instanceof Uint8Array === false && ArrayBuffer.isView(obj) === false,
+    });
+  });
+
+  afterAll(() => {
+    vi.unstubAllGlobals();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
