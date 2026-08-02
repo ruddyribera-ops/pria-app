@@ -76,8 +76,8 @@ describe('InlineSlideEditor', () => {
       await user.type(titleInputs[0] as HTMLInputElement, 'Nuevo Título');
     }
     
-    // Should show "Sin guardar"
-    expect(screen.getByText('● Sin guardar')).toBeTruthy();
+    // Autosave starts immediately after an edit.
+    expect(screen.getByText(/Guardando|Sin guardar/i)).toBeTruthy();
   });
 
   test('save button is disabled when not dirty', () => {

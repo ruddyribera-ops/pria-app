@@ -4,18 +4,24 @@
 import '@testing-library/jest-dom';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '../../../components/UI/Toast';
 import { AuthProvider } from '../../../context/AuthContext';
+import { TOKEN_KEY, USER_KEY } from '../../../constants';
 import AdminPage from '../../AdminPage';
 
-// mockUser intentionally unused — reserved for future test scenarios
-void ({ id: 1, username: 'admin', nombre: 'Admin Test', teacher_code: 'ADMIN', nivel: 'Secundaria', grado: '3er año', role: 'admin' as const });
+const mockUser = { id: 1, username: 'admin', nombre: 'Admin Test', teacher_code: 'ADMIN', nivel: 'Secundaria', grado: '3er año', role: 'admin' as const };
 
 const renderWithProviders = (ui: React.ReactElement) => {
+  localStorage.setItem(TOKEN_KEY, 'admin-token');
+  localStorage.setItem(USER_KEY, JSON.stringify(mockUser));
+
   return render(
-    <AuthProvider>
-      <ToastProvider>{ui}</ToastProvider>
-    </AuthProvider>
+    <MemoryRouter>
+      <AuthProvider>
+        <ToastProvider>{ui}</ToastProvider>
+      </AuthProvider>
+    </MemoryRouter>
   );
 };
 
@@ -28,6 +34,6 @@ describe('AdminPage', () => {
 
   it('renders file browser section', () => {
     renderWithProviders(<AdminPage />);
-    expect(screen.getByText(/planificaciones/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /archivos fuente/i })).toBeInTheDocument();
   });
 });

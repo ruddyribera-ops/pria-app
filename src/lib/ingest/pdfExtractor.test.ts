@@ -41,8 +41,7 @@ describe('pdfExtractor', () => {
     const mockPage = {
       getTextContent: vi.fn().mockResolvedValue({
         items: [
-          { str: 'Hello' },
-          { str: 'World' },
+          { str: 'Hello World. This page contains enough text to use the PDF text layer without OCR.' },
         ],
       }),
       getViewport: vi.fn().mockReturnValue({ width: 100, height: 100 }),

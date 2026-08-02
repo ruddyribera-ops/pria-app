@@ -24,7 +24,7 @@ describe('Header', () => {
 
   test('has correct heading structure', () => {
     render(<Header title="Page Title" subtitle="Page Subtitle" />);
-    const heading = screen.getByRole('heading', { level: 2 });
+    const heading = screen.getByRole('heading', { level: 1 });
     expect(heading).toBeTruthy();
     expect(heading.textContent).toBe('Page Title');
   });

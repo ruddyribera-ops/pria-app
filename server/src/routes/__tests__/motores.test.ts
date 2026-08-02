@@ -1,9 +1,12 @@
 /**
  * @vitest-environment node
  */
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import http from 'http';
-import { createApp } from '../../app.js';
+
+vi.stubEnv('MINIMAX_API_KEY', '');
+
+const { createApp } = await import('../../app.js');
 import { initDatabase, closePool, getPoolClient } from '../../db/connection.js';
 import { initDB } from '../../db/schema.js';
 import bcrypt from 'bcryptjs';
