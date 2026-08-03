@@ -11,4 +11,5 @@ Thumbs.db
 *.db
 test-results/
 server/uploads/
+uploads/
 
