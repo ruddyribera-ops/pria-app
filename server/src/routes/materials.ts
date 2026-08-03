@@ -7,6 +7,28 @@ import { authMiddleware } from '../middleware/auth.js';
 import type { AuthRequest } from '../types/express.js';
 import { dbAll, dbRun, dbGet } from '../db/schema.js';
 import crypto from 'crypto';
+import { promises as fsp, existsSync, unlinkSync } from 'fs';
+
+/**
+ * Compute SHA-256 of a file on disk. Uses async read to avoid blocking the
+ * event loop on 50MB max uploads. Returns lowercase hex digest.
+ */
+async function sha256File(filePath: string): Promise<string> {
+  const buf = await fsp.readFile(filePath);
+  return crypto.createHash('sha256').update(buf).digest('hex');
+}
+
+/** Best-effort delete of an uploaded file after a dedup hit. Never throws. */
+function safeUnlink(filePath: string | null | undefined): void {
+  if (!filePath) return;
+  if (!existsSync(filePath)) return;
+  try {
+    unlinkSync(filePath);
+  } catch (err) {
+    // Original material is still good — log and move on.
+    console.warn('[materials] failed to remove duplicate upload:', (err as Error).message);
+  }
+}
 
 const router = Router();
 router.use(authMiddleware);
@@ -29,16 +51,55 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 });
 
 // ── POST /api/materials ──────────────────────────────────────────────────────
+// Accepts multipart/form-data (real file upload) OR application/json (metadata only).
+// When a file is uploaded, compute its SHA-256 and short-circuit if the same
+// content was already uploaded by this user. The duplicate file is removed
+// from disk; the existing material record is returned with `duplicate: true`.
 router.post('/', upload.single('file'), async (req: AuthRequest, res: Response) => {
   const { tipo } = req.body;
   const originalName = req.file?.originalname ?? req.body.filename ?? 'Sin nombre';
   const storedName = req.file?.filename ?? null;
+  const filePath = req.file?.path ?? null;
   const size = req.file?.size ?? (Number(req.body.size) || 0);
+
+  // Only compute a hash when a real file was uploaded (multipart path).
+  // JSON-only creates get content_hash = NULL — they cannot dedup against anything.
+  let contentHash: string | null = null;
+  if (filePath) {
+    contentHash = await sha256File(filePath);
+  }
+
+  // Dedup check: same user + same content_hash → return existing record.
+  if (contentHash) {
+    const existing = await dbGet(
+      'SELECT * FROM materials WHERE user_id = $1 AND content_hash = $2',
+      [req.user!.id, contentHash]
+    );
+    if (existing) {
+      safeUnlink(filePath);
+      return res.json({
+        data: {
+          id: existing.id,
+          filepath: existing.filepath,
+          created: existing.created_at,
+          duplicate: true,
+        },
+      });
+    }
+  }
+
   const info = await dbRun(
-    'INSERT INTO materials (user_id, filename, tipo, size, filepath) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-    [req.user!.id, originalName, tipo || 'textbook', size, storedName]
+    'INSERT INTO materials (user_id, filename, tipo, size, filepath, content_hash) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+    [req.user!.id, originalName, tipo || 'textbook', size, storedName, contentHash]
   );
-  res.json({ data: { id: info.id, filepath: storedName, created: new Date().toISOString() } });
+  res.json({
+    data: {
+      id: info.id,
+      filepath: storedName,
+      created: new Date().toISOString(),
+      duplicate: false,
+    },
+  });
 });
 
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
