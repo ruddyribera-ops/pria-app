@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import styles from './ResetPassword.module.css';
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
+  const params = useParams<{ token?: string }>();
   const navigate = useNavigate();
-  const token = searchParams.get('token') || '';
+  // Token can arrive either as a URL path param (/:token) or as a ?token=
+  // query string. Path param wins if both are present.
+  const token = params.token || searchParams.get('token') || '';
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -43,6 +46,26 @@ export default function ResetPasswordPage() {
     setIsSubmitting(true);
     setError(null);
     try {
+      // Spec: verify the token first so we surface a clear "expired/used"
+      // error before attempting the password update. The reset endpoint
+      // also does its own atomic check, so this is purely for UX.
+      const verifyRes = await fetch('/api/auth/verify-reset-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      if (verifyRes.ok) {
+        const v = await verifyRes.json() as { valid?: boolean; expired?: boolean; used?: boolean };
+        if (!v.valid) {
+          const reason = v.expired
+            ? 'El enlace ha expirado. Solicita uno nuevo.'
+            : v.used
+              ? 'Este enlace ya fue utilizado.'
+              : 'Enlace inválido. Solicita uno nuevo.';
+          throw new Error(reason);
+        }
+      }
+
       const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

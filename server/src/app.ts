@@ -25,7 +25,6 @@ import curriculumsRouter from './routes/curriculums.js';
 import aiRouter from './routes/ai.js';
 import blocksRouter from './routes/blocks.js';
 import promptsRouter from './routes/prompts.js';
-import passwordResetRouter from './routes/password-reset.js';
 import { authMiddleware } from './middleware/auth.js';
 import path from 'path';
 
@@ -118,7 +117,6 @@ export async function createApp() {
   // Routes
   app.use('/api/health', healthRouter);
   app.use('/api/auth', authRouter);
-  app.use('/api/auth', passwordResetRouter);  // forgot-password + reset-password
   app.use('/api/admin', adminRouter);
   app.use('/api/materials', materialsRouter);
   app.use('/api/exports', exportsRouter);

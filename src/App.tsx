@@ -61,6 +61,7 @@ export default function App() {
               <Route path="/login" element={withErrorBoundary(<LoginPage />, 'Iniciar Sesión')} />
               <Route path="/forgot-password" element={withErrorBoundary(<ForgotPasswordPage />, 'Restablecer Contraseña')} />
               <Route path="/reset-password" element={withErrorBoundary(<ResetPasswordPage />, 'Nueva Contraseña')} />
+              <Route path="/reset-password/:token" element={withErrorBoundary(<ResetPasswordPage />, 'Nueva Contraseña')} />
 
               {/* Protected — AppLayout provides sidebar + outlet */}
               <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
