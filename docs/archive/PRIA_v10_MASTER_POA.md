@@ -317,7 +317,7 @@ Current `api_contract.json` is stale. Update it with actual request/response sha
 
 ### Build & Deploy
 - [ ] `npm run build` succeeds (0 errors)
-- [ ] `npm run test` passes (27+ tests green)
+- [x] `npm run test` passes (634/634 tests, 0 failing) — completed 2026-08-03 via commits 6b7083f, 23016a5, bbaa2be, 58a2e5f, e97e344, 0ead0a3
 - [ ] Railway deploy succeeds
 - [ ] Railway smoke test passes (login → material → export)
 
