@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "react-router"
+        # GHSA-qwww-vcr4-c8h2: RSC CSRF, only affects RSC APIs
+        # Project uses Declarative Mode (<BrowserRouter>), no RSC
+      - dependency-name: "react-router-dom"
+        # Same advisory, same justification
